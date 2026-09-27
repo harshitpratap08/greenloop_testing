@@ -103,24 +103,31 @@ export function useAppRole(): [AppRole, (role: AppRole) => void] {
 /* Guided workflow rail — the project's progress path                 */
 /* ------------------------------------------------------------------ */
 
-export function WorkflowRail({ projectId }: { projectId: string }) {
+export function WorkflowRail({ projectId, compact = false, inverse = false }: { projectId: string; compact?: boolean; inverse?: boolean }) {
   const { dataset } = useGreenLoopStore();
   const steps = projectSteps(dataset, projectId);
   const current = currentStepIndex(steps);
   const done = current >= STEP_LABELS.length;
 
   return (
-    <ol className="flex flex-wrap items-center gap-x-2 gap-y-2" aria-label="Project progress">
+    <ol className={cn("flex flex-wrap items-center gap-x-2 gap-y-2", compact && "gap-x-1.5 gap-y-1")} aria-label="Project progress">
       {STEP_LABELS.map((label, index) => {
+        const displayLabel = compact
+          ? label === "Find receiver"
+            ? "Match"
+            : label === "Book capacity"
+              ? "Reserve"
+              : label
+          : label;
         const complete = index < current;
         const active = index === current;
         return (
-          <li key={label} className="flex items-center gap-2">
+          <li key={label} className={cn("flex items-center gap-2", compact && "gap-1.5")}>
             {index > 0 && (
               <span
                 aria-hidden="true"
                 className={cn(
-                  "h-px w-4 sm:w-6",
+                  compact ? "h-px w-2.5 sm:w-3" : "h-px w-4 sm:w-6",
                   complete || active ? "bg-loop-500" : "bg-gray-300 dark:bg-gray-700",
                 )}
               />
@@ -129,8 +136,8 @@ export function WorkflowRail({ projectId }: { projectId: string }) {
               className={cn(
                 "flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-semibold leading-none",
                 complete && "border-loop-500 bg-loop-500 text-white",
-                active && "border-ink-900 bg-ink-900 text-white dark:border-white dark:bg-white dark:text-ink-900",
-                !complete && !active && "border-gray-300 text-gray-400 dark:border-gray-700",
+                active && (inverse ? "border-white bg-white text-ink-900" : "border-ink-900 bg-ink-900 text-white dark:border-white dark:bg-white dark:text-ink-900"),
+                !complete && !active && (inverse ? "border-white/30 text-white/45" : "border-gray-300 text-gray-400 dark:border-gray-700"),
               )}
               aria-hidden="true"
             >
@@ -138,19 +145,19 @@ export function WorkflowRail({ projectId }: { projectId: string }) {
             </span>
             <span
               className={cn(
-                "text-theme-sm",
+                compact ? "text-theme-xs" : "text-theme-sm",
                 complete && "text-loop-700 dark:text-loop-300",
-                active && "font-semibold text-ink-900 dark:text-white",
-                !complete && !active && "text-gray-400 dark:text-gray-500",
+                active && (inverse ? "font-semibold text-white" : "font-semibold text-ink-900 dark:text-white"),
+                !complete && !active && (inverse ? "text-white/45" : "text-gray-400 dark:text-gray-500"),
               )}
             >
-              {label}
+              {displayLabel}
             </span>
           </li>
         );
       })}
       {done && (
-        <li className="ms-1 rounded bg-loop-50 px-2 py-0.5 text-theme-xs font-medium text-loop-700 dark:bg-loop-500/15 dark:text-loop-300">
+        <li className={cn("ms-1 rounded px-2 py-0.5 text-theme-xs font-medium", inverse ? "bg-loop-500/15 text-loop-300" : "bg-loop-50 text-loop-700 dark:bg-loop-500/15 dark:text-loop-300")}>
           Complete
         </li>
       )}
@@ -270,7 +277,7 @@ export function ProjectStatusChip({ status }: { status: Project["status"] }) {
     },
     demolition: {
       label: "Demolition",
-      className: "border-signal-300 bg-signal-50 text-signal-700 dark:border-signal-500/30 dark:bg-signal-500/10 dark:text-signal-300",
+      className: "border-steel-300 bg-steel-50 text-steel-700 dark:border-steel-700 dark:bg-white/5 dark:text-steel-300",
     },
     complete: {
       label: "Complete",
