@@ -1,74 +1,54 @@
-import { motion, useScroll, useTransform } from "motion/react";
 import { useRef } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
 import Section from "@/components/site/Section";
 import EditorialHeading from "@/components/site/EditorialHeading";
 
-const nodes = [
-  "PROJECT",
-  "MATERIALS",
-  "RECEIVERS",
-  "CAPACITY",
-  "BOOKING",
-  "VERIFICATION"
-];
+const stages = ["SURVEY", "MATCH", "RESERVE", "VERIFY"];
 
 export default function SystemDiagram() {
   const containerRef = useRef<HTMLDivElement>(null);
-  
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start center", "end center"],
   });
+  const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
 
   return (
-    <Section id="system-diagram" index="03" eyebrow="The System" className="overflow-hidden">
-      <div className="mx-auto max-w-4xl text-center">
-        <EditorialHeading 
-          lines={[
-            <>A connected loop.</>,
-          ]} 
-          level={2}
-          className="text-center"
+    <Section id="system-diagram" index="03" eyebrow="The system" band className="overflow-hidden">
+      <div className="grid items-end gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+        <EditorialHeading
+          lines={[<>The material moves.</>, <>The record moves with it.</>]}
+          band
         />
+        <p className="max-w-lg text-base leading-7 text-white/65 lg:justify-self-end">
+          From the first site survey to the final weighbridge ticket, every handoff connects physical material to a confirmed destination.
+        </p>
       </div>
 
-      <div ref={containerRef} className="relative mt-24 py-10 lg:mt-32">
-        <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 bg-steel-200 dark:bg-steel-800" />
-        
-        <motion.div 
-          className="absolute left-0 top-1/2 h-1 -translate-y-1/2 bg-loop-500"
-          style={{ 
-            width: useTransform(scrollYProgress, [0, 1], ["0%", "100%"]),
-            transformOrigin: "left center" 
-          }}
+      <div ref={containerRef} className="relative mt-16 py-2 sm:mt-24">
+        <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/20" aria-hidden="true" />
+        <motion.div
+          className="absolute start-0 top-1/2 h-0.5 -translate-y-1/2 bg-loop-400"
+          style={{ width: progressWidth }}
+          aria-hidden="true"
         />
-
-        <div className="relative z-10 flex justify-between px-2 sm:px-10">
-          {nodes.map((node, index) => {
-            const startNode = index * (1 / (nodes.length - 1)) - 0.1;
-            const endNode = index * (1 / (nodes.length - 1)) + 0.1;
-            
-            const opacity = useTransform(scrollYProgress, [startNode, endNode], [0.3, 1]);
-            const scale = useTransform(scrollYProgress, [startNode, endNode], [0.8, 1.1]);
-            const color = useTransform(scrollYProgress, [startNode, endNode], ["#9CA3AF", "#10B981"]); // gray to emerald-ish
-
-            return (
-              <div key={node} className="flex flex-col items-center">
-                <motion.div 
-                  className="mb-4 flex size-4 items-center justify-center rounded-full bg-ink-900 shadow-md ring-4 ring-white dark:bg-black dark:ring-gray-900"
-                  style={{ scale, backgroundColor: color }}
-                />
-                <motion.span 
-                  className="hidden text-xs font-bold tracking-widest text-ink-900 dark:text-white sm:block"
-                  style={{ opacity }}
-                >
-                  {node}
-                </motion.span>
-              </div>
-            );
-          })}
-        </div>
+        <ol className="relative grid grid-cols-4">
+          {stages.map((stage, index) => (
+            <li key={stage} className={`flex flex-col gap-4 ${index === stages.length - 1 ? "items-end text-end" : "items-start text-start"}`}>
+              <span
+                className={`z-1 flex size-4 items-center justify-center ring-8 ring-ink-900 ${index === stages.length - 1 ? "bg-loop-400" : "bg-steel-300"}`}
+                aria-hidden="true"
+              />
+              <span className={`eyebrow-label ${index === stages.length - 1 ? "text-loop-300" : "text-white/65"}`}>
+                {stage}
+              </span>
+            </li>
+          ))}
+        </ol>
       </div>
+      <p className="mt-12 border-t border-white/15 pt-4 font-mono text-[11px] uppercase tracking-[0.16em] text-white/40">
+        Site survey <span aria-hidden="true">/</span> receiver capacity <span aria-hidden="true">/</span> verified delivery
+      </p>
     </Section>
   );
 }

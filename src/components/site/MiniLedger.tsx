@@ -30,7 +30,7 @@ export default function MiniLedger({
   return (
     <div
       className={cn(
-        "w-full rounded-lg border border-steel-200 bg-white p-4 text-start shadow-theme-lg dark:border-steel-700 dark:bg-gray-dark",
+        "w-full rounded-sm border border-steel-200 bg-gray-25 p-4 text-start dark:border-steel-700 dark:bg-gray-dark",
         className,
       )}
     >
@@ -44,8 +44,8 @@ export default function MiniLedger({
         {receiver?.name ?? "Receiver"} — concrete
       </p>
 
-      <div className="mt-3 flex h-2 w-full overflow-hidden rounded-sm bg-gray-200 dark:bg-white/10">
-        <div className="bg-ink-900 dark:bg-white/85" style={{ width: `${reservedPct}%` }} />
+      <div className="mt-3 flex h-2 w-full overflow-hidden rounded-sm bg-steel-100 dark:bg-steel-900">
+        <div className="bg-loop-600 dark:bg-loop-500" style={{ width: `${reservedPct}%` }} />
         <div className="bg-signal-500" style={{ width: `${heldPct}%` }} />
       </div>
 
@@ -55,7 +55,7 @@ export default function MiniLedger({
             <dt className="text-theme-xs text-gray-500 dark:text-gray-400">
               {booking.materialId === "MP-101" ? "Harrow Road" : "Kings Cross"} · confirmed
             </dt>
-            <dd className="ledger-numeral text-theme-xs font-medium text-ink-900 dark:text-white/90">
+            <dd className="ledger-numeral text-theme-xs font-medium text-loop-700 dark:text-loop-300">
               {booking.tonnesT.toFixed(1)} t
             </dd>
           </div>

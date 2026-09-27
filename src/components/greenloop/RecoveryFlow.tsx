@@ -26,10 +26,10 @@ export default function RecoveryFlow({ dataset }: { dataset: GreenLoopDataset })
         <li
           key={stage.key}
           className={cn(
-            "rounded-lg border p-4",
+            "rounded-sm border p-4",
             stage.active
-              ? "border-ink-900 bg-white dark:border-white/25 dark:bg-white/5"
-              : "border-gray-200 bg-steel-50 dark:border-gray-800 dark:bg-transparent",
+              ? "border-ink-900 bg-gray-25 dark:border-white/25 dark:bg-white/5"
+              : "border-steel-200 bg-steel-50 dark:border-steel-800 dark:bg-transparent",
           )}
         >
           <p

@@ -25,7 +25,7 @@ export default function NotFound({ className }: NotFoundProps) {
       >
         <GridShape />
         <div className="mx-auto w-full max-w-60.5 text-center sm:max-w-118">
-          <h1 className="mb-8 text-title-md font-bold text-gray-800 xl:text-title-2xl dark:text-white/90">
+          <h1 className="mb-8 font-archivo text-title-md font-bold tracking-tight text-ink-900 xl:text-title-2xl dark:text-white">
             Page Not Found
           </h1>
 
@@ -44,7 +44,7 @@ export default function NotFound({ className }: NotFoundProps) {
             <Link
               to="/app"
               className={cn(
-                "inline-flex items-center justify-center rounded-lg bg-brand-500 px-5 py-3.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600",
+                "inline-flex items-center justify-center rounded-sm bg-ink-900 px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-ink-800 dark:bg-white dark:text-ink-900 dark:hover:bg-gray-200",
               )}
             >
               {t("goPlatform")}
@@ -52,7 +52,7 @@ export default function NotFound({ className }: NotFoundProps) {
             <Link
               to="/"
               className={cn(
-                "inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-3.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/3 dark:hover:text-gray-200",
+                "inline-flex items-center justify-center rounded-sm border border-steel-300 bg-gray-25 px-5 py-3.5 text-sm font-medium text-ink-800 transition-colors hover:bg-steel-50 dark:border-steel-700 dark:bg-gray-dark dark:text-gray-200 dark:hover:bg-white/5",
               )}
             >
               {t("backHome")}

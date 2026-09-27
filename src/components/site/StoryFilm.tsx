@@ -1,288 +1,142 @@
 import { useRef } from "react";
-import { motion, useScroll, useTransform } from "motion/react";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
+import { Link } from "react-router";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { STORY } from "@/domain/demoData";
+import { useGreenLoopStore } from "@/store/GreenLoopStore";
 
 export default function StoryFilm() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
   const { dataset } = useGreenLoopStore();
-
+  const material = dataset.materials.find((item) => item.id === STORY.materialAId);
+  const project = dataset.projects.find((item) => item.id === material?.projectId);
+  const receiver = dataset.receivers.find((item) => item.id === STORY.receiverId);
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"],
+    offset: ["start start", "end start"],
   });
-
-  // Scene triggers - mapping scroll 0-1 to scenes
-  // 0.0 - 0.15: Hero / Demolition
-  // 0.15 - 0.25: Material Identified
-  // 0.25 - 0.40: Passport
-  // 0.40 - 0.55: Receiver Match
-  // 0.55 - 0.70: Capacity / Booking
-  // 0.70 - 0.85: Dispatch
-  // 0.85 - 1.00: Verification
-
-  // Background Video / Image Opacity/Scale adjustments
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
-  const bgOpacity = useTransform(scrollYProgress, [0, 0.8, 1], [1, 0.4, 0.2]);
+  const imageY = useTransform(scrollYProgress, [0, 1], [0, 70]);
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1.02, 1.12]);
 
   return (
-    <div ref={containerRef} className="relative h-[600vh] w-full bg-ink-950">
-      {/* Sticky Container for Video & UI Overlays */}
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
-        
-        {/* Background Visuals */}
-        <motion.div 
-          className="absolute inset-0 z-0 h-full w-full"
-          style={{ scale: bgScale, opacity: bgOpacity }}
-        >
-          {/* Fallback to poster if video src is empty */}
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/images/site/hero-demolition.jpg"
-            className="h-full w-full object-cover"
+    <section
+      ref={containerRef}
+      className="relative isolate min-h-[calc(100svh-72px)] overflow-hidden bg-ink-950 text-white"
+    >
+      <motion.div
+        className="absolute inset-0 -z-10"
+        style={reduceMotion ? undefined : { y: imageY, scale: imageScale }}
+      >
+        <img
+          src="/images/site/hero-demolition.jpg"
+          alt="Excavator sorting recovered material at a demolition site"
+          fetchPriority="high"
+          className="h-full min-h-[calc(100svh-72px)] w-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-ink-950/90 via-ink-950/55 to-ink-950/15" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-950/75 via-transparent to-ink-950/10" />
+      </motion.div>
+
+      <div className="mx-auto grid min-h-[calc(100svh-72px)] max-w-7xl items-center gap-12 px-5 pb-28 pt-20 sm:px-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16 lg:pb-32">
+        <div className="max-w-4xl">
+          <motion.p
+            initial={reduceMotion ? undefined : { opacity: 0, y: 12 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="eyebrow-label mb-6 flex items-center gap-3 text-white/70"
           >
-            {/* <source src="/videos/demolition-bg.mp4" type="video/mp4" /> */}
-          </video>
-          <div className="absolute inset-0 bg-ink-950/40 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-transparent" />
-        </motion.div>
+            <span className="size-2 bg-loop-400" aria-hidden="true" />
+            Construction material recovery · coordinated before dispatch
+          </motion.p>
+          <motion.h1
+            initial={reduceMotion ? undefined : { opacity: 0, y: 24 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.75, delay: 0.08 }}
+            className="max-w-4xl text-balance font-archivo text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-white sm:text-7xl lg:text-8xl"
+          >
+            Turn demolition waste into{" "}
+            <span className="text-loop-300">planned recovery.</span>
+          </motion.h1>
+          <p className="mt-7 max-w-xl text-base leading-7 text-white/75 sm:text-lg">
+            Survey what is on site. Match a real receiver. Reserve capacity before the truck leaves. Verify what arrived.
+          </p>
+          <div className="mt-9 flex flex-wrap items-center gap-3">
+            <a
+              href="/#workflow"
+              className="border border-white bg-white px-5 py-3 text-theme-sm font-semibold text-ink-900 transition-colors hover:bg-gray-200"
+            >
+              See the recovery process
+            </a>
+            <Link
+              to="/app/dashboard"
+              className="border border-white/35 px-5 py-3 text-theme-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10"
+            >
+              Enter GreenLoop
+            </Link>
+          </div>
+        </div>
 
-        {/* Scene 1: Hero */}
-        <SceneHero progress={scrollYProgress} />
-
-        {/* Scene 2: Material Identified */}
-        <SceneMaterialIdentified progress={scrollYProgress} />
-
-        {/* Scene 3: Passport */}
-        <ScenePassport progress={scrollYProgress} dataset={dataset} />
-
-        {/* Scene 4: Receiver Match */}
-        <SceneReceiverMatch progress={scrollYProgress} dataset={dataset} />
-
-        {/* Scene 5: Booking & Capacity */}
-        <SceneBookingCapacity progress={scrollYProgress} />
-
-        {/* Scene 6: Verification */}
-        <SceneVerification progress={scrollYProgress} dataset={dataset} />
-
+        <div className="relative mx-auto w-full max-w-md lg:ms-auto">
+          <div className="absolute -inset-4 border border-white/20" aria-hidden="true" />
+          <div className="relative border border-white/35 bg-ink-950/80 p-5 backdrop-blur-sm sm:p-6">
+            <div className="flex items-center justify-between border-b border-white/15 pb-4">
+              <p className="eyebrow-label text-white/55">Live material record</p>
+              <span className="ledger-numeral flex items-center gap-2 text-theme-xs text-loop-300">
+                <span className="size-1.5 bg-loop-400" aria-hidden="true" />
+                {material?.id}
+              </span>
+            </div>
+            <div className="py-5">
+              <p className="text-theme-xs uppercase tracking-[0.16em] text-white/45">Recovered material</p>
+              <p className="mt-2 font-archivo text-3xl font-semibold capitalize tracking-tight text-white">
+                {material?.type}
+              </p>
+              <p className="mt-1 text-theme-sm text-white/60">{project?.name}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-x-5 gap-y-5 border-y border-white/15 py-4">
+              <RecordValue label="Surveyed" value={`${material?.quantityT.toFixed(1)} t`} />
+              <RecordValue label="Estimated range" value={`${material?.quantityRangeT[0].toFixed(1)}–${material?.quantityRangeT[1].toFixed(1)} t`} />
+              <RecordValue label="Condition" value={material?.condition ?? "—"} />
+              <RecordValue label="Grade" value={material?.grade ?? "—"} />
+              <RecordValue label="Confidence" value={`${Math.round((material?.confidence ?? 0) * 100)}%`} />
+              <RecordValue label="Evidence" value={`${material?.evidence.length ?? 0} records`} />
+            </div>
+            <div className="mt-4 flex items-center justify-between gap-4 text-theme-xs">
+              <span className="text-white/50">Potential receiving yard</span>
+              <span className="text-end font-medium text-white">{receiver?.name}</span>
+            </div>
+          </div>
+          <p className="mt-3 text-end font-mono text-theme-xs uppercase tracking-[0.18em] text-white/50">
+            Survey → passport → receiver
+          </p>
+        </div>
       </div>
+
+      <div className="absolute inset-x-0 bottom-0 border-t border-white/20 bg-ink-950/65 backdrop-blur-sm">
+        <div className="mx-auto grid max-w-7xl grid-cols-3 divide-x divide-white/15 px-5 sm:px-8">
+          <TracePoint label="Origin" value={project?.name ?? "—"} />
+          <TracePoint label="Material passport" value={material?.id ?? "—"} />
+          <TracePoint label="Receiver match" value={receiver?.name ?? "—"} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RecordValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="eyebrow-label text-white/45">{label}</p>
+      <p className="ledger-numeral mt-1.5 text-sm font-medium capitalize text-white">{value}</p>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// SCENES
-// ---------------------------------------------------------------------------
-
-function SceneHero({ progress }: { progress: any }) {
-  const opacity = useTransform(progress, [0, 0.08, 0.12], [1, 1, 0]);
-  const y = useTransform(progress, [0, 0.12], [0, -50]);
-
+function TracePoint({ label, value }: { label: string; value: string }) {
   return (
-    <motion.div 
-      className="absolute inset-0 z-10 flex flex-col items-center justify-center px-6 text-center"
-      style={{ opacity, y }}
-    >
-      <p className="eyebrow-label mb-6 text-white/70">GreenLoop Circular OS</p>
-      <h1 className="text-balance text-5xl font-semibold tracking-tight text-white md:text-7xl lg:text-8xl">
-        Turn demolition waste<br/>into <span className="text-loop-400">planned recovery.</span>
-      </h1>
-      <p className="mt-8 max-w-2xl text-lg text-white/80 md:text-xl">
-        Match materials. Secure capacity. Verify every load.
-      </p>
-    </motion.div>
-  );
-}
-
-function SceneMaterialIdentified({ progress }: { progress: any }) {
-  const opacity = useTransform(progress, [0.12, 0.16, 0.22, 0.26], [0, 1, 1, 0]);
-  const scale = useTransform(progress, [0.12, 0.22], [0.95, 1.05]);
-  const y = useTransform(progress, [0.12, 0.22], [20, -20]);
-
-  return (
-    <motion.div 
-      className="absolute inset-0 z-10 flex items-center justify-center px-6"
-      style={{ opacity, scale, y }}
-    >
-      <div className="flex flex-col items-center rounded-2xl border border-white/10 bg-black/40 p-8 backdrop-blur-md">
-        <div className="mb-3 rounded-full bg-loop-500/20 px-3 py-1 text-xs font-semibold text-loop-300 ring-1 ring-inset ring-loop-500/30">
-          Material Identified
-        </div>
-        <h2 className="text-4xl font-bold text-white md:text-6xl">CONCRETE</h2>
-        <p className="ledger-numeral mt-2 text-3xl font-medium text-loop-400">24.0 t</p>
-      </div>
-    </motion.div>
-  );
-}
-
-function ScenePassport({ progress, dataset }: { progress: any, dataset: any }) {
-  const opacity = useTransform(progress, [0.24, 0.28, 0.36, 0.40], [0, 1, 1, 0]);
-  const y = useTransform(progress, [0.24, 0.32], [40, 0]);
-  
-  const material = dataset.materials.find((m: any) => m.id === STORY.materialAId);
-
-  return (
-    <motion.div 
-      className="absolute inset-0 z-10 flex items-center justify-center px-6"
-      style={{ opacity, y }}
-    >
-      <div className="w-full max-w-lg rounded-xl border border-white/15 bg-ink-950/80 p-8 shadow-2xl backdrop-blur-xl">
-        <p className="eyebrow-label text-white/50">Material Passport</p>
-        <div className="mt-4 grid grid-cols-2 gap-6">
-          <div>
-            <p className="text-xs text-white/40">Condition</p>
-            <p className="mt-1 text-lg font-medium text-white capitalize">{material?.condition}</p>
-          </div>
-          <div>
-            <p className="text-xs text-white/40">Grade</p>
-            <p className="mt-1 text-lg font-medium text-white">{material?.grade}</p>
-          </div>
-          <div>
-            <p className="text-xs text-white/40">Estimated Range</p>
-            <p className="ledger-numeral mt-1 text-lg font-medium text-white">{material?.quantityRangeT[0]} – {material?.quantityRangeT[1]} t</p>
-          </div>
-          <div>
-            <p className="text-xs text-white/40">Confidence</p>
-            <p className="ledger-numeral mt-1 text-lg font-medium text-loop-400">{material ? material.confidence * 100 : 0}%</p>
-          </div>
-        </div>
-        <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-4 text-sm text-white/60">
-          <svg className="size-5 text-loop-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-          Passport Ready for Allocation
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function SceneReceiverMatch({ progress, dataset }: { progress: any, dataset: any }) {
-  const opacity = useTransform(progress, [0.38, 0.42, 0.52, 0.56], [0, 1, 1, 0]);
-  const y = useTransform(progress, [0.38, 0.46], [40, 0]);
-  
-  const receiver = dataset.receivers.find((r: any) => r.id === STORY.receiverId);
-
-  return (
-    <motion.div 
-      className="absolute inset-0 z-10 flex flex-col items-center justify-center px-6"
-      style={{ opacity, y }}
-    >
-      <div className="mb-6 rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-md">
-        3 Receivers Found
-      </div>
-      <div className="w-full max-w-2xl rounded-xl border border-loop-500/30 bg-loop-950/80 p-8 shadow-2xl backdrop-blur-xl">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="eyebrow-label text-loop-300">Best Match</p>
-            <h3 className="mt-2 text-2xl font-bold text-white">{receiver?.name}</h3>
-            <p className="mt-1 text-sm text-white/60">{receiver?.location}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-3xl font-bold text-loop-400">{receiver?.distanceKm} km</p>
-            <p className="text-xs text-white/50 mt-1">Route distance</p>
-          </div>
-        </div>
-        <div className="mt-8 grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-2 rounded-lg bg-black/20 p-3">
-             <svg className="size-5 text-loop-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span className="text-sm font-medium text-white">Accepts Concrete</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-lg bg-black/20 p-3">
-             <svg className="size-5 text-loop-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span className="text-sm font-medium text-white">Capacity Available</span>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function SceneBookingCapacity({ progress }: { progress: any }) {
-  const opacity = useTransform(progress, [0.54, 0.58, 0.70, 0.74], [0, 1, 1, 0]);
-  const y = useTransform(progress, [0.54, 0.62], [40, 0]);
-  
-  // Animate the bar from 15t to 5t available
-  const barWidth = useTransform(progress, [0.60, 0.65], ["0%", "66%"]);
-  
-  return (
-    <motion.div 
-      className="absolute inset-0 z-10 flex items-center justify-center px-6"
-      style={{ opacity, y }}
-    >
-      <div className="w-full max-w-xl rounded-xl border border-white/10 bg-ink-900/90 p-8 shadow-2xl backdrop-blur-xl">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-white">Capacity Reservation</h3>
-          <span className="rounded bg-loop-500/20 px-2 py-1 text-xs font-semibold text-loop-400">10 t CONFIRMED</span>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm text-white/60">
-            <span>Riverstone Aggregates</span>
-            <span>15.0 t Initial Capacity</span>
-          </div>
-          <div className="relative h-6 w-full overflow-hidden rounded-full bg-white/10">
-            <motion.div 
-              className="absolute left-0 top-0 h-full bg-loop-500"
-              style={{ width: barWidth }}
-            />
-          </div>
-          <div className="flex justify-between text-xs text-white/40">
-            <span>10.0 t booked</span>
-            <span>5.0 t remaining</span>
-          </div>
-        </div>
-
-        <div className="mt-8 flex items-center justify-center gap-4 border-t border-white/10 pt-6">
-          <div className="text-center">
-            <p className="text-xs text-white/40 uppercase tracking-wider">Status</p>
-            <p className="mt-1 text-lg font-bold text-white">LOAD-1001 DISPATCHED</p>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function SceneVerification({ progress, dataset }: { progress: any, dataset: any }) {
-  const opacity = useTransform(progress, [0.72, 0.76, 1, 1], [0, 1, 1, 1]);
-  const y = useTransform(progress, [0.72, 0.80], [40, 0]);
-  
-  const verification = dataset.verifications[0];
-
-  return (
-    <motion.div 
-      className="absolute inset-0 z-10 flex items-center justify-center px-6 bg-ink-950/40 backdrop-blur-sm"
-      style={{ opacity, y }}
-    >
-      <div className="w-full max-w-3xl text-center">
-        <p className="eyebrow-label text-loop-400 mb-6">Verified Recovery</p>
-        <h2 className="text-4xl font-bold text-white md:text-5xl mb-12">
-          The cycle closes at the weighbridge.
-        </h2>
-        
-        <div className="grid grid-cols-3 gap-4 md:gap-8">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-            <p className="text-sm text-white/50 mb-2">Planned</p>
-            <p className="ledger-numeral text-3xl font-bold text-white">{verification?.plannedT.toFixed(1)} t</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-            <p className="text-sm text-white/50 mb-2">Actual Arrived</p>
-            <p className="ledger-numeral text-3xl font-bold text-white">{verification?.actualT.toFixed(1)} t</p>
-          </div>
-          <div className="rounded-xl border border-loop-500/30 bg-loop-900/40 p-6 backdrop-blur-md">
-            <p className="text-sm text-loop-300 mb-2">Accepted Fact</p>
-            <p className="ledger-numeral text-3xl font-bold text-loop-400">{verification?.acceptedT.toFixed(1)} t</p>
-          </div>
-        </div>
-      </div>
-    </motion.div>
+    <div className="min-w-0 py-3 pe-3 sm:py-4 sm:pe-6">
+      <p className="eyebrow-label truncate text-white/45">{label}</p>
+      <p className="mt-1 truncate text-theme-xs font-medium text-white/85 sm:text-theme-sm">{value}</p>
+    </div>
   );
 }

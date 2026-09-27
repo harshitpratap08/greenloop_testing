@@ -17,10 +17,10 @@ const CalendarEventItem: React.FC<CalendarEventItemProps> = ({ eventInfo }) => {
     { bg: string; dot: string; title: string; time: string }
   > = {
     success: {
-      bg: "border border-success-100 bg-success-50 dark:border-success-500/20 dark:bg-success-500/15",
-      dot: "bg-success-500",
-      title: "text-success-700 dark:text-success-400",
-      time: "text-success-600/80 dark:text-success-400/80",
+      bg: "border border-loop-100 bg-loop-50 dark:border-loop-500/20 dark:bg-loop-500/15",
+      dot: "bg-loop-500",
+      title: "text-loop-700 dark:text-loop-400",
+      time: "text-loop-600/80 dark:text-loop-400/80",
     },
     danger: {
       bg: "border border-error-100 bg-error-50 dark:border-error-500/20 dark:bg-error-500/15",
@@ -29,16 +29,16 @@ const CalendarEventItem: React.FC<CalendarEventItemProps> = ({ eventInfo }) => {
       time: "text-error-600/80 dark:text-error-400/80",
     },
     primary: {
-      bg: "border border-brand-100 bg-brand-50 dark:border-brand-500/20 dark:bg-brand-500/15",
-      dot: "bg-brand-500",
-      title: "text-brand-700 dark:text-brand-400",
-      time: "text-brand-600/80 dark:text-brand-400/80",
+      bg: "border border-steel-200 bg-steel-50 dark:border-steel-500/20 dark:bg-steel-500/15",
+      dot: "bg-steel-600",
+      title: "text-steel-700 dark:text-steel-300",
+      time: "text-steel-600/80 dark:text-steel-400/80",
     },
     warning: {
-      bg: "border border-orange-100 bg-orange-50 dark:border-orange-500/20 dark:bg-orange-500/15",
-      dot: "bg-orange-500",
-      title: "text-orange-700 dark:text-orange-400",
-      time: "text-orange-600/80 dark:text-orange-400/80",
+      bg: "border border-signal-100 bg-signal-50 dark:border-signal-500/20 dark:bg-signal-500/15",
+      dot: "bg-signal-500",
+      title: "text-signal-700 dark:text-signal-400",
+      time: "text-signal-600/80 dark:text-signal-400/80",
     },
   };
 

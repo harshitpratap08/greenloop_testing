@@ -12,6 +12,7 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import StoryFilm from "@/components/site/StoryFilm";
 import SystemDiagram from "@/components/site/SystemDiagram";
 import { Link } from "react-router";
+import { STORY } from "@/domain/demoData";
 
 export default function Landing() {
   return (
@@ -28,7 +29,9 @@ export default function Landing() {
         <WorkflowSticky />
         <PassportSection />
         <CapacityShowpiece />
+        <LogisticsSection />
         <VerificationSection />
+        <OperationalRecordSection />
         <PlatformShowcase />
         <FinalCta />
       </main>
@@ -187,6 +190,64 @@ function PassportField({ label, value }: { label: string; value: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// 08 · LOGISTICS — the dispatch event tied to its verified load
+// ---------------------------------------------------------------------------
+
+function LogisticsSection() {
+  const { dataset } = useGreenLoopStore();
+  const dispatch = dataset.events.find((event) => event.kind === "load.dispatched");
+  const booking = dispatch && dataset.bookings.find((item) => dispatch.subjectIds.includes(item.id));
+  const material = booking && dataset.materials.find((item) => item.id === booking.materialId);
+  const receiver = booking && dataset.receivers.find((item) => item.id === booking.receiverId);
+  const slot = booking && dataset.slots.find((item) => item.id === booking.slotId);
+  const verification = booking && dataset.verifications.find((item) => item.bookingId === booking.id);
+
+  if (!dispatch || !booking || !material || !receiver || !slot) return null;
+
+  return (
+    <Section id="logistics" index="08" eyebrow="Dispatch & logistics" innerClassName="lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16">
+      <div>
+        <EditorialHeading
+          lines={[<>The load leaves</>, <>with a destination.</>]}
+        />
+        <Reveal delay={0.12}>
+          <p className="mt-6 max-w-lg text-base leading-7 text-ink-700 dark:text-gray-300">
+            A confirmed slot connects the surveyed material to a real receiving yard. The load ID, planned tonnes and delivery evidence stay attached to that journey.
+          </p>
+        </Reveal>
+        <Reveal delay={0.2}>
+          <AppWindow route="/app/deliveries" title={`Dispatch record · ${verification?.loadRef ?? STORY.loadRef}`} className="mt-8">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-5">
+              <PassportField label="Material" value={`${material.type} · ${material.id}`} />
+              <PassportField label="Load reference" value={verification?.loadRef ?? STORY.loadRef} />
+              <PassportField label="Dispatch tonnage" value={`${booking.tonnesT.toFixed(1)} t`} />
+              <PassportField label="Receiver" value={receiver.name} />
+              <PassportField label="Reserved slot" value={slot.date} />
+              <PassportField label="Route distance" value={`${receiver.distanceKm} km`} />
+            </dl>
+            <Link
+              to="/app/verification"
+              className="mt-5 inline-flex border-b border-ink-900 pb-0.5 text-theme-sm font-medium text-ink-900 transition-colors hover:border-loop-600 hover:text-loop-700 dark:border-white dark:text-white dark:hover:border-loop-400 dark:hover:text-loop-300"
+            >
+              Follow through to verification
+            </Link>
+          </AppWindow>
+        </Reveal>
+      </div>
+      <Reveal delay={0.16}>
+        <Figure
+          src="/images/site/auth-truck.jpg"
+          alt="A materials truck ready for a coordinated recovery delivery"
+          caption={`${verification?.loadRef ?? STORY.loadRef} · ${receiver.name} · ${slot.date}`}
+          credit={`${booking.tonnesT.toFixed(1)} t dispatched`}
+          imgClassName="aspect-[4/5] lg:aspect-[4/5]"
+        />
+      </Reveal>
+    </Section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // 09 · VERIFICATION — charcoal band, planned vs actual reconciliation
 // ---------------------------------------------------------------------------
 
@@ -218,7 +279,7 @@ function VerificationSection() {
             </p>
           </Reveal>
           <Reveal delay={0.25}>
-            <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 sm:grid-cols-4">
+            <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-white/10 bg-white/10 sm:grid-cols-4">
               <ReconCell label="Planned" value={verification.plannedT} />
               <ReconCell label="Actual" value={verification.actualT} />
               <ReconCell label="Accepted" value={verification.acceptedT} accent />
@@ -232,7 +293,7 @@ function VerificationSection() {
         </div>
 
         <Reveal delay={0.2}>
-          <div className="rounded-lg border border-white/15 bg-white/[0.04] p-6 sm:p-8">
+          <div className="rounded-sm border border-white/15 bg-white/[0.04] p-6 sm:p-8">
             <p className="eyebrow-label text-white/50">Delivery reconciliation</p>
             <div className="mt-5 flex h-4 w-full overflow-hidden rounded-sm bg-white/10">
               <div className="bg-loop-500" style={{ width: `${acceptedPct}%` }} />
@@ -251,7 +312,7 @@ function VerificationSection() {
               {verification.evidence.map((evidence) => (
                 <span
                   key={evidence.ref ?? evidence.label}
-                  className="rounded-md border border-white/20 bg-white/5 px-2 py-1 text-theme-xs text-white/80"
+                  className="rounded-sm border border-white/20 bg-white/5 px-2 py-1 text-theme-xs text-white/80"
                 >
                   {evidence.label}
                 </span>
@@ -294,7 +355,46 @@ function receiverText(id: string, dataset: ReturnType<typeof useGreenLoopStore>[
 }
 
 // ---------------------------------------------------------------------------
-// 10/11 · PLATFORM SHOWCASE — real routes in flat browser chrome
+// 10 · OPERATIONAL RECORD — figures from the same seeded dataset
+// ---------------------------------------------------------------------------
+
+function OperationalRecordSection() {
+  const { dataset } = useGreenLoopStore();
+  const surveyedTonnes = dataset.materials.reduce((total, material) => total + material.quantityT, 0);
+  const acceptedTonnes = dataset.verifications.reduce((total, verification) => total + verification.acceptedT, 0);
+  const activeProjects = dataset.projects.filter((project) => project.status !== "complete").length;
+
+  const metrics = [
+    { label: "Material surveyed", value: `${surveyedTonnes.toFixed(1)} t` },
+    { label: "Accepted at receiver", value: `${acceptedTonnes.toFixed(1)} t` },
+    { label: "Active projects", value: activeProjects.toString() },
+    { label: "Receiving facilities", value: dataset.receivers.length.toString() },
+  ];
+
+  return (
+    <Section index="10" eyebrow="Operational record">
+      <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+        <div>
+          <EditorialHeading lines={[<>Measured in tonnes.</>, <>Proven at the gate.</>]} />
+          <p className="mt-5 max-w-md text-base leading-7 text-ink-700 dark:text-gray-300">
+            No projected impact claims. These figures come from the same material, booking and verification records shown in the GreenLoop platform.
+          </p>
+        </div>
+        <dl className="grid grid-cols-2 border-y border-steel-300 dark:border-steel-700 sm:grid-cols-4">
+          {metrics.map((metric, index) => (
+            <div key={metric.label} className={`py-5 ${index > 0 ? "border-s border-steel-300 ps-4 dark:border-steel-700 sm:ps-5" : "pe-4 sm:pe-5"}`}>
+              <dt className="eyebrow-label min-h-9 text-steel-600 dark:text-steel-400">{metric.label}</dt>
+              <dd className="ledger-numeral mt-2 text-2xl font-semibold tracking-tight text-ink-900 dark:text-white sm:text-3xl">{metric.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </Section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 11 · PLATFORM SHOWCASE — real routes in flat browser chrome
 // ---------------------------------------------------------------------------
 
 function PlatformShowcase() {
@@ -306,7 +406,7 @@ function PlatformShowcase() {
   ];
 
   return (
-    <Section id="platform" index="10" eyebrow="The platform" className="scroll-mt-20">
+    <Section id="platform" index="11" eyebrow="The platform" className="scroll-mt-20">
       <EditorialHeading
         lines={[
           <>One product, not</>,
@@ -321,7 +421,18 @@ function PlatformShowcase() {
         </p>
       </Reveal>
 
-      <div className="mt-12 grid gap-6 md:grid-cols-2">
+      <Reveal delay={0.1}>
+        <AppWindow route="/app/dashboard" title="Live Operations · GreenLoop" className="mt-12" bodyClassName="p-0">
+          <iframe
+            src="/app/dashboard"
+            title="Interactive GreenLoop Operations interface"
+            loading="lazy"
+            className="h-[32rem] w-full border-0 bg-gray-50"
+          />
+        </AppWindow>
+      </Reveal>
+
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
         {screens.map((screen, index) => (
           <Reveal key={screen.route} delay={index * 0.06}>
             <AppWindow route={screen.route} title={screen.title}>

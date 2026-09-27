@@ -9,7 +9,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative z-1 bg-white p-6 sm:p-0 dark:bg-gray-900">
+    <div className="relative z-1 bg-gray-25 p-6 sm:p-0 dark:bg-gray-900">
       <div className="relative flex h-screen w-full flex-col justify-center sm:p-0 lg:flex-row dark:bg-gray-900">
         {children}
         <div className="relative hidden h-full w-full items-center overflow-hidden lg:grid lg:w-1/2">
@@ -35,7 +35,7 @@ export default function AuthLayout({
                 />
               </Link>
 
-              <p className="text-center text-lg font-medium leading-7 text-white/90">
+              <p className="text-center font-archivo text-lg font-medium leading-7 text-white/90">
                 Plan where recoverable materials go — before the truck leaves.
               </p>
               <p className="mt-3 text-center text-sm leading-6 text-white/60">

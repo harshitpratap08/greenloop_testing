@@ -31,7 +31,7 @@ export default function CapacityBar({
         aria-label={`${reservedT.toFixed(1)} tonnes reserved, ${heldT.toFixed(1)} tonnes on hold, ${availableT.toFixed(1)} tonnes available of ${capacityT.toFixed(1)} tonnes`}
       >
         <div
-          className="bg-ink-900 transition-all duration-500 dark:bg-white/85"
+          className="bg-loop-600 transition-all duration-500 dark:bg-loop-500"
           style={{ width: `${reservedPct}%` }}
         />
         <div
@@ -43,7 +43,7 @@ export default function CapacityBar({
       {showLegend && (
         <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1">
           <LegendSwatch
-            swatch="bg-ink-900 dark:bg-white/85"
+            swatch="bg-loop-600 dark:bg-loop-500"
             label="Reserved"
             value={`${reservedT.toFixed(1)} t`}
           />
@@ -54,7 +54,7 @@ export default function CapacityBar({
             swatch="bg-gray-200 dark:bg-white/10"
             label="Available"
             value={`${availableT.toFixed(1)} t`}
-            valueClass="text-loop-600 dark:text-loop-400"
+            valueClass="text-steel-700 dark:text-steel-300"
           />
           <LegendSwatch
             swatch="bg-transparent ring-1 ring-steel-300 dark:ring-steel-700"

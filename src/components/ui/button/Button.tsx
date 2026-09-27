@@ -30,14 +30,14 @@ const Button: React.FC<ButtonProps> = ({
   // Variant Classes — GreenLoop: charcoal primary, steel outline, squared
   const variantClasses = {
     primary:
-      "bg-ink-900 text-white shadow-theme-xs hover:bg-ink-800 disabled:bg-ink-300 dark:bg-white dark:text-ink-900 dark:hover:bg-gray-200 dark:disabled:bg-ink-700 dark:disabled:text-ink-400",
+      "bg-ink-900 text-white hover:bg-ink-800 disabled:bg-ink-300 dark:bg-white dark:text-ink-900 dark:hover:bg-gray-200 dark:disabled:bg-ink-700 dark:disabled:text-ink-400",
     outline:
-      "bg-white text-ink-800 ring-1 ring-inset ring-steel-300 hover:bg-steel-50 dark:bg-gray-dark dark:text-gray-200 dark:ring-steel-700 dark:hover:bg-white/5 dark:hover:text-white",
+      "bg-gray-25 text-ink-800 ring-1 ring-inset ring-steel-300 hover:bg-steel-50 dark:bg-gray-dark dark:text-gray-200 dark:ring-steel-700 dark:hover:bg-white/5 dark:hover:text-white",
   };
 
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-md font-medium transition ${className} ${
+      className={`inline-flex items-center justify-center gap-2 rounded-sm font-medium transition ${className} ${
         sizeClasses[size]
       } ${variantClasses[variant]} ${
         disabled ? "cursor-not-allowed opacity-50" : ""

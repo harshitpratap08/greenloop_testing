@@ -9,7 +9,7 @@ const ANCHORS = [
 
 export default function SiteNav() {
   return (
-    <header className="sticky top-0 z-999 border-b border-steel-200 bg-[#F4F2ED]/95 backdrop-blur-none dark:border-steel-800 dark:bg-gray-900/95">
+    <header className="sticky top-0 z-999 border-b border-steel-200 bg-gray-25/95 backdrop-blur-none dark:border-steel-800 dark:bg-gray-900/95">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
         <Link to="/" className="flex items-center gap-2.5" aria-label="GreenLoop home">
           <img src="/images/logo/logo-icon.svg" alt="" width={28} height={28} />
@@ -35,7 +35,7 @@ export default function SiteNav() {
 
         <Link
           to="/app/dashboard"
-          className="rounded-md bg-ink-900 px-4 py-2.5 text-theme-sm font-medium text-white transition-colors hover:bg-ink-800 dark:bg-white dark:text-ink-900 dark:hover:bg-gray-200"
+          className="rounded-sm bg-ink-900 px-4 py-2.5 text-theme-sm font-medium text-white transition-colors hover:bg-ink-800 dark:bg-white dark:text-ink-900 dark:hover:bg-gray-200"
         >
           Enter GreenLoop
         </Link>

@@ -13,11 +13,11 @@ import { useEffect, useState } from "react";
 /* Deterministic demo palette — no purple/blue. */
 const TYPE_COLORS: Record<string, string> = {
   concrete: "bg-ink-900 dark:bg-white",
-  brick: "bg-signal-500",
-  timber: "bg-loop-500",
-  steel: "bg-steel-500",
+  brick: "bg-steel-600 dark:bg-steel-400",
+  timber: "bg-steel-400 dark:bg-steel-500",
+  steel: "bg-steel-800 dark:bg-steel-300",
   plasterboard: "bg-steel-300 dark:bg-steel-600",
-  glass: "bg-loop-300",
+  glass: "bg-gray-500 dark:bg-gray-400",
 };
 
 /** Count-up hook: animates 0 → value once mounted; instant under reduced motion. */
@@ -49,25 +49,42 @@ export default function Reports() {
   const { dataset } = useGreenLoopStore();
 
   return (
-    <div className="mx-auto max-w-6xl space-y-10 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <FriendlyPageHeader
         title="Reports"
         subtitle="Six charts, six real questions — every figure from the live dataset."
+        className="mb-6 border-b border-gray-200 pb-6 dark:border-gray-800"
+        titleClassName="text-3xl tracking-tight sm:text-title-sm"
       />
 
-      <CompositionChart dataset={dataset} />
-      <RecoveryFlowChart dataset={dataset} />
-      <ReceiverCapacityChart dataset={dataset} />
-      <ProjectRecoveryChart dataset={dataset} />
-      <PlannedActualChart dataset={dataset} />
-      <CapacityTimelineChart dataset={dataset} />
+      <div className="mb-8 overflow-x-auto">
+        <ol className="flex min-w-max items-center gap-3 border-y border-gray-200 py-4 dark:border-gray-800" aria-label="Recovery process">
+          {FLOW_STAGES.map((stage, index) => (
+            <li key={stage} className="flex items-center gap-3">
+              <span className={`eyebrow-label ${index === FLOW_STAGES.length - 1 ? "text-loop-600 dark:text-loop-400" : "text-gray-600 dark:text-gray-400"}`}>
+                {stage}
+              </span>
+              {index < FLOW_STAGES.length - 1 && <span aria-hidden="true" className="h-px w-6 bg-gray-300 dark:bg-gray-700 sm:w-10" />}
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <CompositionChart dataset={dataset} className="lg:col-span-2" />
+        <RecoveryFlowChart dataset={dataset} className="lg:col-span-2" />
+        <ReceiverCapacityChart dataset={dataset} />
+        <ProjectRecoveryChart dataset={dataset} />
+        <PlannedActualChart dataset={dataset} />
+        <CapacityTimelineChart dataset={dataset} />
+      </div>
     </div>
   );
 }
 
 /* 1 — What materials do we have? ---------------------------------- */
 
-function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
+function CompositionChart({ dataset, className }: { dataset: GreenLoopDataset; className?: string }) {
   const totals = new Map<string, number>();
   for (const m of dataset.materials) {
     totals.set(m.type, (totals.get(m.type) ?? 0) + m.quantityT);
@@ -77,7 +94,7 @@ function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
   const animatedGrand = useCountUp(grand);
 
   return (
-    <section className="surface-card p-5 sm:p-6">
+    <section className={`border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6 ${className ?? ""}`}>
       <ChartHeader
         question="What materials do we have?"
         note="Surveyed tonnage by material type across all projects."
@@ -89,9 +106,9 @@ function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
           return (
             <div key={type} className="flex items-center gap-3">
               <span className="w-28 shrink-0 text-theme-sm capitalize text-ink-800 dark:text-gray-200">{type}</span>
-              <div className="h-6 grow overflow-hidden rounded bg-gray-100 dark:bg-gray-800">
+              <div className="h-5 grow overflow-hidden bg-steel-100 dark:bg-steel-900">
                 <div
-                  className={`h-full rounded ${TYPE_COLORS[type] ?? "bg-steel-400"}`}
+                  className={`h-full ${TYPE_COLORS[type] ?? "bg-steel-400"}`}
                   style={{ width: `${pct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)", transitionDelay: `${i * 80}ms` }}
                   data-width={pct}
                 />
@@ -111,10 +128,10 @@ function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
 
 const FLOW_STAGES = ["Surveyed", "Matched", "Reserved", "Dispatched", "Verified"] as const;
 
-function RecoveryFlowChart({ dataset }: { dataset: GreenLoopDataset }) {
+function RecoveryFlowChart({ dataset, className }: { dataset: GreenLoopDataset; className?: string }) {
   const flow = computeFlow(dataset);
   return (
-    <section className="surface-card p-5 sm:p-6">
+    <section className={`border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6 ${className ?? ""}`}>
       <ChartHeader
         question="Where is material in the process?"
         note="Tonnage at each lifecycle stage right now."
@@ -131,7 +148,7 @@ function RecoveryFlowChart({ dataset }: { dataset: GreenLoopDataset }) {
                 {t.toFixed(1)}
               </span>
               <div
-                className="w-full rounded-t bg-ink-900 dark:bg-white"
+                className={`w-full ${i === FLOW_STAGES.length - 1 ? "bg-loop-500" : "bg-steel-800 dark:bg-steel-300"}`}
                 style={{ height: h, transition: "height 700ms cubic-bezier(0.22,1,0.36,1)", transitionDelay: `${i * 90}ms` }}
               />
               <span className="text-center text-theme-xs text-gray-500 dark:text-gray-400">{stage}</span>
@@ -176,7 +193,7 @@ function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
   const max = Math.max(...totals.map((t) => t.capacity), 1);
 
   return (
-    <section className="surface-card p-5 sm:p-6">
+    <section className="border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6">
       <ChartHeader
         question="Where can this material go?"
         note="Total 28 Sep intake capacity, reserved vs available."
@@ -194,16 +211,16 @@ function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
                   {t.reserved.toFixed(1)} reserved · {t.available.toFixed(1)} free
                 </span>
               </div>
-              <div className="mt-1 flex h-4 w-full overflow-hidden rounded bg-gray-100 dark:bg-gray-800" style={{ transitionDelay: `${i * 70}ms` }}>
-                <div className="h-full bg-ink-900 dark:bg-white" style={{ width: `${reservedPct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)" }} />
-                <div className="h-full bg-loop-500" style={{ width: `${availablePct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)" }} />
+              <div className="mt-2 flex h-3 w-full overflow-hidden bg-steel-100 dark:bg-steel-900" style={{ transitionDelay: `${i * 70}ms` }}>
+                <div className="h-full bg-loop-600 dark:bg-loop-500" style={{ width: `${reservedPct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)" }} />
+                <div className="h-full bg-steel-200 dark:bg-steel-800" style={{ width: `${availablePct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)" }} />
               </div>
             </div>
           );
         })}
       </div>
       <p className="mt-4 text-theme-xs text-gray-500 dark:text-gray-400">
-        Dark = reserved · green = available
+        Muted green = reserved · pale steel = free capacity
       </p>
     </section>
   );
@@ -225,7 +242,7 @@ function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
   const max = Math.max(...rows.map((r) => r.surveyed), 1);
 
   return (
-    <section className="surface-card p-5 sm:p-6">
+    <section className="border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6">
       <ChartHeader
         question="How are projects progressing?"
         note="Surveyed tonnage vs verified recovery per project."
@@ -240,9 +257,9 @@ function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
                 {r.verified.toFixed(1)} / {r.surveyed.toFixed(1)} t
               </span>
             </div>
-            <div className="relative mt-1 h-4 w-full overflow-hidden rounded bg-gray-100 dark:bg-gray-800">
+            <div className="relative mt-2 h-3 w-full overflow-hidden bg-steel-100 dark:bg-steel-900">
               <div className="h-full bg-steel-300 dark:bg-steel-700" style={{ width: `${(r.surveyed / max) * 100}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)", transitionDelay: `${i * 70}ms` }} />
-              <div className="absolute inset-y-0 left-0 h-full bg-loop-500" style={{ width: `${(r.verified / max) * 100}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)", transitionDelay: `${i * 70 + 150}ms` }} />
+              <div className="absolute inset-y-0 start-0 h-full bg-loop-500" style={{ width: `${(r.verified / max) * 100}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)", transitionDelay: `${i * 70 + 150}ms` }} />
             </div>
           </div>
         ))}
@@ -273,7 +290,7 @@ function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
   ];
 
   return (
-    <section className="surface-card p-5 sm:p-6">
+    <section className="border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6">
       <ChartHeader
         question="What actually arrived?"
         note={`${v.loadRef} at ${dataset.receivers.find((r) => r.id === v.receiverId)?.name}.`}
@@ -283,8 +300,8 @@ function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
         {rows.map((r) => (
           <div key={r.label} className="flex items-center gap-3">
             <span className="w-20 shrink-0 text-theme-sm text-ink-800 dark:text-gray-200">{r.label}</span>
-            <div className="h-6 grow overflow-hidden rounded bg-gray-100 dark:bg-gray-800">
-              <div className={`h-full rounded ${r.cls}`} style={{ width: `${(r.value / max) * 100}%` }} />
+            <div className="h-5 grow overflow-hidden bg-steel-100 dark:bg-steel-900">
+              <div className={`h-full rounded-sm ${r.cls}`} style={{ width: `${(r.value / max) * 100}%` }} />
             </div>
             <span className="ledger-numeral w-16 shrink-0 text-end text-theme-sm font-semibold text-ink-900 dark:text-white">
               {r.value.toFixed(1)} t
@@ -325,7 +342,7 @@ function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
   ];
 
   return (
-    <section className="surface-card p-5 sm:p-6">
+    <section className="border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6">
       <ChartHeader
         question="How does the ledger resolve conflicts?"
         note={`Riverstone Aggregates ${capacity.toFixed(0)} t concrete slot, 24 Sep — the A/B story.`}
@@ -339,16 +356,16 @@ function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
               <span className="ledger-numeral w-12 shrink-0 text-theme-xs text-gray-500 dark:text-gray-400">{s.time}</span>
               <div className="grow">
                 <p className="text-theme-sm text-ink-800 dark:text-gray-200">{s.label}</p>
-                <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                <div className="mt-2 h-2 w-full overflow-hidden bg-steel-100 dark:bg-steel-900">
                   <div
-                    className={`h-full rounded-full ${
+                    className={`h-full rounded-sm ${
                       s.tone === "hold"
                         ? "bg-signal-500"
                         : s.tone === "released"
                           ? "bg-loop-300"
                           : s.tone === "recheck"
                             ? "bg-loop-500"
-                            : "bg-ink-900 dark:bg-white"
+                            : "bg-loop-600 dark:bg-loop-500"
                     }`}
                     style={{ width: `${usedPct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)", transitionDelay: `${i * 120}ms` }}
                   />
@@ -369,10 +386,10 @@ function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
 
 function ChartHeader({ question, note, figure }: { question: string; note: string; figure: string }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-steel-200 pb-4 dark:border-steel-800">
       <div>
-        <h2 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">{question}</h2>
-        <p className="mt-0.5 text-theme-sm text-gray-500 dark:text-gray-400">{note}</p>
+        <h2 className="font-archivo text-lg font-semibold tracking-tight text-ink-900 dark:text-white">{question}</h2>
+        <p className="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">{note}</p>
       </div>
       <p className="ledger-numeral text-xl font-bold text-ink-900 dark:text-white">{figure}</p>
     </div>
