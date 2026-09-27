@@ -29,7 +29,7 @@ const Input: FC<InputProps> = ({
   hint,
   ...props
 }) => {
-  let inputClasses = ` h-11 w-full rounded-sm border appearance-none ps-4 pe-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3  dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 ${className}`;
+  let inputClasses = ` h-11 w-full rounded-sm border appearance-none ps-4 pe-4 py-2.5 text-sm placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-dark dark:text-white/90 dark:placeholder:text-white/30 ${className}`;
 
   if (disabled) {
     inputClasses += ` text-gray-500 border-gray-300 opacity-40 bg-gray-100 cursor-not-allowed dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 opacity-40`;
@@ -65,8 +65,8 @@ const Input: FC<InputProps> = ({
             error
               ? "text-error-500"
               : success
-                ? "text-success-500"
-                : "text-gray-500"
+                ? "text-loop-700 dark:text-loop-300"
+                : "text-gray-500 dark:text-gray-400"
           }`}
         >
           {hint}

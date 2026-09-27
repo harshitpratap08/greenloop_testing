@@ -165,7 +165,7 @@ export default function Operations() {
               {holdBookings.map((booking) => (
                 <li
                   key={booking.id}
-                  className="rounded-lg border border-signal-300 bg-signal-50 p-4 dark:border-signal-500/30 dark:bg-signal-500/10"
+                  className="rounded-sm border border-signal-300 bg-signal-50 p-4 dark:border-signal-500/30 dark:bg-signal-500/10"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-theme-sm font-semibold text-ink-900 dark:text-white/90">

@@ -22,15 +22,15 @@ export default function AppWindow({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-lg border border-steel-200 bg-white shadow-theme-lg dark:border-steel-700 dark:bg-gray-dark",
+        "overflow-hidden rounded-sm border border-steel-200 bg-gray-25 dark:border-steel-700 dark:bg-gray-dark",
         className,
       )}
     >
       <div className="flex items-center justify-between border-b border-steel-200 bg-steel-50 px-4 py-2.5 dark:border-steel-700 dark:bg-white/5">
         <div className="flex items-center gap-1.5" aria-hidden="true">
-          <span className="h-2.5 w-2.5 rounded-full border border-steel-300 bg-white dark:border-steel-600 dark:bg-steel-800" />
-          <span className="h-2.5 w-2.5 rounded-full border border-steel-300 bg-white dark:border-steel-600 dark:bg-steel-800" />
-          <span className="h-2.5 w-2.5 rounded-full border border-steel-300 bg-white dark:border-steel-600 dark:bg-steel-800" />
+          <span className="h-2.5 w-2.5 rounded-sm border border-steel-300 bg-white dark:border-steel-600 dark:bg-steel-800" />
+          <span className="h-2.5 w-2.5 rounded-sm border border-steel-300 bg-white dark:border-steel-600 dark:bg-steel-800" />
+          <span className="h-2.5 w-2.5 rounded-sm border border-steel-300 bg-white dark:border-steel-600 dark:bg-steel-800" />
         </div>
         {title && (
           <span className="text-theme-xs font-medium text-ink-800 dark:text-gray-200">{title}</span>

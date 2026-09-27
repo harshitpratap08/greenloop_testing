@@ -64,7 +64,7 @@ const navItems: NavItem[] = [
   {
     icon: <BoxTapped fontSize={24} />,
     name: "Find a receiver",
-    key: "findReceiver",
+    key: "receivers",
     path: "/app/receivers",
   },
   {
@@ -340,7 +340,7 @@ const AppSidebar: React.FC = () => {
   return (
     <aside
       className={cn(
-        "fixed inset-s-0 top-0 z-50 flex h-screen flex-col border-e border-gray-200 bg-gray-25 px-5 text-ink-900 transition-all duration-300 ease-in-out xl:translate-x-0 xl:rtl:translate-x-0 dark:border-gray-800 dark:bg-gray-900",
+        "fixed inset-s-0 top-0 z-50 flex h-screen flex-col border-e border-steel-200 bg-gray-25 px-5 text-ink-900 transition-all duration-300 ease-in-out xl:translate-x-0 xl:rtl:translate-x-0 dark:border-steel-800 dark:bg-gray-900",
         isExpanded || isMobileOpen ? "w-72.5" : isHovered ? "w-72.5" : "w-22.5",
         isMobileOpen
           ? "translate-x-0"

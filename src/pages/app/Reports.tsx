@@ -94,7 +94,7 @@ function CompositionChart({ dataset, className }: { dataset: GreenLoopDataset; c
   const animatedGrand = useCountUp(grand);
 
   return (
-    <section className={`border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-dark sm:p-6 ${className ?? ""}`}>
+    <section className={`border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6 ${className ?? ""}`}>
       <ChartHeader
         question="What materials do we have?"
         note="Surveyed tonnage by material type across all projects."
@@ -106,7 +106,7 @@ function CompositionChart({ dataset, className }: { dataset: GreenLoopDataset; c
           return (
             <div key={type} className="flex items-center gap-3">
               <span className="w-28 shrink-0 text-theme-sm capitalize text-ink-800 dark:text-gray-200">{type}</span>
-              <div className="h-5 grow overflow-hidden bg-gray-100 dark:bg-gray-800">
+              <div className="h-5 grow overflow-hidden bg-steel-100 dark:bg-steel-900">
                 <div
                   className={`h-full ${TYPE_COLORS[type] ?? "bg-steel-400"}`}
                   style={{ width: `${pct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)", transitionDelay: `${i * 80}ms` }}
@@ -131,7 +131,7 @@ const FLOW_STAGES = ["Surveyed", "Matched", "Reserved", "Dispatched", "Verified"
 function RecoveryFlowChart({ dataset, className }: { dataset: GreenLoopDataset; className?: string }) {
   const flow = computeFlow(dataset);
   return (
-    <section className={`border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-dark sm:p-6 ${className ?? ""}`}>
+    <section className={`border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6 ${className ?? ""}`}>
       <ChartHeader
         question="Where is material in the process?"
         note="Tonnage at each lifecycle stage right now."
@@ -193,7 +193,7 @@ function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
   const max = Math.max(...totals.map((t) => t.capacity), 1);
 
   return (
-    <section className="border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-dark sm:p-6">
+    <section className="border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6">
       <ChartHeader
         question="Where can this material go?"
         note="Total 28 Sep intake capacity, reserved vs available."
@@ -211,16 +211,16 @@ function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
                   {t.reserved.toFixed(1)} reserved · {t.available.toFixed(1)} free
                 </span>
               </div>
-              <div className="mt-2 flex h-3 w-full overflow-hidden bg-gray-100 dark:bg-gray-800" style={{ transitionDelay: `${i * 70}ms` }}>
-                <div className="h-full bg-ink-900 dark:bg-white" style={{ width: `${reservedPct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)" }} />
-                <div className="h-full bg-loop-500" style={{ width: `${availablePct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)" }} />
+              <div className="mt-2 flex h-3 w-full overflow-hidden bg-steel-100 dark:bg-steel-900" style={{ transitionDelay: `${i * 70}ms` }}>
+                <div className="h-full bg-loop-600 dark:bg-loop-500" style={{ width: `${reservedPct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)" }} />
+                <div className="h-full bg-steel-200 dark:bg-steel-800" style={{ width: `${availablePct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)" }} />
               </div>
             </div>
           );
         })}
       </div>
       <p className="mt-4 text-theme-xs text-gray-500 dark:text-gray-400">
-        Dark = reserved · green = available
+        Muted green = reserved · pale steel = free capacity
       </p>
     </section>
   );
@@ -242,7 +242,7 @@ function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
   const max = Math.max(...rows.map((r) => r.surveyed), 1);
 
   return (
-    <section className="border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-dark sm:p-6">
+    <section className="border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6">
       <ChartHeader
         question="How are projects progressing?"
         note="Surveyed tonnage vs verified recovery per project."
@@ -257,7 +257,7 @@ function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
                 {r.verified.toFixed(1)} / {r.surveyed.toFixed(1)} t
               </span>
             </div>
-            <div className="relative mt-2 h-3 w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+            <div className="relative mt-2 h-3 w-full overflow-hidden bg-steel-100 dark:bg-steel-900">
               <div className="h-full bg-steel-300 dark:bg-steel-700" style={{ width: `${(r.surveyed / max) * 100}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)", transitionDelay: `${i * 70}ms` }} />
               <div className="absolute inset-y-0 start-0 h-full bg-loop-500" style={{ width: `${(r.verified / max) * 100}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)", transitionDelay: `${i * 70 + 150}ms` }} />
             </div>
@@ -290,7 +290,7 @@ function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
   ];
 
   return (
-    <section className="border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-dark sm:p-6">
+    <section className="border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6">
       <ChartHeader
         question="What actually arrived?"
         note={`${v.loadRef} at ${dataset.receivers.find((r) => r.id === v.receiverId)?.name}.`}
@@ -300,8 +300,8 @@ function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
         {rows.map((r) => (
           <div key={r.label} className="flex items-center gap-3">
             <span className="w-20 shrink-0 text-theme-sm text-ink-800 dark:text-gray-200">{r.label}</span>
-            <div className="h-5 grow overflow-hidden bg-gray-100 dark:bg-gray-800">
-              <div className={`h-full rounded ${r.cls}`} style={{ width: `${(r.value / max) * 100}%` }} />
+            <div className="h-5 grow overflow-hidden bg-steel-100 dark:bg-steel-900">
+              <div className={`h-full rounded-sm ${r.cls}`} style={{ width: `${(r.value / max) * 100}%` }} />
             </div>
             <span className="ledger-numeral w-16 shrink-0 text-end text-theme-sm font-semibold text-ink-900 dark:text-white">
               {r.value.toFixed(1)} t
@@ -342,7 +342,7 @@ function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
   ];
 
   return (
-    <section className="border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-dark sm:p-6">
+    <section className="border border-steel-200 bg-gray-25 p-5 dark:border-steel-800 dark:bg-gray-dark sm:p-6">
       <ChartHeader
         question="How does the ledger resolve conflicts?"
         note={`Riverstone Aggregates ${capacity.toFixed(0)} t concrete slot, 24 Sep — the A/B story.`}
@@ -356,16 +356,16 @@ function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
               <span className="ledger-numeral w-12 shrink-0 text-theme-xs text-gray-500 dark:text-gray-400">{s.time}</span>
               <div className="grow">
                 <p className="text-theme-sm text-ink-800 dark:text-gray-200">{s.label}</p>
-                <div className="mt-2 h-2 w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+                <div className="mt-2 h-2 w-full overflow-hidden bg-steel-100 dark:bg-steel-900">
                   <div
-                    className={`h-full rounded-full ${
+                    className={`h-full rounded-sm ${
                       s.tone === "hold"
                         ? "bg-signal-500"
                         : s.tone === "released"
                           ? "bg-loop-300"
                           : s.tone === "recheck"
                             ? "bg-loop-500"
-                            : "bg-ink-900 dark:bg-white"
+                            : "bg-loop-600 dark:bg-loop-500"
                     }`}
                     style={{ width: `${usedPct}%`, transition: "width 700ms cubic-bezier(0.22,1,0.36,1)", transitionDelay: `${i * 120}ms` }}
                   />
@@ -386,7 +386,7 @@ function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
 
 function ChartHeader({ question, note, figure }: { question: string; note: string; figure: string }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-100 pb-4 dark:border-gray-800">
+    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-steel-200 pb-4 dark:border-steel-800">
       <div>
         <h2 className="font-archivo text-lg font-semibold tracking-tight text-ink-900 dark:text-white">{question}</h2>
         <p className="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">{note}</p>

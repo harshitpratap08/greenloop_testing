@@ -22,7 +22,7 @@ const Badge: React.FC<BadgeProps> = ({
 }) => {
   // GreenLoop statuses use loop green for recovery, amber for holds, and oxide for rejection.
   const baseStyles =
-    "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-md font-mono font-medium uppercase tracking-[0.06em]";
+    "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-sm font-mono font-medium uppercase tracking-[0.06em]";
 
   // Define size styles
   const sizeStyles = {

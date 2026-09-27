@@ -105,7 +105,7 @@ export default function Explore() {
           </div>
 
           <div className="border-y border-white/15 px-6 py-5 sm:px-8 lg:px-10">
-            <WorkflowRail projectId={project.id} />
+            <WorkflowRail projectId={project.id} inverse />
           </div>
 
           {next && (

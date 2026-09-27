@@ -228,7 +228,7 @@
 }
 
 @utility menu-item {
-  @apply relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium;
+  @apply relative flex w-full items-center gap-3 rounded-sm px-3 py-2 text-theme-sm font-medium;
 }
 
 @utility menu-item-active {
@@ -264,7 +264,7 @@
 }
 
 @utility menu-dropdown-item {
-  @apply relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium;
+  @apply relative flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm font-medium;
 }
 
 @utility menu-dropdown-item-active {
@@ -354,7 +354,7 @@
 
 /* GreenLoop AppExploration primitives */
 @utility surface-dark {
-  @apply rounded-lg bg-ink-900 text-white;
+  @apply rounded-sm bg-ink-900 text-white;
 }
 
 @utility surface-raised {
@@ -390,7 +390,7 @@
 }
 
 .apexcharts-tooltip.apexcharts-theme-light {
-  @apply gap-1 rounded-lg! border-gray-200! p-3 shadow-theme-sm! dark:border-gray-800! dark:bg-gray-900!;
+  @apply gap-1 rounded-sm! border-steel-200! p-3 dark:border-steel-800! dark:bg-gray-dark!;
 }
 
 .apexcharts-tooltip-marker {

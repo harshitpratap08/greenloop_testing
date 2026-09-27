@@ -35,7 +35,7 @@ export default function SiteNav() {
 
         <Link
           to="/app/dashboard"
-          className="rounded-md bg-ink-900 px-4 py-2.5 text-theme-sm font-medium text-white transition-colors hover:bg-ink-800 dark:bg-white dark:text-ink-900 dark:hover:bg-gray-200"
+          className="rounded-sm bg-ink-900 px-4 py-2.5 text-theme-sm font-medium text-white transition-colors hover:bg-ink-800 dark:bg-white dark:text-ink-900 dark:hover:bg-gray-200"
         >
           Enter GreenLoop
         </Link>

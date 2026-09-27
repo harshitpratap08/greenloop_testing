@@ -500,7 +500,7 @@ export function StatusChip({ status }: { status: UnifiedStatus }) {
     dispatched: "border-steel-400 bg-white text-ink-800 dark:border-steel-600 dark:bg-transparent dark:text-gray-200",
     verified: "border-loop-500 bg-loop-500 text-white dark:border-loop-500 dark:bg-loop-500",
     rejected: "border-error-400 bg-error-50 text-error-700 dark:border-error-500/40 dark:bg-error-500/10 dark:text-error-300",
-    cancelled: "border-error-300 bg-error-50 text-error-600 dark:border-error-500/30 dark:bg-error-500/5 dark:text-error-300",
+    cancelled: "border-steel-300 bg-steel-50 text-steel-600 dark:border-steel-700 dark:bg-white/5 dark:text-steel-300",
   };
   return (
     <span className={cn("inline-flex shrink-0 items-center rounded border px-2 py-0.5 text-theme-xs font-semibold uppercase tracking-wide", map[status])}>
@@ -587,10 +587,10 @@ export function PrimaryActions() {
           key={tile.label}
           to={tile.to}
           className={cn(
-            "group rounded-lg border p-4 transition-colors",
+            "group rounded-sm border p-4 transition-colors",
             tile.emphasis
               ? "border-ink-900 bg-ink-900 text-white hover:bg-ink-800 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-gray-200"
-              : "border-gray-200 bg-white hover:border-steel-300 dark:border-gray-800 dark:bg-gray-dark dark:hover:border-steel-600",
+              : "border-steel-200 bg-gray-25 hover:border-steel-400 dark:border-steel-800 dark:bg-gray-dark dark:hover:border-steel-600",
           )}
         >
           <p className="font-archivo text-theme-base font-bold">{tile.label}</p>

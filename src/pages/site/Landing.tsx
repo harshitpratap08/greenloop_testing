@@ -279,7 +279,7 @@ function VerificationSection() {
             </p>
           </Reveal>
           <Reveal delay={0.25}>
-            <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 sm:grid-cols-4">
+            <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-white/10 bg-white/10 sm:grid-cols-4">
               <ReconCell label="Planned" value={verification.plannedT} />
               <ReconCell label="Actual" value={verification.actualT} />
               <ReconCell label="Accepted" value={verification.acceptedT} accent />
@@ -293,7 +293,7 @@ function VerificationSection() {
         </div>
 
         <Reveal delay={0.2}>
-          <div className="rounded-lg border border-white/15 bg-white/[0.04] p-6 sm:p-8">
+          <div className="rounded-sm border border-white/15 bg-white/[0.04] p-6 sm:p-8">
             <p className="eyebrow-label text-white/50">Delivery reconciliation</p>
             <div className="mt-5 flex h-4 w-full overflow-hidden rounded-sm bg-white/10">
               <div className="bg-loop-500" style={{ width: `${acceptedPct}%` }} />
@@ -312,7 +312,7 @@ function VerificationSection() {
               {verification.evidence.map((evidence) => (
                 <span
                   key={evidence.ref ?? evidence.label}
-                  className="rounded-md border border-white/20 bg-white/5 px-2 py-1 text-theme-xs text-white/80"
+                  className="rounded-sm border border-white/20 bg-white/5 px-2 py-1 text-theme-xs text-white/80"
                 >
                   {evidence.label}
                 </span>
