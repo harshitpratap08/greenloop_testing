@@ -1,0 +1,73 @@
+{
+  "common": {
+    "home": "Home",
+    "edit": "Edit",
+    "close": "Close",
+    "saveChanges": "Save Changes",
+    "viewMore": "View More",
+    "delete": "Delete",
+    "filter": "Filter",
+    "seeAll": "See all"
+  },
+  "sidebar": {
+    "groups": {
+      "menu": "Operations",
+      "support": "Admin",
+      "others": "Reference data"
+    },
+    "badges": {
+      "new": "new",
+      "pro": "pro"
+    },
+    "items": {
+      "explore": "Home",
+      "dashboard": "Operations console",
+      "projects": "Projects",
+      "materials": "Materials & Passports",
+      "receivers": "Find a receiver",
+      "allocations": "Allocations (admin)",
+      "bookings": "Bookings",
+      "verification": "Verification",
+      "dispatchPlaceholder": "Dispatch",
+      "deliveries": "Deliveries",
+      "reports": "Reports",
+      "publicSite": "Public website",
+      "forms": "Forms",
+      "formElements": "Form Elements",
+      "tables": "Tables",
+      "basicTables": "Basic Tables",
+      "authentication": "Authentication",
+      "signIn": "Sign In",
+      "signUp": "Sign Up",
+      "calendar": "Calendar",
+      "userProfile": "User Profile",
+      "profile": "Profile"
+    },
+    "widget": {
+      "title": "Demo dataset",
+      "description": "Figures come from the seeded GreenLoop scenario — no live feeds.",
+      "purchasePlan": "Reset demo"
+    }
+  },
+  "header": {
+    "searchPlaceholder": "Search projects, passports, loads...",
+    "toggleSidebar": "Toggle Sidebar",
+    "notifications": {
+      "title": "Activity",
+      "viewAll": "View full audit trail"
+    }
+  },
+  "userDropdown": {
+    "editProfile": "Edit profile",
+    "accountSettings": "Account settings",
+    "support": "Support",
+    "language": "Language",
+    "signOut": "Sign out"
+  },
+  "notFound": {
+    "error": "ERROR",
+    "message": "We can’t seem to find the page you are looking for. Head back to the GreenLoop platform or the public site.",
+    "goPlatform": "Go to Platform",
+    "backHome": "Back to Operations"
+  }
+}
