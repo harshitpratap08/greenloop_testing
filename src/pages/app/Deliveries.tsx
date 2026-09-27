@@ -6,6 +6,7 @@ import Button from "@/components/ui/button/Button";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import type { Booking } from "@/domain/types";
 import { cn } from "@/utils";
+import { motion } from "motion/react";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -21,42 +22,92 @@ export default function Deliveries() {
   const dispatchable = dataset.bookings.filter((booking) => booking.status === "confirmed");
 
   return (
-    <>
+    <div className="relative min-h-screen pb-24">
       <PageMeta
         title="Deliveries | GreenLoop"
         description="Track material loads from project dispatch through receiver delivery and evidence."
       />
       <PageBreadCrumb pageTitle="Deliveries" />
 
-      <header className="mb-8 border-b border-steel-300 pb-6 dark:border-steel-700">
-        <p className="eyebrow-label text-steel-600 dark:text-steel-400">Recovery network · load tracking</p>
-        <h1 className="mt-2 font-archivo text-title-sm font-semibold tracking-tight text-ink-900 dark:text-white sm:text-3xl">Deliveries in motion</h1>
-        <p className="mt-2 max-w-2xl text-theme-sm leading-6 text-gray-600 dark:text-gray-400">
-          Follow each confirmed load from its project origin, through dispatch, to receiver intake and proof of recovery.
-        </p>
-        <ol className="mt-6 grid grid-cols-2 border-y border-steel-200 sm:grid-cols-5 dark:border-steel-800" aria-label="Shipment stages">
-          {["Project", "Truck / load", "Receiver", "Delivery", "Evidence"].map((step, index) => (
-            <li key={step} className="flex items-center gap-2 border-b border-steel-200 py-3 pe-2 last:border-b-0 sm:border-b-0 sm:border-e sm:last:border-e-0 dark:border-steel-800">
-              <span className="ledger-numeral text-theme-xs text-steel-500 dark:text-steel-400">0{index + 1}</span>
-              <span className="text-theme-xs font-medium text-ink-800 dark:text-gray-200">{step}</span>
-            </li>
-          ))}
-        </ol>
-      </header>
+      {/* Cinematic Delivery Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="group relative mb-12 overflow-hidden rounded-sm border border-steel-200 bg-ink-950 p-8 shadow-lg sm:p-12 dark:border-steel-800 dark:bg-black"
+      >
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          {/* Animated Background */}
+          <img
+            src="/images/site/auth-yard.jpg"
+            alt="Logistics Operations"
+            className="h-full w-full animate-slow-mo object-cover opacity-40 dark:opacity-50"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-ink-950/95 via-ink-950/80 to-transparent dark:from-black/95 dark:via-black/70" />
+        </div>
+
+        <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <p className="eyebrow-label text-loop-400">Recovery Network · Load Tracking</p>
+            <h1 className="mt-4 font-archivo text-4xl font-bold tracking-tight text-white drop-shadow-md sm:text-5xl">
+              Deliveries In Motion
+            </h1>
+            <p className="mt-4 text-lg text-white/80 drop-shadow-sm">
+              Follow each confirmed load from its project origin, through dispatch, to receiver intake and proof of recovery.
+            </p>
+          </div>
+          
+          {/* Active Deliveries Counter */}
+          <div className="flex flex-col items-start gap-1 border-l-2 border-loop-500 pl-6 md:items-end md:border-l-0 md:border-r-2 md:pl-0 md:pr-6 md:text-right">
+            <motion.span 
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5, type: "spring" }}
+              className="ledger-numeral text-5xl font-bold text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+            >
+              {dispatchable.length}
+            </motion.span>
+            <span className="eyebrow-label text-white/60 uppercase tracking-widest">Active Loads</span>
+          </div>
+        </div>
+
+        {/* Global Track Progress Bar across Header */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: "100%" }}
+            transition={{ duration: 3, ease: "linear", repeat: Infinity }}
+            className="h-full bg-loop-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]"
+          />
+        </div>
+      </motion.div>
 
       {dispatchable.length === 0 ? (
-        <section className="border border-steel-200 bg-gray-25 p-6 dark:border-steel-800 dark:bg-gray-dark">
-          <p className="eyebrow-label text-steel-600 dark:text-steel-400">No active shipments</p>
-          <h2 className="mt-2 font-archivo text-xl font-semibold text-ink-900 dark:text-white">No confirmed bookings ready for delivery</h2>
-          <p className="mt-2 max-w-xl text-theme-sm leading-6 text-gray-600 dark:text-gray-400">A load enters the delivery record when receiver capacity has been confirmed.</p>
-          <Link to="/app/bookings" className="mt-4 inline-block text-theme-sm font-semibold text-ink-800 underline decoration-steel-300 underline-offset-4 dark:text-gray-200">Review bookings →</Link>
+        <section className="flex flex-col items-center justify-center rounded-sm border-2 border-dashed border-steel-300 bg-white/50 p-16 text-center dark:border-steel-800 dark:bg-white/[0.02]">
+          <div className="mb-4 rounded-full bg-steel-100 p-4 dark:bg-steel-900">
+            <span className="text-4xl opacity-50">🚛</span>
+          </div>
+          <p className="eyebrow-label text-steel-500 dark:text-steel-400">No active shipments</p>
+          <h2 className="mt-3 font-archivo text-2xl font-bold text-ink-900 dark:text-white">No confirmed bookings ready for delivery</h2>
+          <p className="mt-2 max-w-md text-steel-600 dark:text-gray-400">A load enters the delivery record when receiver capacity has been confirmed.</p>
+          <Link to="/app/bookings" className="mt-6 font-semibold text-ink-900 underline decoration-steel-300 underline-offset-4 hover:text-loop-600 dark:text-white dark:hover:text-loop-400">Review bookings →</Link>
         </section>
       ) : (
-        <div className="space-y-8">
-          {dispatchable.map((booking) => <LoadCard key={booking.id} booking={booking} />)}
+        <div className="space-y-12">
+          {dispatchable.map((booking, index) => (
+            <motion.div
+              key={booking.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ delay: index * 0.15, duration: 0.6 }}
+            >
+              <LoadCard booking={booking} />
+            </motion.div>
+          ))}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -74,112 +125,198 @@ function LoadCard({ booking }: { booking: Booking }) {
   const loadRef = verification?.loadRef ?? dispatchEvent?.summary.split(" ")[0] ?? `LOAD-${booking.id.replace("BK-", "10")}`;
   const currentStatus = verification?.status ?? (dispatchEvent ? "dispatched" : "confirmed");
   const stages = [
-    { label: "Project ready", detail: project?.name ?? "Project origin", complete: true },
-    { label: "Load dispatched", detail: dispatchEvent ? formatStamp(dispatchEvent.at) : "Awaiting dispatch", complete: Boolean(dispatchEvent) },
-    { label: "Receiver arrival", detail: verification ? formatStamp(verification.verifiedAt ?? "") : receiver?.name ?? "Awaiting arrival", complete: Boolean(verification) },
-    { label: "Delivery checked", detail: verification ? `${verification.actualT.toFixed(1)} t weighed` : "Awaiting weighbridge", complete: Boolean(verification) },
-    { label: "Evidence recorded", detail: verification?.evidence.length ? `${verification.evidence.length} records attached` : "Awaiting intake evidence", complete: Boolean(verification?.evidence.length) },
+    { label: "Project ready", detail: project?.name ?? "Origin", complete: true },
+    { label: "Dispatched", detail: dispatchEvent ? formatStamp(dispatchEvent.at) : "Awaiting", complete: Boolean(dispatchEvent) },
+    { label: "Arrival", detail: verification ? formatStamp(verification.verifiedAt ?? "") : "Awaiting", complete: Boolean(verification) },
+    { label: "Checked", detail: verification ? `${verification.actualT.toFixed(1)} t weighed` : "Awaiting", complete: Boolean(verification) },
+    { label: "Evidence", detail: verification?.evidence.length ? `${verification.evidence.length} records` : "Awaiting", complete: Boolean(verification?.evidence.length) },
   ];
+  
+  const isEnRoute = Boolean(dispatchEvent) && !Boolean(verification);
+  const progressPercent = verification ? 100 : dispatchEvent ? 50 : 10;
 
   return (
-    <article className="overflow-hidden border border-steel-200 bg-gray-25 dark:border-steel-800 dark:bg-gray-dark">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-steel-200 bg-steel-50 px-5 py-4 sm:px-6 dark:border-steel-800 dark:bg-white/[0.03]">
+    <article className="group overflow-hidden rounded-sm border border-steel-200 bg-white shadow-md transition-shadow hover:shadow-xl dark:border-steel-800 dark:bg-[#0f141a]">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-steel-200 bg-gray-50 px-6 py-5 dark:border-steel-800 dark:bg-white/[0.02]">
         <div>
-          <p className="eyebrow-label text-steel-600 dark:text-steel-400">Shipment record · {booking.id}</p>
-          <h2 className="ledger-numeral mt-1 text-xl font-semibold tracking-tight text-ink-900 dark:text-white">{loadRef}</h2>
-          <p className="mt-1 font-archivo text-base font-semibold capitalize text-ink-800 dark:text-gray-200">{booking.tonnesT.toFixed(1)} t {TYPE_LABEL[material?.type ?? ""] ?? material?.type ?? "material"}</p>
+          <p className="eyebrow-label text-steel-500 dark:text-steel-400">Shipment Record · {booking.id}</p>
+          <div className="mt-1 flex items-baseline gap-4">
+            <h2 className="ledger-numeral text-2xl font-bold tracking-tight text-ink-900 dark:text-white">{loadRef}</h2>
+            <p className="font-archivo text-lg font-semibold uppercase text-loop-600 dark:text-loop-400">
+              {booking.tonnesT.toFixed(1)} t {TYPE_LABEL[material?.type ?? ""] ?? material?.type}
+            </p>
+          </div>
         </div>
-        <StatusBadge status={currentStatus} size="md" />
+        <StatusBadge status={currentStatus} size="lg" />
       </div>
 
-      <div className="p-5 sm:p-6">
-        <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center" aria-label="Shipment route">
-          <RouteStop label="Origin · project" title={project?.name ?? "Project unavailable"} detail={project?.location ?? "—"} />
-          <div className="flex items-center gap-2 text-center sm:flex-col">
-            <div className="h-px flex-1 border-t border-dashed border-steel-400 sm:h-8 sm:flex-none sm:border-s sm:border-t-0 dark:border-steel-600" aria-hidden="true" />
-            <div className="shrink-0">
-              <p className="ledger-numeral text-theme-sm font-semibold text-ink-900 dark:text-white">{receiver?.distanceKm ?? 0} km</p>
-              <p className="eyebrow-label mt-0.5 text-steel-500 dark:text-steel-400">Route</p>
+      <div className="p-6 sm:p-8">
+        {/* Animated Live Route Map */}
+        <div className="relative mb-10 overflow-hidden rounded-sm border border-steel-200 bg-steel-50 p-6 dark:border-steel-800 dark:bg-black/40">
+          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <RouteStop label="Origin · Project" title={project?.name ?? "Unavailable"} detail={project?.location ?? "—"} />
+            
+            <div className="relative flex flex-1 items-center px-8 text-center sm:flex-col">
+              {/* Distance label */}
+              <div className="absolute top-0 -translate-y-full pb-2">
+                <span className="ledger-numeral rounded-full border border-steel-300 bg-white px-3 py-1 text-sm font-bold text-ink-900 shadow-sm dark:border-steel-700 dark:bg-ink-950 dark:text-white">
+                  {receiver?.distanceKm ?? 0} km
+                </span>
+              </div>
+              
+              {/* Route Track */}
+              <div className="relative h-2 w-full overflow-hidden rounded-full bg-steel-200 dark:bg-steel-800">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  whileInView={{ width: `${progressPercent}%` }}
+                  transition={{ duration: 2, ease: "easeOut" }}
+                  className={cn("h-full", isEnRoute ? "bg-loop-500" : verification ? "bg-ink-900 dark:bg-white" : "bg-steel-400 dark:bg-steel-600")}
+                />
+              </div>
+              
+              {/* Animated Truck Icon if En Route */}
+              <AnimatePresence>
+                {isEnRoute && (
+                  <motion.div 
+                    initial={{ x: "-100%" }}
+                    animate={{ x: "10%" }} // Parked in middle
+                    transition={{ duration: 2, ease: "easeOut" }}
+                    className="absolute inset-x-8 top-1/2 -translate-y-1/2"
+                  >
+                    <div className="flex h-8 w-8 -translate-y-1 items-center justify-center rounded-full border-4 border-white bg-loop-500 text-lg shadow-[0_0_15px_rgba(34,197,94,0.5)] dark:border-ink-950">
+                      🚛
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-            <div className="h-px flex-1 border-t border-dashed border-steel-400 sm:h-8 sm:flex-none sm:border-s sm:border-t-0 dark:border-steel-600" aria-hidden="true" />
+            
+            <RouteStop label="Destination · Receiver" title={receiver?.name ?? "Unavailable"} detail={receiver?.location ?? "—"} align="end" />
           </div>
-          <RouteStop label="Destination · receiver" title={receiver?.name ?? "Receiver unavailable"} detail={receiver?.location ?? "—"} align="end" />
         </div>
 
-        <dl className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4 border-y border-steel-200 py-4 sm:grid-cols-4 dark:border-steel-800">
+        {/* Shipment Details Grid */}
+        <dl className="grid grid-cols-2 gap-x-8 gap-y-6 border-y border-steel-200 py-6 sm:grid-cols-4 dark:border-steel-800">
           <LoadMetric label="Material" value={TYPE_LABEL[material?.type ?? ""] ?? material?.type ?? "—"} />
           <LoadMetric label="Planned quantity" value={`${booking.tonnesT.toFixed(1)} t`} />
           <LoadMetric label="Intake slot" value={slot?.date ?? "—"} />
-          <LoadMetric label="Received / accepted" value={verification ? `${verification.actualT.toFixed(1)} / ${verification.acceptedT.toFixed(1)} t` : "Awaiting arrival"} />
+          <LoadMetric label="Received / accepted" value={verification ? `${verification.actualT.toFixed(1)} / ${verification.acceptedT.toFixed(1)} t` : "Awaiting arrival"} highlight={Boolean(verification)} />
         </dl>
 
-        <section className="mt-5" aria-label="Load progress">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <p className="eyebrow-label text-steel-600 dark:text-steel-400">Shipment progress</p>
-            {verification && <p className="ledger-numeral text-theme-xs text-loop-700 dark:text-loop-300">{verification.acceptedT.toFixed(1)} t accepted at receiver</p>}
+        {/* Animated Stages Tracker */}
+        <section className="mt-8">
+          <p className="eyebrow-label mb-4 text-steel-500 dark:text-steel-400">Shipment Progress</p>
+          <div className="relative">
+            <div className="absolute left-3 top-0 h-full w-[2px] bg-steel-200 dark:bg-steel-800 sm:left-0 sm:top-3 sm:h-[2px] sm:w-full" />
+            <motion.div 
+              initial={{ height: 0, width: 0 }}
+              whileInView={{ height: "100%", width: "100%" }}
+              transition={{ duration: 1.5 }}
+              className="absolute left-3 top-0 w-[2px] bg-loop-500 sm:left-0 sm:top-3 sm:h-[2px]" 
+              style={{ clipPath: `inset(0 ${100 - progressPercent}% 0 0)` }}
+            />
+            
+            <ol className="relative z-10 grid gap-6 sm:grid-cols-5">
+              {stages.map((stage, index) => (
+                <li key={stage.label} className="relative flex items-start gap-4 pl-8 sm:flex-col sm:items-center sm:gap-3 sm:pl-0">
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    whileInView={{ scale: 1 }}
+                    transition={{ delay: index * 0.2, type: "spring" }}
+                    viewport={{ once: true }}
+                    className={cn(
+                      "absolute left-0 top-0 flex h-6 w-6 items-center justify-center rounded-full border-[3px] bg-white transition-colors duration-500 sm:relative dark:bg-ink-950",
+                      stage.complete ? "border-loop-500" : "border-steel-300 dark:border-steel-700"
+                    )}
+                  >
+                    {stage.complete && <div className="h-2.5 w-2.5 rounded-full bg-loop-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />}
+                  </motion.div>
+                  <div className="sm:text-center">
+                    <p className={cn("text-xs font-bold uppercase tracking-wider", stage.complete ? "text-ink-900 dark:text-white" : "text-steel-400 dark:text-gray-600")}>{stage.label}</p>
+                    <p className="mt-1 text-xs text-steel-500 dark:text-gray-500">{stage.detail}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
-          <ol className="grid gap-0 sm:grid-cols-5">
-            {stages.map((stage, index) => (
-              <li key={stage.label} className="relative flex gap-3 border-s border-steel-300 pb-4 ps-4 last:border-s-0 last:pb-0 sm:block sm:border-s-0 sm:border-t sm:pb-0 sm:ps-0 sm:pe-3 dark:border-steel-700">
-                <span className={cn("absolute -start-[0.32rem] top-0.5 size-2.5 border sm:-top-[0.32rem] sm:start-0", stage.complete ? "border-loop-600 bg-loop-600" : "border-steel-400 bg-gray-25 dark:border-steel-600 dark:bg-gray-dark")} aria-hidden="true" />
-                <span className="block sm:pt-3">
-                  <span className={cn("block text-theme-xs font-semibold", stage.complete ? "text-ink-900 dark:text-white" : "text-gray-500 dark:text-gray-400")}>{stage.label}</span>
-                  <span className="mt-1 block text-theme-xs leading-5 text-gray-500 dark:text-gray-400">{stage.detail}</span>
-                </span>
-                {index < stages.length - 1 && <span className="sr-only">then</span>}
-              </li>
-            ))}
-          </ol>
         </section>
 
-        <div className="mt-6 grid gap-6 border-t border-steel-200 pt-5 lg:grid-cols-[0.9fr_1.1fr] dark:border-steel-800">
-          <section aria-labelledby={`evidence-${booking.id}`}>
-            <p className="eyebrow-label text-steel-600 dark:text-steel-400">Delivery evidence</p>
-            <h3 id={`evidence-${booking.id}`} className="mt-1 font-archivo text-base font-semibold text-ink-900 dark:text-white">Receiver record</h3>
+        {/* Detailed Sections with 3D Card Hover */}
+        <div className="mt-10 grid gap-8 border-t border-steel-200 pt-8 lg:grid-cols-2 dark:border-steel-800">
+          <motion.section 
+            whileHover={{ y: -5 }}
+            className="rounded-sm border border-steel-200 bg-gray-50 p-6 shadow-sm transition-shadow hover:shadow-md dark:border-steel-800 dark:bg-white/[0.02]"
+          >
+            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Delivery Evidence</p>
+            <h3 className="mt-1 font-archivo text-lg font-bold text-ink-900 dark:text-white">Receiver Record</h3>
             {verification?.evidence.length ? (
-              <ul className="mt-3 divide-y divide-steel-200 border-y border-steel-200 dark:divide-steel-800 dark:border-steel-800">
+              <ul className="mt-4 divide-y divide-steel-200 dark:divide-steel-800">
                 {verification.evidence.map((evidence) => (
-                  <li key={evidence.ref ?? evidence.label} className="flex flex-wrap items-start justify-between gap-2 py-2.5">
+                  <li key={evidence.ref ?? evidence.label} className="flex flex-wrap items-center justify-between gap-3 py-3 hover:bg-white dark:hover:bg-white/5">
                     <div>
-                      <p className="text-theme-xs font-medium text-ink-800 dark:text-gray-200">{evidence.label}</p>
-                      <p className="ledger-numeral mt-0.5 text-theme-xs text-gray-500 dark:text-gray-400">{evidence.ref ?? evidence.kind}</p>
+                      <p className="text-sm font-semibold text-ink-800 dark:text-gray-200">{evidence.label}</p>
+                      <p className="ledger-numeral mt-0.5 text-xs text-steel-500 dark:text-gray-400">{evidence.ref ?? evidence.kind}</p>
                     </div>
-                    <time className="ledger-numeral text-theme-xs text-gray-500 dark:text-gray-400" dateTime={evidence.recordedAt}>{formatStamp(evidence.recordedAt)}</time>
+                    <time className="ledger-numeral rounded bg-steel-200/50 px-2 py-1 text-xs font-medium text-steel-700 dark:bg-white/10 dark:text-gray-300" dateTime={evidence.recordedAt}>{formatStamp(evidence.recordedAt)}</time>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 max-w-sm text-theme-xs leading-5 text-gray-500 dark:text-gray-400">Weighbridge tickets and intake photos appear here when the receiver verifies the delivery.</p>
+              <div className="mt-4 flex flex-col items-center justify-center rounded border border-dashed border-steel-300 py-8 text-center dark:border-steel-700">
+                <span className="text-2xl opacity-50">🧾</span>
+                <p className="mt-2 max-w-[200px] text-xs text-steel-500 dark:text-gray-500">Weighbridge tickets appear here upon verification.</p>
+              </div>
             )}
-            {verification?.rejectReason && <p className="mt-3 border-s-2 border-signal-500 bg-signal-50 px-3 py-2 text-theme-xs text-signal-800 dark:bg-signal-500/10 dark:text-signal-200">Receiving note · {verification.rejectReason}</p>}
-          </section>
+            {verification?.rejectReason && (
+              <div className="mt-4 border-l-4 border-signal-500 bg-signal-50 p-3 dark:bg-signal-500/10">
+                <p className="text-xs font-bold text-signal-900 dark:text-signal-100">Receiving Note</p>
+                <p className="mt-1 text-xs text-signal-800 dark:text-signal-200">{verification.rejectReason}</p>
+              </div>
+            )}
+          </motion.section>
 
-          <section aria-labelledby={`trail-${booking.id}`}>
-            <p className="eyebrow-label text-steel-600 dark:text-steel-400">Operational trail</p>
-            <h3 id={`trail-${booking.id}`} className="mt-1 font-archivo text-base font-semibold text-ink-900 dark:text-white">Recorded shipment events</h3>
+          <section>
+            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Operational Trail</p>
+            <h3 className="mt-1 font-archivo text-lg font-bold text-ink-900 dark:text-white">Shipment Events</h3>
             {events.length > 0 ? (
-              <ol className="mt-3 space-y-3 border-s border-steel-300 ps-4 dark:border-steel-700">
-                {events.slice(-6).map((event) => (
-                  <li key={event.id} className="relative">
-                    <span className="absolute -start-[1.3rem] top-1.5 size-2 rounded-full bg-steel-400 dark:bg-steel-600" aria-hidden="true" />
-                    <p className="ledger-numeral text-theme-xs text-gray-500 dark:text-gray-400">{formatStamp(event.at)} · {event.actor.name}</p>
-                    <p className="mt-0.5 text-theme-xs leading-5 text-ink-800 dark:text-gray-200">{event.summary}</p>
-                    {event.detail && <p className="mt-0.5 text-theme-xs leading-5 text-gray-500 dark:text-gray-400">{event.detail}</p>}
-                  </li>
+              <ol className="mt-4 space-y-4 border-l-2 border-steel-200 pl-5 dark:border-steel-800">
+                {events.slice(-6).map((event, i) => (
+                  <motion.li 
+                    key={event.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    viewport={{ once: true }}
+                    className="relative"
+                  >
+                    <span className="absolute -left-[1.4rem] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-steel-400 shadow-sm dark:border-ink-950 dark:bg-steel-600" aria-hidden="true" />
+                    <p className="ledger-numeral text-xs text-steel-500 dark:text-gray-400">{formatStamp(event.at)} · {event.actor.name}</p>
+                    <p className="mt-1 text-sm font-medium text-ink-800 dark:text-gray-200">{event.summary}</p>
+                    {event.detail && <p className="mt-0.5 text-xs text-steel-500 dark:text-gray-500">{event.detail}</p>}
+                  </motion.li>
                 ))}
               </ol>
             ) : (
-              <p className="mt-2 text-theme-xs text-gray-500 dark:text-gray-400">No shipment events recorded yet.</p>
+              <p className="mt-4 text-sm text-steel-500 dark:text-gray-500">No shipment events recorded yet.</p>
             )}
           </section>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-steel-200 pt-4 dark:border-steel-800">
-          <p className="text-theme-xs text-gray-500 dark:text-gray-400">Booking {booking.id} · receiver intake {slot?.date ?? "date pending"}</p>
+        {/* Footer Actions */}
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-steel-200 pt-6 dark:border-steel-800">
+          <p className="text-sm font-medium text-steel-500 dark:text-gray-400">Booking {booking.id} · receiver intake {slot?.date ?? "date pending"}</p>
           {!dispatchEvent && !verification ? (
-            <Button size="sm" onClick={() => dispatchAction({ bookingId: booking.id })}>Dispatch load</Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button size="lg" className="bg-ink-900 uppercase tracking-widest hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500" onClick={() => dispatchAction({ bookingId: booking.id })}>
+                Dispatch Load
+              </Button>
+            </motion.div>
           ) : (
-            <Link to="/app/verification" className="text-theme-xs font-semibold text-ink-800 underline decoration-steel-300 underline-offset-4 dark:text-gray-200">Open verification record →</Link>
+            <Link to="/app/verification" className="group flex items-center gap-2 text-sm font-bold text-ink-900 transition-colors hover:text-loop-600 dark:text-white dark:hover:text-loop-400">
+              Open Verification Record
+              <span className="transition-transform group-hover:translate-x-1">→</span>
+            </Link>
           )}
         </div>
       </div>
@@ -189,19 +326,24 @@ function LoadCard({ booking }: { booking: Booking }) {
 
 function RouteStop({ label, title, detail, align = "start" }: { label: string; title: string; detail: string; align?: "start" | "end" }) {
   return (
-    <div className={cn("min-w-0", align === "end" && "sm:text-end")}>
-      <p className="eyebrow-label text-steel-600 dark:text-steel-400">{label}</p>
-      <p className="mt-1 truncate font-archivo text-base font-semibold text-ink-900 dark:text-white">{title}</p>
-      <p className="mt-0.5 truncate text-theme-xs text-gray-500 dark:text-gray-400">{detail}</p>
+    <div className={cn("min-w-0 flex flex-col", align === "end" ? "items-end text-right" : "items-start text-left")}>
+      <p className="eyebrow-label text-steel-500 dark:text-steel-400">{label}</p>
+      <p className="mt-2 font-archivo text-xl font-bold text-ink-900 dark:text-white">{title}</p>
+      <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">{detail}</p>
     </div>
   );
 }
 
-function LoadMetric({ label, value }: { label: string; value: string }) {
+function LoadMetric({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div>
-      <dt className="eyebrow-label text-steel-600 dark:text-steel-400">{label}</dt>
-      <dd className="ledger-numeral mt-1 text-theme-sm font-semibold capitalize text-ink-900 dark:text-white">{value}</dd>
+    <div className="flex flex-col gap-1">
+      <dt className="eyebrow-label text-steel-500 dark:text-steel-400">{label}</dt>
+      <dd className={cn(
+        "ledger-numeral mt-1 text-xl font-bold capitalize",
+        highlight ? "text-loop-600 dark:text-loop-400" : "text-ink-900 dark:text-white"
+      )}>
+        {value}
+      </dd>
     </div>
   );
 }

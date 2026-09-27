@@ -30,7 +30,7 @@ export default function WorkflowSticky() {
   return (
     <div id="workflow" ref={containerRef} className="relative scroll-mt-20">
       {/* Desktop: sticky rail + passing panels */}
-      <div className="mx-auto hidden max-w-7xl gap-16 px-5 py-24 sm:px-8 lg:grid lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="mx-auto hidden max-w-7xl gap-16 px-5 py-12 md:py-20 sm:px-8 lg:grid lg:grid-cols-[0.9fr_1.1fr]">
         <div className="sticky top-24 self-start">
           <p className="eyebrow-label text-steel-600 dark:text-steel-400">04 · Core workflow</p>
           <h2 className="mt-4 font-archivo text-title-md font-bold tracking-[-0.02em] text-ink-900 dark:text-white sm:text-title-lg">
@@ -82,7 +82,7 @@ export default function WorkflowSticky() {
       </div>
 
       {/* Mobile: stacked panels, rail hidden */}
-      <div className="space-y-16 px-5 py-16 sm:px-8 lg:hidden">
+      <div className="space-y-16 px-5 py-12 sm:px-8 lg:hidden">
         {STEPS.map((step, index) => (
           <div key={step.id}>
             <p className="flex items-baseline gap-3">

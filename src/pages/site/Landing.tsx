@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { motion, useScroll, useTransform, useReducedMotion } from "motion/react";
 import PageMeta from "@/components/common/PageMeta";
 import SiteFooter from "@/components/site/SiteFooter";
 import SiteNav from "@/components/site/SiteNav";
@@ -22,7 +24,7 @@ export default function Landing() {
         description="Plan where recoverable construction materials go before the truck leaves. Survey, match, reserve, verify."
       />
       <SiteNav />
-      <main>
+      <main className="dark bg-ink-950">
         <StoryFilm />
         <ProblemSection />
         <SystemDiagram />
@@ -61,7 +63,7 @@ const FRICTIONS = [
 
 function ProblemSection() {
   return (
-    <Section id="problem" index="02" eyebrow="The problem" innerClassName="lg:grid lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
+    <Section id="problem" index="02" eyebrow="The problem" band innerClassName="lg:grid lg:grid-cols-[0.85fr_1.15fr] lg:gap-16 py-12 md:py-20">
       <div>
         <EditorialHeading
           lines={[
@@ -118,71 +120,86 @@ function ProblemSection() {
 // ---------------------------------------------------------------------------
 
 function PassportSection() {
-  return (
-    <Section
-      id="passport"
-      index="05"
-      eyebrow="Material passport"
-      innerClassName="lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:gap-16"
-    >
-      <div className="order-2 lg:order-1">
-        <EditorialHeading
-          lines={[
-            <>Every tonne carries</>,
-            <>its own record.</>,
-          ]}
-        />
-        <Reveal delay={0.1}>
-          <p className="mt-6 max-w-md text-base leading-7 text-ink-700 dark:text-gray-300">
-            Type, quantity range, condition, grade, source project, evidence,
-            confidence, status. The passport is what makes a recovered material
-            tradeable — and traceable from demolition to verified delivery.
-          </p>
-        </Reveal>
-        <Reveal delay={0.2}>
-          <AppWindow
-            route="/app/materials"
-            title="Passport — MP-103 · reclaimed brick"
-            className="mt-8"
-          >
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
-              <PassportField label="Type" value="Brick — reclaimed, palletised" />
-              <PassportField label="Source project" value="Harrow Road Demolition" />
-              <PassportField label="Quantity" value="14.5 t" />
-              <PassportField label="Range" value="12.0 – 17.0 t" />
-              <PassportField label="Condition" value="Good" />
-              <PassportField label="Grade" value="A" />
-              <PassportField label="Evidence" value="Survey sheet · site photo" />
-              <PassportField label="Confidence" value="90%" />
-            </dl>
-            <p className="mt-4 border-t border-steel-200 pt-3 text-theme-xs text-gray-500 dark:border-steel-700 dark:text-gray-400">
-              Status: <span className="font-medium text-loop-700 dark:text-loop-300">passport ready</span> —
-              awaiting a receiver allocation.
-            </p>
-          </AppWindow>
-        </Reveal>
-      </div>
+  const containerRef = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end start"],
+  });
 
-      <div className="order-1 lg:order-2">
-        <Reveal delay={0.15}>
-          <Figure
-            src="/images/site/brick-pallets.jpg"
-            alt="Palletised reclaimed brick at a yard"
-            caption="Palletised reclaimed brick — the material behind passport MP-103"
-            credit="demo dataset · grade A · good condition"
-            imgClassName="aspect-[3/4] lg:aspect-auto lg:h-full"
-          />
-        </Reveal>
+  const imgY = useTransform(scrollYProgress, [0, 1], ["-15%", "15%"]);
+  const cardY = useTransform(scrollYProgress, [0, 1], ["10%", "-10%"]);
+
+  return (
+    <section ref={containerRef} className="relative isolate overflow-hidden bg-ink-950 py-16 md:py-24" id="passport">
+      <motion.div className="absolute inset-0 -z-10" style={reduceMotion ? {} : { y: imgY }}>
+        <img
+          src="/images/site/brick-pallets.jpg"
+          alt="Palletised reclaimed brick at a yard"
+          className="h-[130%] w-full object-cover opacity-25"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/60 to-ink-950" />
+      </motion.div>
+
+      <div className="mx-auto max-w-7xl px-5 sm:px-8">
+        <div className="lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 items-center">
+          <div className="order-2 lg:order-1 relative z-10">
+            <EditorialHeading
+              lines={[
+                <>Every tonne carries</>,
+                <>its own record.</>,
+              ]}
+            />
+            <Reveal delay={0.1}>
+              <p className="mt-6 max-w-md text-base leading-7 text-white/80">
+                Type, quantity range, condition, grade, source project, evidence,
+                confidence, status. The passport is what makes a recovered material
+                tradeable — and traceable from demolition to verified delivery.
+              </p>
+            </Reveal>
+            <motion.div 
+              className="mt-10 relative perspective-[1200px]"
+              style={reduceMotion ? {} : { y: cardY }}
+            >
+              <motion.div 
+                className="transform-gpu"
+                style={reduceMotion ? {} : { rotateY: 8, rotateX: 5 }}
+              >
+                <AppWindow
+                  route="/app/materials"
+                  title="Passport — MP-103 · reclaimed brick"
+                  className="shadow-2xl shadow-ink-950/80 border border-white/20 bg-ink-950/90 backdrop-blur-xl"
+                >
+                  <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
+                    <PassportField label="Type" value="Brick — reclaimed, palletised" />
+                    <PassportField label="Source project" value="Harrow Road Demolition" />
+                    <PassportField label="Quantity" value="14.5 t" highlight />
+                    <PassportField label="Range" value="12.0 – 17.0 t" />
+                    <PassportField label="Condition" value="Good" />
+                    <PassportField label="Grade" value="A" />
+                    <PassportField label="Evidence" value="Survey sheet · site photo" />
+                    <PassportField label="Confidence" value="90%" highlight />
+                  </dl>
+                  <p className="mt-4 border-t border-white/15 pt-3 text-theme-xs text-white/60">
+                    Status: <span className="font-medium text-loop-300">passport ready</span> —
+                    awaiting a receiver allocation.
+                  </p>
+                </AppWindow>
+              </motion.div>
+            </motion.div>
+          </div>
+          <div className="order-1 lg:order-2 hidden lg:block" aria-hidden="true" />
+        </div>
       </div>
-    </Section>
+    </section>
   );
 }
 
-function PassportField({ label, value }: { label: string; value: string }) {
+function PassportField({ label, value, highlight = false }: { label: string; value: string, highlight?: boolean }) {
   return (
     <div>
       <dt className="eyebrow-label text-steel-600 dark:text-steel-400">{label}</dt>
-      <dd className="ledger-numeral mt-1 text-theme-sm font-medium text-ink-900 dark:text-white/90">
+      <dd className={`ledger-numeral mt-1 text-theme-sm font-medium ${highlight ? "text-loop-300 drop-shadow-sm" : "text-ink-900 dark:text-white/90"}`}>
         {value}
       </dd>
     </div>
@@ -202,48 +219,86 @@ function LogisticsSection() {
   const slot = booking && dataset.slots.find((item) => item.id === booking.slotId);
   const verification = booking && dataset.verifications.find((item) => item.bookingId === booking.id);
 
+  const containerRef = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end start"],
+  });
+
+  const truckX = useTransform(scrollYProgress, [0, 1], ["-10%", "10%"]);
+
   if (!dispatch || !booking || !material || !receiver || !slot) return null;
 
   return (
-    <Section id="logistics" index="08" eyebrow="Dispatch & logistics" innerClassName="lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16">
-      <div>
-        <EditorialHeading
-          lines={[<>The load leaves</>, <>with a destination.</>]}
-        />
-        <Reveal delay={0.12}>
-          <p className="mt-6 max-w-lg text-base leading-7 text-ink-700 dark:text-gray-300">
-            A confirmed slot connects the surveyed material to a real receiving yard. The load ID, planned tonnes and delivery evidence stay attached to that journey.
-          </p>
-        </Reveal>
-        <Reveal delay={0.2}>
-          <AppWindow route="/app/deliveries" title={`Dispatch record · ${verification?.loadRef ?? STORY.loadRef}`} className="mt-8">
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-5">
-              <PassportField label="Material" value={`${material.type} · ${material.id}`} />
-              <PassportField label="Load reference" value={verification?.loadRef ?? STORY.loadRef} />
-              <PassportField label="Dispatch tonnage" value={`${booking.tonnesT.toFixed(1)} t`} />
-              <PassportField label="Receiver" value={receiver.name} />
-              <PassportField label="Reserved slot" value={slot.date} />
-              <PassportField label="Route distance" value={`${receiver.distanceKm} km`} />
-            </dl>
-            <Link
-              to="/app/verification"
-              className="mt-5 inline-flex border-b border-ink-900 pb-0.5 text-theme-sm font-medium text-ink-900 transition-colors hover:border-loop-600 hover:text-loop-700 dark:border-white dark:text-white dark:hover:border-loop-400 dark:hover:text-loop-300"
-            >
-              Follow through to verification
-            </Link>
-          </AppWindow>
-        </Reveal>
+    <section ref={containerRef} className="relative isolate overflow-hidden bg-ink-950 py-16 md:py-32" id="logistics">
+      <motion.div className="absolute inset-0 -z-10" style={reduceMotion ? {} : { x: truckX }}>
+         <img
+            src="/images/site/auth-truck.jpg"
+            alt="A materials truck ready for a coordinated recovery delivery"
+            className="h-full w-[120%] max-w-none object-cover opacity-35"
+         />
+         <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/60 to-transparent" />
+         <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-ink-950" />
+      </motion.div>
+      
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 relative z-10">
+        <div className="lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+          <div className="max-w-xl">
+            <EditorialHeading
+              lines={[<>The load leaves</>, <>with a destination.</>]}
+            />
+            <Reveal delay={0.12}>
+              <p className="mt-6 text-base leading-7 text-white/80">
+                A confirmed slot connects the surveyed material to a real receiving yard. The load ID, planned tonnes and delivery evidence stay attached to that journey.
+              </p>
+            </Reveal>
+            <Reveal delay={0.2}>
+              <AppWindow route="/app/deliveries" title={`Dispatch record · ${verification?.loadRef ?? STORY.loadRef}`} className="mt-10 border border-white/20 bg-ink-950/90 backdrop-blur-xl shadow-2xl shadow-ink-950/80">
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-5">
+                  <PassportField label="Material" value={`${material.type} · ${material.id}`} />
+                  <PassportField label="Load reference" value={verification?.loadRef ?? STORY.loadRef} highlight />
+                  <PassportField label="Dispatch tonnage" value={`${booking.tonnesT.toFixed(1)} t`} highlight />
+                  <PassportField label="Receiver" value={receiver.name} />
+                  <PassportField label="Reserved slot" value={slot.date} />
+                  <PassportField label="Route distance" value={`${receiver.distanceKm} km`} />
+                </dl>
+                <div className="mt-6 pt-5 border-t border-white/10 relative overflow-hidden">
+                   <div className="flex items-center justify-between text-theme-xs font-mono tracking-widest text-white/60">
+                      <span>ORIGIN</span>
+                      <div className="relative flex-1 mx-4 h-px bg-white/10">
+                         <motion.div 
+                            className="absolute inset-y-0 start-0 bg-loop-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]"
+                            style={{ width: useTransform(scrollYProgress, [0.3, 0.7], ["0%", "100%"]) }} 
+                         />
+                      </div>
+                      <span>RECEIVER</span>
+                   </div>
+                </div>
+                <Link
+                  to="/app/verification"
+                  className="mt-6 inline-flex border-b border-white/30 pb-0.5 text-theme-sm font-medium text-white transition-colors hover:border-loop-400 hover:text-loop-300"
+                >
+                  Follow through to verification
+                </Link>
+              </AppWindow>
+            </Reveal>
+          </div>
+          <div className="mt-12 lg:mt-auto">
+             <div className="backdrop-blur-md bg-ink-950/80 border border-white/20 p-5 rounded-lg flex items-center justify-between shadow-2xl">
+                <div>
+                  <p className="eyebrow-label text-white/50">Transit Tracking</p>
+                  <p className="ledger-numeral mt-1 font-medium text-white text-xl">{verification?.loadRef ?? STORY.loadRef}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-theme-xs text-white/50 uppercase tracking-wider">{receiver.name}</p>
+                  <p className="ledger-numeral mt-1 text-loop-300 font-medium text-lg">{booking.tonnesT.toFixed(1)} t payload</p>
+                </div>
+             </div>
+          </div>
+        </div>
       </div>
-      <Reveal delay={0.16}>
-        <Figure
-          src="/images/site/auth-truck.jpg"
-          alt="A materials truck ready for a coordinated recovery delivery"
-          caption={`${verification?.loadRef ?? STORY.loadRef} · ${receiver.name} · ${slot.date}`}
-          credit={`${booking.tonnesT.toFixed(1)} t dispatched`}
-          imgClassName="aspect-[4/5] lg:aspect-[4/5]"
-        />
-      </Reveal>
-    </Section>
+    </section>
   );
 }
 
@@ -259,7 +314,7 @@ function VerificationSection() {
   const rejectedPct = 100 - acceptedPct;
 
   return (
-    <Section id="verification" index="09" eyebrow="Verification" band>
+    <Section id="verification" index="09" eyebrow="Verification" band innerClassName="py-12 md:py-20">
       <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr]">
         <div>
           <EditorialHeading
@@ -280,10 +335,10 @@ function VerificationSection() {
           </Reveal>
           <Reveal delay={0.25}>
             <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-white/10 bg-white/10 sm:grid-cols-4">
-              <ReconCell label="Planned" value={verification.plannedT} />
-              <ReconCell label="Actual" value={verification.actualT} />
-              <ReconCell label="Accepted" value={verification.acceptedT} accent />
-              <ReconCell label="Rejected" value={verification.rejectedT} warn />
+              <ReconCell label="Planned" value={verification.plannedT} delay={0.1} />
+              <ReconCell label="Actual" value={verification.actualT} delay={0.3} />
+              <ReconCell label="Accepted" value={verification.acceptedT} accent delay={0.5} />
+              <ReconCell label="Rejected" value={verification.rejectedT} warn delay={0.7} />
             </div>
             <p className="ledger-numeral mt-3 text-theme-xs text-white/40">
               {verification.loadRef} · {receiverText(verification.receiverId, dataset)} ·{" "}
@@ -330,23 +385,31 @@ function ReconCell({
   value,
   accent,
   warn,
+  delay = 0,
 }: {
   label: string;
   value: number;
   accent?: boolean;
   warn?: boolean;
+  delay?: number;
 }) {
   return (
-    <div className="bg-ink-900 p-4 dark:bg-black">
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.5, delay }}
+      className="bg-ink-900 p-4 dark:bg-black/60 backdrop-blur-sm"
+    >
       <p className="eyebrow-label text-white/40">{label}</p>
       <p
         className={`ledger-numeral mt-1.5 text-xl font-bold ${
-          accent ? "text-loop-400" : warn ? "text-error-300" : "text-white"
+          accent ? "text-loop-400" : warn ? "text-error-400" : "text-white"
         }`}
       >
         {value.toFixed(1)} t
       </p>
-    </div>
+    </motion.div>
   );
 }
 
@@ -372,7 +435,7 @@ function OperationalRecordSection() {
   ];
 
   return (
-    <Section index="10" eyebrow="Operational record">
+    <Section index="10" eyebrow="Operational record" band innerClassName="py-12 md:py-20">
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
         <div>
           <EditorialHeading lines={[<>Measured in tonnes.</>, <>Proven at the gate.</>]} />
@@ -406,7 +469,7 @@ function PlatformShowcase() {
   ];
 
   return (
-    <Section id="platform" index="11" eyebrow="The platform" className="scroll-mt-20">
+    <Section id="platform" index="11" eyebrow="The platform" band className="scroll-mt-20" innerClassName="py-12 md:py-20">
       <EditorialHeading
         lines={[
           <>One product, not</>,

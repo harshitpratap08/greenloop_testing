@@ -12,6 +12,8 @@ import {
 import type { Project } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { Link } from "react-router";
+import { motion } from "motion/react";
+import { cn } from "@/utils";
 
 export default function Projects() {
   const { dataset } = useGreenLoopStore();
@@ -58,172 +60,217 @@ export default function Projects() {
   const remaining = rows.filter((row) => row.project.id !== featured?.project.id);
 
   return (
-    <>
+    <div className="relative min-h-screen pb-24">
       <PageMeta
         title="Projects | GreenLoop"
         description="Demolition and construction projects on the GreenLoop recovery platform."
       />
       <PageBreadCrumb pageTitle="Projects" />
 
-      <div className="space-y-10">
+      {/* Hero Header */}
+      <motion.header 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="mb-10 border-b border-steel-300 pb-8 dark:border-steel-800"
+      >
+        <p className="eyebrow-label text-loop-600 dark:text-loop-400">GreenLoop Operations</p>
+        <h1 className="mt-4 font-archivo text-4xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-5xl">
+          Recovery Projects
+        </h1>
+        <p className="mt-4 max-w-2xl text-lg text-steel-600 dark:text-gray-400">
+          Monitor active demolition and construction projects, track material recovery progress, and coordinate logistics.
+        </p>
+      </motion.header>
+
+      <div className="space-y-12">
         {featured && (
-          <section className="overflow-hidden border border-steel-200 bg-gray-25 dark:border-steel-800 dark:bg-gray-dark">
-            <div className="grid lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="bg-ink-900 p-6 text-white sm:p-8 lg:p-10 dark:bg-black">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="eyebrow-label text-white/50">{featured.complete ? "Completed project record" : "Active recovery project"}</p>
+          <motion.section 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="group relative overflow-hidden rounded-sm border border-steel-200 bg-white shadow-xl dark:border-steel-800 dark:bg-black"
+          >
+            <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="flex flex-col bg-ink-950 p-8 text-white sm:p-12 dark:bg-[#0f141a]">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <p className="eyebrow-label text-loop-500">{featured.complete ? "Completed Project Record" : "Active Recovery Project"}</p>
                   <ProjectStatusChip status={featured.project.status} />
                 </div>
-                <div className="mt-7">
-                  <p className="ledger-numeral text-theme-xs text-white/45">{featured.project.id} · {featured.project.location}</p>
-                  <h2 className="mt-3 max-w-2xl font-archivo text-title-sm font-semibold leading-tight tracking-tight sm:text-title-md">
+                
+                <div className="mt-8">
+                  <p className="ledger-numeral text-sm font-medium text-white/50">{featured.project.id} · {featured.project.location}</p>
+                  <h2 className="mt-2 font-archivo text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
                     {featured.project.name}
                   </h2>
                 </div>
 
-                <div className="mt-8 border-y border-white/15 py-5">
-                  <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="eyebrow-label text-white/50">{featured.complete ? "Project status · Complete" : `Current workflow · ${featured.stageLabel}`}</p>
-                    <p className="ledger-numeral text-theme-xs text-white/45">
+                <div className="mt-10 border-t border-white/10 pt-6">
+                  <div className="mb-4 flex flex-wrap items-baseline justify-between gap-4">
+                    <p className="eyebrow-label text-white/60">{featured.complete ? "Project Status · Complete" : `Current Workflow · ${featured.stageLabel}`}</p>
+                    <p className="ledger-numeral text-sm font-medium text-loop-400">
                       {featured.surveyedT.toFixed(1)} t surveyed · {featured.verifiedT.toFixed(1)} t verified
                     </p>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1">
+                  
+                  <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
                     {featured.materialMix.map(([type, tonnes]) => (
-                      <p key={type} className="text-theme-xs capitalize text-white/60">
-                        <span className="ledger-numeral font-semibold text-white/85">{tonnes.toFixed(1)} t</span> {type}
+                      <p key={type} className="text-sm font-semibold capitalize text-white/70">
+                        <span className="ledger-numeral text-lg font-bold text-white">{tonnes.toFixed(1)} t</span> {type}
                       </p>
                     ))}
                   </div>
-                  {featured.complete ? (
-                    <p className="text-theme-sm text-white/70">Recovery work is marked complete.</p>
-                  ) : (
-                    <WorkflowRail projectId={featured.project.id} compact inverse />
-                  )}
+                  
+                  <div className="mt-8 rounded-sm bg-black/40 p-6">
+                    {featured.complete ? (
+                      <p className="text-sm font-medium text-white/80">Recovery work is marked complete.</p>
+                    ) : (
+                      <WorkflowRail projectId={featured.project.id} compact inverse />
+                    )}
+                  </div>
                 </div>
 
-                <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <p className="eyebrow-label text-white/45">Next action</p>
-                    <p className="mt-1 font-archivo text-xl font-semibold">{featured.next.label}</p>
-                    <p className="mt-1 max-w-md text-theme-sm text-white/60">{featured.next.reason}</p>
+                <div className="mt-auto pt-8">
+                  <div className="flex flex-col gap-6 rounded-sm border border-white/10 bg-white/5 p-6 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="eyebrow-label text-white/50">Next Action</p>
+                      <p className="mt-1 font-archivo text-xl font-bold">{featured.next.label}</p>
+                      <p className="mt-1 max-w-sm text-sm text-white/70">{featured.next.reason}</p>
+                    </div>
+                    <Link
+                      to={featured.next.to}
+                      className="group/btn inline-flex shrink-0 items-center justify-center gap-3 overflow-hidden bg-white px-6 py-4 font-archivo text-sm font-bold uppercase tracking-wider text-ink-900 transition-transform hover:scale-105"
+                    >
+                      <span className="relative z-10">Open Action</span>
+                      <span className="relative z-10 transition-transform group-hover/btn:translate-x-1" aria-hidden="true">→</span>
+                    </Link>
                   </div>
-                  <Link
-                    to={featured.next.to}
-                    className="inline-flex shrink-0 items-center justify-center gap-3 bg-white px-5 py-3 text-theme-sm font-semibold text-ink-900 transition-colors hover:bg-gray-200"
-                  >
-                    Open next action <span aria-hidden="true">→</span>
-                  </Link>
                 </div>
               </div>
 
               <div className="flex flex-col">
-                {featured.media[0] ? (
-                  <img
-                    src={featured.media[0].src}
-                    alt={featured.media[0].caption}
-                    className="h-56 w-full object-cover sm:h-72 lg:h-full lg:min-h-96"
-                  />
-                ) : (
-                  <div className="flex h-56 items-end bg-steel-200 p-6 sm:h-72 lg:h-full lg:min-h-96 dark:bg-steel-900">
-                    <p className="eyebrow-label text-steel-700 dark:text-steel-300">Site record · {featured.project.id}</p>
+                <div className="relative h-64 overflow-hidden lg:h-full lg:min-h-[500px]">
+                  {featured.media[0] ? (
+                    <img
+                      src={featured.media[0].src}
+                      alt={featured.media[0].caption}
+                      className="absolute inset-0 size-full animate-slow-mo object-cover opacity-90 transition-opacity hover:opacity-100 dark:opacity-80"
+                    />
+                  ) : (
+                    <div className="flex h-full items-end bg-steel-200 p-8 dark:bg-steel-900">
+                      <p className="eyebrow-label text-steel-700 dark:text-steel-300">Site Record · {featured.project.id}</p>
+                    </div>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-950/80 to-transparent p-6 text-white lg:hidden">
+                     <p className="text-sm font-medium">{featured.media[0]?.caption ?? "Site Photo"}</p>
                   </div>
-                )}
-                <div className="grid grid-cols-3 divide-x divide-steel-200 border-t border-steel-200 dark:divide-steel-800 dark:border-steel-800">
+                </div>
+                <div className="grid grid-cols-3 divide-x divide-steel-200 border-t border-steel-200 bg-gray-50 dark:divide-steel-800 dark:border-steel-800 dark:bg-white/[0.02]">
                   <Metric label="Materials" value={featured.materials.length.toString()} />
-                  <Metric label="Reserved slots" value={featured.reservations.toString()} />
+                  <Metric label="Reserved Slots" value={featured.reservations.toString()} />
                   <Metric label="Recovered" value={`${featured.recoveryRate}%`} accent={featured.recoveryRate > 0} />
                 </div>
               </div>
             </div>
-          </section>
+          </motion.section>
         )}
 
         <section>
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-steel-300 pb-4 dark:border-steel-700">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-steel-300 pb-4 dark:border-steel-700">
             <div>
-              <p className="eyebrow-label text-steel-600 dark:text-steel-400">Project portfolio</p>
-              <h2 className="mt-1 font-archivo text-title-sm font-semibold tracking-tight text-ink-900 dark:text-white">Recovery work in motion</h2>
+              <p className="eyebrow-label text-steel-600 dark:text-steel-400">Project Portfolio</p>
+              <h2 className="mt-2 font-archivo text-2xl font-bold tracking-tight text-ink-900 dark:text-white">Recovery Work In Motion</h2>
             </div>
-            <p className="ledger-numeral text-theme-xs text-gray-500 dark:text-gray-400">
+            <p className="ledger-numeral text-sm font-medium text-steel-500 dark:text-gray-400">
               {rows.length} projects · {rows.reduce((sum, row) => sum + row.surveyedT, 0).toFixed(1)} t surveyed
             </p>
           </div>
 
-          <div className="divide-y divide-steel-200 dark:divide-steel-800">
-            {remaining.map((row) => (
-              <Link
+          <div className="grid gap-6">
+            {remaining.map((row, index) => (
+              <motion.div
                 key={row.project.id}
-                to="/app/explore"
-                state={{ projectId: row.project.id }}
-                className="group grid gap-5 py-6 transition-colors hover:bg-white/60 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,0.9fr)] sm:items-center sm:px-4 dark:hover:bg-white/5"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
               >
-                <div className="flex min-w-0 items-start gap-4">
-                  {row.media[0] ? (
-                    <img src={row.media[0].src} alt={row.media[0].caption} loading="lazy" className="size-20 shrink-0 border border-steel-200 object-cover dark:border-steel-700 sm:size-24" />
-                  ) : (
-                    <div className="size-20 shrink-0 border border-steel-200 bg-steel-100 sm:size-24 dark:border-steel-700 dark:bg-steel-900" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <h3 className="font-archivo text-lg font-semibold tracking-tight text-ink-900 group-hover:text-loop-700 dark:text-white dark:group-hover:text-loop-300">
-                        {row.project.name}
-                      </h3>
-                      <ProjectStatusChip status={row.project.status} />
+                <Link
+                  to="/app/explore"
+                  state={{ projectId: row.project.id }}
+                  className="group grid overflow-hidden rounded-sm border border-steel-200 bg-white shadow-sm transition-all hover:border-loop-400 hover:shadow-md sm:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)] dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-loop-500"
+                >
+                  <div className="flex min-w-0 flex-col p-6 sm:flex-row sm:items-center sm:gap-6">
+                    <div className="mb-4 shrink-0 overflow-hidden rounded-sm sm:mb-0 sm:h-24 sm:w-32">
+                      {row.media[0] ? (
+                        <img src={row.media[0].src} alt={row.media[0].caption} loading="lazy" className="h-32 w-full animate-slow-mo object-cover transition-transform duration-700 group-hover:scale-110 sm:h-full sm:w-full" />
+                      ) : (
+                        <div className="h-32 w-full bg-steel-100 sm:h-full sm:w-full dark:bg-steel-900" />
+                      )}
                     </div>
-                    <p className="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">
-                      {row.project.id} · {row.project.location} · active stage: {row.stageLabel}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {row.materialTypes.map((type) => (
-                        <span key={type} className="border border-steel-200 px-2 py-0.5 text-theme-xs capitalize text-steel-700 dark:border-steel-700 dark:text-steel-300">
-                          {type}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="min-w-0 sm:border-s sm:border-steel-200 sm:ps-5 dark:sm:border-steel-800">
-                  {row.complete ? (
-                    <p className="eyebrow-label text-loop-700 dark:text-loop-300">Project complete · workflow closed</p>
-                  ) : (
-                    <WorkflowRail projectId={row.project.id} compact />
-                  )}
-                  <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                      <p className="eyebrow-label text-steel-600 dark:text-steel-400">Next · {row.next.label}</p>
-                      <p className="ledger-numeral mt-1 text-theme-xs text-gray-500 dark:text-gray-400">
-                        {row.surveyedT.toFixed(1)} t surveyed · {row.verifiedT.toFixed(1)} t recovered
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="font-archivo text-xl font-bold tracking-tight text-ink-900 group-hover:text-loop-600 dark:text-white dark:group-hover:text-loop-400">
+                          {row.project.name}
+                        </h3>
+                        <ProjectStatusChip status={row.project.status} />
+                      </div>
+                      <p className="mt-1 text-sm font-medium text-steel-600 dark:text-gray-400">
+                        {row.project.id} · {row.project.location} · Active Stage: <span className="text-ink-900 dark:text-gray-200">{row.stageLabel}</span>
                       </p>
-                    </div>
-                    <div className="text-end">
-                      <p className="ledger-numeral text-theme-sm font-semibold text-ink-900 dark:text-white">{row.recoveryRate}%</p>
-                      <p className="eyebrow-label text-steel-500">recovered</p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {row.materialTypes.map((type) => (
+                          <span key={type} className="rounded-sm border border-steel-200 bg-gray-50 px-2 py-1 text-xs font-bold uppercase tracking-wider text-steel-700 dark:border-steel-700 dark:bg-white/5 dark:text-steel-300">
+                            {type}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-2 h-1 w-full bg-steel-100 dark:bg-steel-900">
-                    <div className="h-full bg-loop-500 transition-[width] duration-500" style={{ width: `${row.recoveryRate}%` }} />
+
+                  <div className="flex min-w-0 flex-col justify-center border-t border-steel-200 bg-gray-50 p-6 sm:border-l sm:border-t-0 dark:border-steel-800 dark:bg-black/20">
+                    {row.complete ? (
+                      <p className="eyebrow-label text-loop-600 dark:text-loop-400">Project Complete · Workflow Closed</p>
+                    ) : (
+                      <WorkflowRail projectId={row.project.id} compact />
+                    )}
+                    
+                    <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
+                      <div>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Next Action</p>
+                        <p className="mt-1 font-archivo text-sm font-bold text-ink-900 dark:text-white">{row.next.label}</p>
+                        <p className="ledger-numeral mt-1 text-xs text-steel-600 dark:text-gray-400">
+                          {row.surveyedT.toFixed(1)} t surveyed · {row.verifiedT.toFixed(1)} t recovered
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="ledger-numeral text-2xl font-bold text-loop-600 dark:text-loop-400">{row.recoveryRate}%</p>
+                        <p className="eyebrow-label text-steel-500">Recovered</p>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-steel-200 dark:bg-steel-800">
+                      <div className="h-full bg-loop-500 transition-[width] duration-1000 ease-out" style={{ width: `${row.recoveryRate}%` }} />
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </motion.div>
             ))}
           </div>
         </section>
-
-        <p className="border-t border-steel-200 pt-4 text-theme-xs text-gray-500 dark:border-steel-800 dark:text-gray-400">
-          Figures computed from the demo dataset — survey quantities, confirmed bookings and verified loads per project.
-        </p>
       </div>
-    </>
+    </div>
   );
 }
 
 function Metric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="min-w-0 px-3 py-4 first:ps-5 sm:px-5">
-      <p className="eyebrow-label truncate text-steel-600 dark:text-steel-400">{label}</p>
-      <p className={`ledger-numeral mt-1.5 text-lg font-semibold ${accent ? "text-loop-700 dark:text-loop-300" : "text-ink-900 dark:text-white"}`}>
+    <div className="min-w-0 p-4 sm:p-6 text-center">
+      <p className="eyebrow-label truncate text-steel-500 dark:text-steel-400">{label}</p>
+      <p className={cn(
+        "ledger-numeral mt-2 text-2xl font-bold tracking-tight",
+        accent ? "text-loop-600 dark:text-loop-400" : "text-ink-900 dark:text-white"
+      )}>
         {value}
       </p>
     </div>

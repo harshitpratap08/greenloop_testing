@@ -1,8 +1,8 @@
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { slotLedger } from "@/domain/capacity";
 import { STORY } from "@/domain/demoData";
-import { useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useState, useEffect, useRef } from "react";
+import { motion, useReducedMotion, useInView } from "motion/react";
 import { cn } from "@/utils";
 import EditorialHeading from "@/components/site/EditorialHeading";
 import Reveal from "@/components/site/Reveal";
@@ -32,9 +32,30 @@ const ACT_LABELS: Record<Act, string> = {
 export default function CapacityShowpiece() {
   const { dataset } = useGreenLoopStore();
   const [act, setAct] = useState<Act>(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const reduceMotion = useReducedMotion();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(containerRef, { once: false, margin: "-20%" });
 
   const ledger = slotLedger(dataset, STORY.concreteSlotSept24);
+  
+  // Auto-play sequence
+  useEffect(() => {
+    if (!isAutoPlaying || !isInView || reduceMotion) return;
+    
+    const delay = act === 3 ? 4000 : 2500;
+    const timeout = setTimeout(() => {
+      setAct((prev) => (prev < 3 ? (prev + 1) as Act : 0));
+    }, delay);
+    
+    return () => clearTimeout(timeout);
+  }, [act, isAutoPlaying, isInView, reduceMotion]);
+
+  const handleActClick = (key: Act) => {
+    setAct(key);
+    setIsAutoPlaying(false);
+  };
+
   if (!ledger) return null;
 
   // Engine-sourced booking quantities for the scenario slot.
@@ -69,8 +90,8 @@ export default function CapacityShowpiece() {
   const heldPct = (current.held / cap) * 100;
 
   return (
-    <Section id="capacity" index="07" eyebrow="Capacity reservation" band className="scroll-mt-20">
-      <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr]">
+    <Section id="capacity" index="07" eyebrow="Capacity reservation" band className="scroll-mt-20" innerClassName="py-12 md:py-20">
+      <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr]" ref={containerRef}>
         <div>
           <EditorialHeading
             band
@@ -92,21 +113,33 @@ export default function CapacityShowpiece() {
           </Reveal>
 
           <div className="mt-8 flex flex-wrap gap-2" role="group" aria-label="Scenario acts">
-            {(Object.keys(ACT_TITLES) as unknown as Act[]).map((key) => (
-              <button
-                key={key}
-                onClick={() => setAct(key)}
-                aria-pressed={act === key}
-                className={cn(
-                  "rounded-md border px-3.5 py-2 text-theme-xs font-medium transition-colors",
-                  act === key
-                    ? "border-white bg-white text-ink-900"
-                    : "border-white/25 text-white/70 hover:border-white/50 hover:text-white",
-                )}
-              >
-                {ACT_TITLES[key]}
-              </button>
-            ))}
+            {(Object.keys(ACT_TITLES) as unknown as Act[]).map((keyStr) => {
+              const key = Number(keyStr) as Act;
+              return (
+                <button
+                  key={key}
+                  onClick={() => handleActClick(key)}
+                  aria-pressed={act === key}
+                  className={cn(
+                    "rounded-md border px-3.5 py-2 text-theme-xs font-medium transition-colors relative overflow-hidden",
+                    act === key
+                      ? "border-white bg-white text-ink-900"
+                      : "border-white/25 text-white/70 hover:border-white/50 hover:text-white",
+                  )}
+                >
+                  {ACT_TITLES[key]}
+                  {/* Progress indicator when auto-playing */}
+                  {act === key && isAutoPlaying && !reduceMotion && (
+                    <motion.div 
+                      className="absolute bottom-0 left-0 h-[2px] bg-loop-500" 
+                      initial={{ width: "0%" }}
+                      animate={{ width: "100%" }}
+                      transition={{ duration: key === 3 ? 4 : 2.5, ease: "linear" }}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
           <p className="mt-4 min-h-10 max-w-md text-sm text-white/60">{ACT_LABELS[act]}</p>
         </div>

@@ -14,7 +14,7 @@ export default function SystemDiagram() {
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
 
   return (
-    <Section id="system-diagram" index="03" eyebrow="The system" band className="overflow-hidden">
+    <Section id="system-diagram" index="03" eyebrow="The system" band className="overflow-hidden" innerClassName="py-12 md:py-20">
       <div className="grid items-end gap-8 lg:grid-cols-[0.85fr_1.15fr]">
         <EditorialHeading
           lines={[<>The material moves.</>, <>The record moves with it.</>]}
@@ -33,17 +33,33 @@ export default function SystemDiagram() {
           aria-hidden="true"
         />
         <ol className="relative grid grid-cols-4">
-          {stages.map((stage, index) => (
-            <li key={stage} className={`flex flex-col gap-4 ${index === stages.length - 1 ? "items-end text-end" : "items-start text-start"}`}>
-              <span
-                className={`z-1 flex size-4 items-center justify-center ring-8 ring-ink-900 ${index === stages.length - 1 ? "bg-loop-400" : "bg-steel-300"}`}
-                aria-hidden="true"
-              />
-              <span className={`eyebrow-label ${index === stages.length - 1 ? "text-loop-300" : "text-white/65"}`}>
-                {stage}
-              </span>
-            </li>
-          ))}
+          {stages.map((stage, index) => {
+            const stepThreshold = index / (stages.length - 1);
+            // Opacity for the text
+            const textOpacity = useTransform(scrollYProgress, [stepThreshold - 0.1, stepThreshold], [0.4, 1]);
+            // Color for the dot (from steel-700/steel-500 equivalent to loop-400)
+            const dotColor = useTransform(
+              scrollYProgress,
+              [stepThreshold - 0.1, stepThreshold],
+              ["#374151", "#4ade80"] // gray-700 to green-400 roughly
+            );
+
+            return (
+              <li key={stage} className={`flex flex-col gap-4 ${index === stages.length - 1 ? "items-end text-end" : "items-start text-start"}`}>
+                <motion.span
+                  className="z-10 flex size-4 items-center justify-center rounded-full ring-8 ring-ink-900"
+                  style={{ backgroundColor: dotColor }}
+                  aria-hidden="true"
+                />
+                <motion.span 
+                  className="eyebrow-label text-loop-300"
+                  style={{ opacity: textOpacity }}
+                >
+                  {stage}
+                </motion.span>
+              </li>
+            );
+          })}
         </ol>
       </div>
       <p className="mt-12 border-t border-white/15 pt-4 font-mono text-[11px] uppercase tracking-[0.16em] text-white/40">
