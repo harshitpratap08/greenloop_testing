@@ -658,11 +658,11 @@ export function BookingSummaryRow({ booking }: { booking: Booking }) {
 /* Page header — friendly title + optional back link                  */
 /* ------------------------------------------------------------------ */
 
-export function FriendlyPageHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: ReactNode }) {
+export function FriendlyPageHeader({ title, subtitle, children, className, titleClassName }: { title: string; subtitle?: string; children?: ReactNode; className?: string; titleClassName?: string }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className={`mb-6 flex flex-wrap items-end justify-between gap-3 ${className ?? ""}`}>
       <div>
-        <h1 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">{title}</h1>
+        <h1 className={`font-archivo text-2xl font-bold text-ink-900 dark:text-white ${titleClassName ?? ""}`}>{title}</h1>
         {subtitle && <p className="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">{subtitle}</p>}
       </div>
       {children}
