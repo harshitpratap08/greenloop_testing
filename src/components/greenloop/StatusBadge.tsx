@@ -10,10 +10,10 @@ const COLOR: Record<AnyStatus, "success" | "warning" | "error" | "info" | "prima
   allocated: "success",
   hold: "warning",
   pending: "info",
-"passport-ready": "info",
+  "passport-ready": "info",
   surveyed: "light",
   dispatched: "primary",
-  cancelled: "error",
+  cancelled: "light",
   rejected: "error",
 };
 

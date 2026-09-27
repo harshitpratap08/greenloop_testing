@@ -44,7 +44,7 @@ const AppHeader: React.FC = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 z-99999 flex w-full border-gray-200 bg-white xl:border-b dark:border-gray-800 dark:bg-gray-900">
+    <header className="sticky top-0 z-99999 flex w-full border-gray-200 bg-gray-25 xl:border-b dark:border-gray-800 dark:bg-gray-900">
       <div className="flex grow flex-col items-center justify-between xl:flex-row xl:px-6">
         <div className="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 sm:gap-4 xl:justify-normal xl:border-b-0 xl:px-0 xl:py-4 dark:border-gray-800">
           <button
@@ -158,7 +158,7 @@ const AppHeader: React.FC = () => {
         </div>
         <div
           className={cn(
-            "flex w-full items-center justify-between gap-4 px-5 py-4 shadow-theme-md xl:flex xl:justify-end xl:px-0 xl:shadow-none",
+            "flex w-full items-center justify-between gap-4 border-t border-gray-200 px-5 py-4 xl:flex xl:justify-end xl:border-0 xl:px-0 dark:border-gray-800",
             isApplicationMenuOpen ? "flex" : "hidden",
           )}
         >

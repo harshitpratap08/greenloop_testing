@@ -20,8 +20,7 @@ const Badge: React.FC<BadgeProps> = ({
   endIcon,
   children,
 }) => {
-  // GreenLoop status language: success=VERIFIED/CONFIRMED (loop green),
-  // warning=HOLD (signal amber), error=rejected/cancelled (oxide).
+  // GreenLoop statuses use loop green for recovery, amber for holds, and oxide for rejection.
   const baseStyles =
     "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-md font-mono font-medium uppercase tracking-[0.06em]";
 

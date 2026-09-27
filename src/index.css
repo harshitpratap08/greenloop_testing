@@ -161,7 +161,7 @@
   --color-status-confirmed: #2e7d5b;
   --color-status-hold: #c7742b;
   --color-status-pending: #8a8d82;
-  --color-status-cancelled: #b3382e;
+  --color-status-cancelled: #8a8d82;
   --color-status-verified: #2e7d5b;
   --color-status-rejected: #b3382e;
 
@@ -349,7 +349,7 @@
 }
 
 @utility surface-card {
-  @apply rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-dark;
+  @apply rounded-sm border border-steel-200 bg-gray-25 dark:border-steel-800 dark:bg-gray-dark;
 }
 
 /* GreenLoop AppExploration primitives */
@@ -358,7 +358,7 @@
 }
 
 @utility surface-raised {
-  @apply rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-dark;
+  @apply rounded-sm border border-steel-200 bg-gray-25 dark:border-steel-800 dark:bg-gray-dark;
 }
 
 @utility hairline-e {
