@@ -13,7 +13,7 @@ export default function Profile() {
     fullName: user?.name || "Site Manager",
     companyName: user?.organization || "Harrow Road Demolition",
     email: user?.email || "manager@harrowdemo.co.uk",
-    phone: "+44 7700 900123"
+    phone: user?.phone || ""
   });
 
   useEffect(() => {
@@ -23,6 +23,7 @@ export default function Profile() {
         fullName: user.name || prev.fullName,
         companyName: user.organization || prev.companyName,
         email: user.email || prev.email,
+        phone: user.phone || "",
       }));
     }
   }, [user]);
@@ -38,15 +39,13 @@ export default function Profile() {
     e.preventDefault();
     setIsSaving(true);
     setSuccess(false);
-    setTimeout(() => {
-      updateUser({
-        name: formData.fullName,
-        organization: formData.companyName,
-      });
-      setIsSaving(false);
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    }, 600);
+    updateUser({
+      name: formData.fullName.trim(),
+      organization: formData.companyName.trim(),
+      phone: formData.phone.trim(),
+    });
+    setIsSaving(false);
+    setSuccess(true);
   };
 
   return (
@@ -92,10 +91,12 @@ export default function Profile() {
                 type="email" 
                 name="email"
                 value={formData.email}
-                onChange={handleChange}
+                readOnly
+                aria-describedby="account-email-note"
                 required
                 className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white"
               />
+              <p id="account-email-note" className="mt-1 text-xs text-steel-500">Email is the sign-in identifier for this local demo account.</p>
             </div>
 
             <div>

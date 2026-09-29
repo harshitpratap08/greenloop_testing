@@ -463,7 +463,7 @@ export function recheckHolds(
 // ---------------------------------------------------------------------------
 
 export interface DispatchOutput {
-  loadRef: string;
+  loadRef?: string;
 }
 
 /** Mark a confirmed booking dispatched and stamp the load reference. */
@@ -473,7 +473,17 @@ export function dispatchLoad(
 ): EngineOutput<DispatchOutput> {
   const booking = dataset.bookings.find((b) => b.id === input.bookingId);
   if (!booking) throw new Error(`Unknown booking: ${input.bookingId}`);
-  const loadRef = `LOAD-${1000 + dataset.verifications.length + 1}`;
+  const alreadyDispatched = booking.status !== "confirmed" || Boolean(booking.loadRef) ||
+    dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id));
+  if (alreadyDispatched) return { dataset, events: [], output: {} };
+
+  const usedLoadRefs = new Set([
+    ...dataset.bookings.map((item) => item.loadRef).filter((ref): ref is string => Boolean(ref)),
+    ...dataset.events.flatMap((event) => event.summary.match(/LOAD-\d+/g) ?? []),
+  ]);
+  let loadNumber = 1001;
+  while (usedLoadRefs.has(`LOAD-${loadNumber}`)) loadNumber += 1;
+  const loadRef = `LOAD-${loadNumber}`;
 
   const event = makeEvent(
     dataset.events,
@@ -489,6 +499,9 @@ export function dispatchLoad(
   return {
     dataset: {
       ...withEvents(dataset, [event]),
+      bookings: dataset.bookings.map((item) =>
+        item.id === booking.id ? { ...item, loadRef, updatedAt: input.at } : item,
+      ),
       materials: dataset.materials.map((m) =>
         m.id === booking.materialId ? { ...m, status: "dispatched" as const } : m,
       ),
@@ -521,10 +534,14 @@ export function recordDelivery(
 ): EngineOutput<DeliveryOutput> {
   const booking = dataset.bookings.find((b) => b.id === input.bookingId);
   if (!booking) throw new Error(`Unknown booking: ${input.bookingId}`);
+  if (booking.status !== "confirmed" || !booking.loadRef ||
+    dataset.verifications.some((record) => record.bookingId === booking.id)) {
+    return { dataset, events: [], output: { verificationId: "", loadRef: booking.loadRef ?? "", status: "verified" } };
+  }
 
   const rejectedT = round1(Math.max(0, input.actualT - input.acceptedT));
   const status = rejectedT > 0 && input.acceptedT === 0 ? "rejected" : "verified";
-  const loadRef = `LOAD-${1000 + dataset.verifications.length + 1}`;
+  const loadRef = booking.loadRef;
 
   const verification: VerificationRecord = {
     id: `VR-${dataset.verifications.length + 1}`,

@@ -33,7 +33,7 @@ export default function SiteFooter() {
             <ul className="mt-4 space-y-2.5 text-sm text-white/70">
               <li><a className="hover:text-white" href="/#workflow">Workflow</a></li>
               <li><a className="hover:text-white" href="/#capacity">Capacity ledger</a></li>
-              <li><Link className="hover:text-white" to="/signin">Sign in</Link></li>
+              <li><Link className="hover:text-white" to="/sign-in">Sign in</Link></li>
             </ul>
           </nav>
         </div>

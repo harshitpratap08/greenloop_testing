@@ -8,6 +8,8 @@ export interface User {
   organization?: string;
   location?: string;
   vat?: string;
+  phone?: string;
+  receiverId?: string;
   workspaces: Role[];
   activeWorkspace?: Role;
 }
@@ -17,6 +19,8 @@ interface AccountProfile {
   organization?: string;
   location?: string;
   vat?: string;
+  phone?: string;
+  receiverId?: string;
   workspaces: Role[];
 }
 
@@ -26,6 +30,7 @@ interface AuthContextType {
   login: (email: string, password: string, remember: boolean) => boolean;
   createAccount: (user: Pick<User, 'email' | 'name' | 'organization'>, password: string) => boolean;
   resetPassword: (email: string, password: string) => boolean;
+  simulateGoogleLogin: () => boolean;
   addWorkspaces: (roles: Role[]) => void;
   setActiveWorkspace: (role: Role) => void;
   updateUser: (updates: Partial<User>) => void;
@@ -49,6 +54,8 @@ function readProfile(email: string): AccountProfile {
         organization: parsed.organization,
         location: parsed.location,
         vat: parsed.vat,
+        phone: parsed.phone,
+        receiverId: parsed.receiverId,
         workspaces: Array.isArray(parsed.workspaces) ? parsed.workspaces.filter(isRole) : [],
       };
     }
@@ -85,6 +92,8 @@ function saveProfile(user: User) {
     organization: user.organization,
     location: user.location,
     vat: user.vat,
+    phone: user.phone,
+    receiverId: user.receiverId,
     workspaces: user.workspaces,
   };
   localStorage.setItem(profileKey(user.email), JSON.stringify(profile));
@@ -139,6 +148,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  const simulateGoogleLogin = () => {
+    const email = "google-user@example.com";
+    const storedPassword = localStorage.getItem(passwordKey(email));
+    return storedPassword
+      ? login(email, storedPassword, true)
+      : createAccount({ email, name: "Google Demo User", organization: "GreenLoop Demo" }, "greenloop-local-demo");
+  };
+
   const addWorkspaces = (roles: Role[]) => {
     if (!user) return;
     const validRoles = roles.filter(isRole);
@@ -176,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, ready, login, createAccount, resetPassword, addWorkspaces, setActiveWorkspace, updateUser, logout }}>
+    <AuthContext.Provider value={{ user, ready, login, createAccount, resetPassword, simulateGoogleLogin, addWorkspaces, setActiveWorkspace, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

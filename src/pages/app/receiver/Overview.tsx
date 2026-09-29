@@ -132,7 +132,7 @@ export default function Overview() {
                     Review and confirm material suitable for your capacity.
                   </p>
                 </div>
-                <Link to="/app/receiver/incoming" className="inline-block self-start rounded bg-signal-900 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-signal-800 dark:bg-signal-200 dark:text-signal-900">
+                <Link to="/app/receiver/incoming-requests" className="inline-block self-start rounded bg-signal-900 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-signal-800 dark:bg-signal-200 dark:text-signal-900">
                   Review requests
                 </Link>
               </div>

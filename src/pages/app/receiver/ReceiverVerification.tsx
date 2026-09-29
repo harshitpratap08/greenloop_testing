@@ -6,10 +6,12 @@ import { motion, AnimatePresence } from "motion/react";
 import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { cn } from "@/utils";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ReceiverVerification() {
   const { dataset, verifyLoadAction } = useGreenLoopStore();
-  const receiverId = "R-001";
+  const { user } = useAuth();
+  const receiverId = user?.receiverId ?? "R-001";
   
   const pendingVerifications = dataset.verifications.filter(v => 
     v.receiverId === receiverId && v.status === "pending"

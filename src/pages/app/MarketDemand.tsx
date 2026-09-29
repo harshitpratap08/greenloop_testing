@@ -5,6 +5,7 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion } from "motion/react";
 import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
+import { useAuth } from "@/context/AuthContext";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -17,22 +18,31 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function MarketDemand() {
   const { dataset, addOfferAction } = useGreenLoopStore();
-  // In a real app we'd get the provider ID from auth, here we assume all demands are public to the provider
+  const { user } = useAuth();
+  const providerId = user?.email ?? "P-001";
   const openDemands = dataset.demands?.filter(d => d.status === 'OPEN' || d.status === 'PARTIALLY_COVERED') ?? [];
   
   const [selectedDemandId, setSelectedDemandId] = useState<string | null>(null);
   const [selectedPassportId, setSelectedPassportId] = useState<string>("");
   const [offerQuantity, setOfferQuantity] = useState<string>("");
+  const [offerError, setOfferError] = useState("");
+  const myOffers = dataset.offers?.filter((offer) => offer.providerId === providerId) ?? [];
 
   const handleOffer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPassportId || !selectedDemandId || !offerQuantity) return;
-    
+    const quantity = Number(offerQuantity);
+    const passport = dataset.materials.find((item) => item.id === selectedPassportId);
+    const demand = dataset.demands.find((item) => item.id === selectedDemandId);
+    if (!passport || !demand || !Number.isFinite(quantity) || quantity <= 0 || quantity > passport.quantityT) {
+      setOfferError("Choose a passport and offer a positive quantity within its available amount.");
+      return;
+    }
+    setOfferError("");
     addOfferAction({
       demandId: selectedDemandId,
-      providerId: "P-001",
+      providerId,
       passportId: selectedPassportId,
-      offeredQuantityT: parseFloat(offerQuantity),
+      offeredQuantityT: quantity,
     });
     
     setSelectedDemandId(null);
@@ -78,7 +88,7 @@ export default function MarketDemand() {
             const isOffering = selectedDemandId === demand.id;
 
             // Passports available to offer (must be same type and have surveyed status)
-            const availablePassports = dataset.materials.filter(m => m.type === demand.materialType && m.status === 'surveyed');
+            const availablePassports = dataset.materials.filter(m => m.type === demand.materialType && (m.status === 'surveyed' || m.status === 'passport-ready'));
             
             return (
               <motion.article 
@@ -151,8 +161,10 @@ export default function MarketDemand() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Offer Quantity (t)</label>
-                          <input 
+                          <input
                             type="number"
+                            min="0.1"
+                            step="0.1"
                             value={offerQuantity}
                             onChange={(e) => setOfferQuantity(e.target.value)}
                             required
@@ -160,9 +172,10 @@ export default function MarketDemand() {
                             className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white"
                           />
                         </div>
+                        {offerError && <p role="alert" className="text-sm text-error-500">{offerError}</p>}
                         <div className="flex gap-3 pt-2">
-                          <Button size="sm">Submit Offer</Button>
-                          <Button variant="outline" size="sm" onClick={() => setSelectedDemandId(null)}>Cancel</Button>
+                          <Button size="sm" type="submit">Submit Offer</Button>
+                          <Button variant="outline" size="sm" type="button" onClick={() => setSelectedDemandId(null)}>Cancel</Button>
                         </div>
                       </form>
                     )}
@@ -173,6 +186,22 @@ export default function MarketDemand() {
           })}
         </div>
       )}
+
+      <section className="mt-10 rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
+        <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Offers you have sent</h2>
+        {myOffers.length === 0 ? <p className="mt-3 text-sm text-steel-500">Your submitted offers will appear here.</p> : (
+          <div className="mt-4 space-y-3">
+            {myOffers.map((offer) => {
+              const demand = dataset.demands.find((item) => item.id === offer.demandId);
+              const passport = dataset.materials.find((item) => item.id === offer.passportId);
+              return <article key={offer.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-steel-100 pt-3 dark:border-steel-800">
+                <div><p className="font-semibold text-ink-900 dark:text-white">{offer.offeredQuantityT} t · {TYPE_LABEL[passport?.type ?? ""] ?? passport?.type}</p><p className="text-xs text-steel-500">{demand?.location} · Demand {offer.demandId} · Passport {offer.passportId}</p></div>
+                <StatusBadge status={offer.status} />
+              </article>;
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

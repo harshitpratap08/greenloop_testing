@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { cn } from "@/utils";
+import { useAuth } from "@/context/AuthContext";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -19,12 +20,14 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function Demand() {
   const { dataset, addDemandAction, acceptOfferAction, declineOfferAction } = useGreenLoopStore();
-  const receiverId = "R-001";
+  const { user } = useAuth();
+  const receiverId = user?.receiverId ?? "R-001";
   
   const [isAdding, setIsAdding] = useState(false);
   const [type, setType] = useState<MaterialTypeKey>("concrete");
   const [requiredT, setRequiredT] = useState("");
   const [period, setPeriod] = useState("");
+  const [error, setError] = useState("");
   const [location, setLocation] = useState("Riverstone Aggregates");
   const [notes, setNotes] = useState("");
 
@@ -32,9 +35,13 @@ export default function Demand() {
 
   const handleAddDemand = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!requiredT || isNaN(Number(requiredT))) return;
-
+    if (!requiredT || !Number.isFinite(Number(requiredT)) || Number(requiredT) <= 0 || !period) {
+      setError("Enter a positive quantity and needed-by date.");
+      return;
+    }
+    setError("");
     addDemandAction({
+      receiverId,
       materialType: type,
       requiredT: Number(requiredT),
       period: period || "Q4 2026",
@@ -49,9 +56,9 @@ export default function Demand() {
   };
 
   // Helper to calculate how much of a material type is covered by confirmed bookings
-  const calculateCoveredT = (materialType: MaterialTypeKey) => {
+  const calculateCoveredT = (demandId: string) => {
     return dataset.bookings
-      .filter((b) => b.receiverId === receiverId && b.status === "confirmed")
+      .filter((b) => b.demandId === demandId && b.status === "confirmed")
       .reduce((sum, booking) => {
         const material = dataset.materials.find((m) => m.id === booking.materialId);
         if (material?.type === materialType) {
@@ -127,9 +134,9 @@ export default function Demand() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Target Period</label>
-                <input 
-                  type="text" 
+                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Needed By</label>
+                <input
+                  type="date" 
                   value={period}
                   onChange={(e) => setPeriod(e.target.value)}
                   placeholder="e.g. Q4 2026, Oct 2026"
@@ -160,9 +167,10 @@ export default function Demand() {
                 />
               </div>
 
+              {error && <p role="alert" className="text-sm text-error-500 sm:col-span-2">{error}</p>}
               <div className="flex gap-4 sm:col-span-2">
-                <Button size="md" onClick={handleAddDemand as any}>Publish Request</Button>
-                <Button size="md" variant="outline" onClick={() => setIsAdding(false)}>Cancel</Button>
+                <Button size="md" type="submit">Publish Request</Button>
+                <Button size="md" variant="outline" type="button" onClick={() => setIsAdding(false)}>Cancel</Button>
               </div>
             </form>
           </div>
@@ -183,7 +191,7 @@ export default function Demand() {
       ) : (
         <div className="grid gap-6">
           {receiverDemands.map((demand, i) => {
-            const coveredT = calculateCoveredT(demand.materialType);
+            const coveredT = calculateCoveredT(demand.id);
             const remainingT = Math.max(0, demand.requiredT - coveredT);
             const percentCovered = Math.min(100, (coveredT / demand.requiredT) * 100);
             
@@ -249,18 +257,25 @@ export default function Demand() {
                   <div className="mt-6 rounded-sm border border-loop-200 bg-loop-50/50 p-4 dark:border-loop-900/30 dark:bg-loop-900/10">
                     <h4 className="font-archivo text-sm font-bold text-ink-900 dark:text-white mb-3">Pending Provider Offers</h4>
                     <div className="space-y-3">
-                      {dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").map(offer => (
-                        <div key={offer.id} className="flex items-center justify-between bg-white p-3 shadow-sm rounded-sm dark:bg-gray-900 border border-steel-100 dark:border-steel-800">
-                          <div>
-                            <p className="text-sm font-semibold text-ink-900 dark:text-gray-100">Passport: {offer.passportId}</p>
-                            <p className="text-xs text-steel-500">Offered: {offer.offeredQuantityT} t from {offer.providerId}</p>
+                      {dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").map(offer => {
+                        const passport = dataset.materials.find((material) => material.id === offer.passportId);
+                        const hasCapacity = dataset.slots.some((slot) => slot.receiverId === demand.receiverId && slot.materialType === demand.materialType);
+                        return (
+                          <div key={offer.id} className="flex flex-col gap-3 bg-white p-3 shadow-sm rounded-sm dark:bg-gray-900 border border-steel-100 dark:border-steel-800 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-ink-900 dark:text-gray-100">Provider: {offer.providerId}</p>
+                              <p className="text-xs text-steel-500">{TYPE_LABEL[passport?.type ?? ""] ?? passport?.type ?? demand.materialType} · {offer.offeredQuantityT} t · Passport {offer.passportId}</p>
+                              <p className="text-xs text-steel-500">{passport?.condition ?? "Details unavailable"} condition · Grade {passport?.grade ?? "—"} · {passport?.evidence.length ?? 0} evidence records</p>
+                              {passport?.evidence.map((item) => <span key={`${offer.id}-${item.label}`} className="me-2 text-xs text-loop-600 dark:text-loop-400">{item.label}</span>)}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button size="sm" disabled={!hasCapacity} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
+                              <Button size="sm" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
+                            </div>
+                            {!hasCapacity && <p className="text-xs text-warning-600 sm:basis-full">Add a capacity slot before accepting this offer.</p>}
                           </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
-                            <Button size="sm" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}

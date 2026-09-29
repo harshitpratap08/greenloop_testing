@@ -5,12 +5,15 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion, AnimatePresence } from "motion/react";
 import Button from "@/components/ui/button/Button";
 import { slotLedger } from "@/domain/capacity";
+import { useAuth } from "@/context/AuthContext";
 
 export default function IncomingRequests() {
   const { dataset, acceptRequestAction, rejectRequestAction, rescheduleRequestAction } = useGreenLoopStore();
-  const receiverId = "R-001";
+  const { user } = useAuth();
+  const receiverId = user?.receiverId ?? "R-001";
   
-  const requests = dataset.bookings.filter(b => b.receiverId === receiverId && b.status === "hold");
+  const requests = dataset.bookings.filter((booking) => booking.receiverId === receiverId &&
+    ((booking.status === "hold") || (booking.status === "confirmed" && !booking.receiverAcceptedAt && !booking.loadRef && !dataset.verifications.some((item) => item.bookingId === booking.id))));
   
   const [reschedulingId, setReschedulingId] = useState<string | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
@@ -55,7 +58,7 @@ export default function IncomingRequests() {
               const isRescheduling = reschedulingId === booking.id;
               
               // Find alternative slots for this material
-              const alternativeSlots = dataset.slots.filter(s => s.receiverId === receiverId && s.materialType === material?.type && s.id !== slot?.id);
+              const alternativeSlots = dataset.slots.filter(s => s.receiverId === receiverId && s.materialType === material?.type && s.id !== slot?.id && (slotLedger(dataset, s.id)?.available ?? 0) >= booking.tonnesT);
               
               return (
                 <motion.article
@@ -136,12 +139,13 @@ export default function IncomingRequests() {
                         </div>
                       ) : (
                         <>
-                          <Button size="sm" onClick={() => acceptRequestAction(booking.id)}>
-                            Accept
+                          {booking.status === "hold" && (ledger?.available ?? 0) < booking.tonnesT && <p className="text-xs text-warning-600">Only {ledger?.available.toFixed(1)} t is free. Reschedule to an available slot or reject this request.</p>}
+                          <Button size="sm" disabled={booking.status === "hold" && (ledger?.available ?? 0) < booking.tonnesT} onClick={() => acceptRequestAction(booking.id)}>
+                            {booking.status === "confirmed" ? "Confirm Request" : "Accept"}
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => setReschedulingId(booking.id)}>
+                          {booking.status === "hold" && <Button size="sm" variant="outline" disabled={alternativeSlots.length === 0} onClick={() => setReschedulingId(booking.id)}>
                             Reschedule
-                          </Button>
+                          </Button>}
                           <Button size="sm" variant="outline" onClick={() => {
                             if (window.confirm("Are you sure you want to reject this request?")) {
                               rejectRequestAction(booking.id);

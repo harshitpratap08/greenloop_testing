@@ -14,7 +14,7 @@ export default function SignInForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [socialMessage, setSocialMessage] = useState("");
-  const { login } = useAuth();
+  const { login, simulateGoogleLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -70,7 +70,7 @@ export default function SignInForm() {
                 <Link to="/forgot-password" className="text-sm text-ink-900 hover:text-ink-700 underline dark:text-white dark:hover:text-gray-200">Forgot password?</Link>
               </div>
               {error && <p role="alert" className="text-sm text-error-500">{error}</p>}
-              <Button className="w-full" size="sm">Sign in</Button>
+              <Button className="w-full" size="sm" type="submit">Sign in</Button>
             </div>
           </form>
 
@@ -78,7 +78,14 @@ export default function SignInForm() {
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-800"></div></div>
             <div className="relative flex justify-center text-sm"><span className="bg-gray-25 p-2 text-gray-500 sm:px-5 sm:py-2 dark:bg-gray-dark dark:text-gray-400">Or</span></div>
           </div>
-          <button type="button" onClick={() => setSocialMessage("External Google sign-in is not connected in this local demo. Use your saved demo account instead.")} className="inline-flex w-full items-center justify-center gap-3 rounded-sm border border-steel-200 bg-steel-50 px-5 py-3 text-sm font-medium text-ink-800 transition-colors hover:border-steel-400 hover:bg-gray-25 dark:border-steel-800 dark:bg-white/5 dark:text-gray-200 dark:hover:border-steel-600 dark:hover:bg-white/10">
+          <button type="button" onClick={() => {
+            if (!simulateGoogleLogin()) {
+              setSocialMessage("Google demo sign-in could not start in this browser.");
+              return;
+            }
+            const savedRoles = localStorage.getItem("gl_workspaces_google-user@example.com");
+            navigate(savedRoles && savedRoles !== "[]" ? "/app" : "/onboarding");
+          }} className="inline-flex w-full items-center justify-center gap-3 rounded-sm border border-steel-200 bg-steel-50 px-5 py-3 text-sm font-medium text-ink-800 transition-colors hover:border-steel-400 hover:bg-gray-25 dark:border-steel-800 dark:bg-white/5 dark:text-gray-200 dark:hover:border-steel-600 dark:hover:bg-white/10">
             <span aria-hidden="true" className="font-semibold text-blue-600">G</span>
             Continue with Google
           </button>

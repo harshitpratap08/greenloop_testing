@@ -6,18 +6,28 @@ import { useAuth } from "@/context/AuthContext";
 import type { Role } from "@/context/AuthContext";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
+import { useGreenLoopStore } from "@/store/GreenLoopStore";
 
 const BOTH_ROLES: Role[] = ["provider", "receiver"];
+const FIRST_ACTIONS = [
+  { id: "provider:material", role: "provider" as const, title: "Add material", description: "Create a Material Passport for a project.", path: "/app/materials/new" },
+  { id: "provider:receiver", role: "provider" as const, title: "Find a receiver", description: "Match material with a receiving facility.", path: "/app/receivers" },
+  { id: "provider:deliveries", role: "provider" as const, title: "Track deliveries", description: "Open provider delivery tracking.", path: "/app/deliveries" },
+  { id: "receiver:demand", role: "receiver" as const, title: "Request material", description: "Publish receiver demand.", path: "/app/receiver/demand" },
+  { id: "receiver:offers", role: "receiver" as const, title: "Review offers", description: "Review material offers in your demand workspace.", path: "/app/receiver/demand" },
+  { id: "receiver:capacity", role: "receiver" as const, title: "Manage capacity", description: "Add and plan receiving capacity.", path: "/app/receiver/capacity" },
+];
 
 export default function Onboarding() {
   const { user, ready, addWorkspaces, setActiveWorkspace, updateUser } = useAuth();
+  const { dataset } = useGreenLoopStore();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [orgName, setOrgName] = useState(user?.organization || "");
   const [location, setLocation] = useState(user?.location || "");
   const [vat, setVat] = useState(user?.vat || "");
   const [roles, setRoles] = useState<Role[]>([]);
-  const [firstAction, setFirstAction] = useState<Role | null>(null);
+  const [firstAction, setFirstAction] = useState<string | null>(null);
 
 
   if (!ready) {
@@ -27,15 +37,19 @@ export default function Onboarding() {
 
   const selectRoles = (selected: Role[]) => {
     setRoles(selected);
-    setFirstAction((current) => current && selected.includes(current) ? current : selected[0] || null);
+    setFirstAction((current) => current && selected.includes(current.split(":")[0] as Role)
+      ? current
+      : selected[0] === "receiver" ? "receiver:demand" : selected[0] ? "provider:material" : null);
   };
 
   const finishOnboarding = () => {
-    if (!user || !firstAction || !roles.includes(firstAction)) return;
-    updateUser({ organization: orgName.trim(), location: location.trim(), vat: vat.trim() });
+    const destination = FIRST_ACTIONS.find((action) => action.id === firstAction);
+    if (!user || !destination || !roles.includes(destination.role)) return;
+    const matchedReceiver = dataset.receivers.find((receiver) => receiver.name.trim().toLowerCase() === orgName.trim().toLowerCase());
+    updateUser({ organization: orgName.trim(), location: location.trim(), vat: vat.trim(), receiverId: matchedReceiver?.id ?? user.receiverId ?? "R-001" });
     addWorkspaces(roles);
-    setActiveWorkspace(firstAction);
-    navigate(firstAction === "receiver" ? "/app/receiver/overview" : "/app/projects");
+    setActiveWorkspace(destination.role);
+    navigate(destination.path);
   };
 
   const roleCardClass = (active: boolean) => `rounded-lg border p-5 text-start transition-colors ${active ? "border-loop-500 bg-loop-50 dark:bg-loop-900/20" : "border-steel-200 hover:border-steel-400 hover:bg-gray-25 dark:border-steel-800 dark:hover:border-steel-600 dark:hover:bg-white/5"}`;
@@ -94,8 +108,12 @@ export default function Onboarding() {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Step 3 of 3. Your selection chooses the active workspace and destination.</p>
               </div>
               <div className="mb-6 flex flex-col gap-4">
-                {roles.includes("provider") && <button type="button" aria-pressed={firstAction === "provider"} onClick={() => setFirstAction("provider")} className={roleCardClass(firstAction === "provider")}><h3 className="font-semibold text-ink-900 dark:text-white">Create a project</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Open the provider project workspace.</p></button>}
-                {roles.includes("receiver") && <button type="button" aria-pressed={firstAction === "receiver"} onClick={() => setFirstAction("receiver")} className={roleCardClass(firstAction === "receiver")}><h3 className="font-semibold text-ink-900 dark:text-white">Review receiver operations</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Open your receiver overview.</p></button>}
+                {FIRST_ACTIONS.filter((action) => roles.includes(action.role)).map((action) => (
+                  <button key={action.id} type="button" aria-pressed={firstAction === action.id} onClick={() => setFirstAction(action.id)} className={roleCardClass(firstAction === action.id)}>
+                    <h3 className="font-semibold text-ink-900 dark:text-white">{action.title}</h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{action.description}</p>
+                  </button>
+                ))}
               </div>
               <div className="flex gap-3">
                 <button type="button" onClick={() => setStep(2)} className="rounded-lg border border-steel-200 px-4 py-3 text-sm font-medium text-ink-900 hover:bg-gray-50 dark:border-steel-700 dark:text-white dark:hover:bg-white/5">Back</button>

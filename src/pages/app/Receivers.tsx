@@ -25,6 +25,8 @@ export default function Receivers() {
   const [materialId, setMaterialId] = useState<string>(location.state?.materialId || STORY.materialAId);
   const [receiverId, setReceiverId] = useState<string>("");
   const [holdState, setHoldState] = useState<{ requested: number, available: number, slotId: string, receiverId: string } | null>(null);
+  const [chooseAnotherDate, setChooseAnotherDate] = useState(false);
+  const [alternateSlotId, setAlternateSlotId] = useState("");
   
   const material = dataset.materials.find((item) => item.id === materialId);
   const allocatedT = material ? dataset.allocations
@@ -376,7 +378,7 @@ export default function Receivers() {
                           }}
                           className="bg-signal-600 px-6 py-3 font-bold text-white shadow-sm transition-colors hover:bg-signal-700 dark:bg-signal-500 dark:hover:bg-signal-600"
                         >
-                          Reserve available quantity
+                          Book {holdState.available.toFixed(1)} t
                         </button>
                       )}
                       <button
@@ -392,12 +394,31 @@ export default function Receivers() {
                       <button
                         type="button"
                         onClick={() => {
-                          alert("Date selection calendar opens here.");
+                          setChooseAnotherDate((open) => !open);
+                          setAlternateSlotId("");
                         }}
                         className="px-6 py-3 font-bold text-signal-700 transition-colors hover:text-signal-900 dark:text-signal-300 dark:hover:text-signal-100"
                       >
                         Choose another date
                       </button>
+                      {chooseAnotherDate && material && (
+                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                          <label className="text-sm font-semibold text-signal-900 dark:text-signal-100">Choose another date
+                            <select value={alternateSlotId} onChange={(event) => setAlternateSlotId(event.target.value)} className="ms-3 rounded-sm border-steel-300 dark:border-steel-700 dark:bg-black dark:text-white">
+                              <option value="">Select an intake slot</option>
+                              {dataset.slots.filter((slot) => slot.receiverId === holdState.receiverId && slot.materialType === material.type && slot.id !== holdState.slotId).map((slot) => {
+                                const ledger = slotLedger(dataset, slot.id);
+                                return <option key={slot.id} value={slot.id}>{slot.date} · {ledger?.available.toFixed(1)} t free</option>;
+                              })}
+                            </select>
+                          </label>
+                          <button type="button" disabled={!alternateSlotId} onClick={() => {
+                            requestCapacityAction({ materialId: material.id, receiverId: holdState.receiverId, slotId: alternateSlotId, tonnesT: holdState.requested });
+                            setHoldState(null);
+                            setChooseAnotherDate(false);
+                          }} className="bg-ink-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-ink-900">Request selected slot</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : !existingAllocation && selectedSlot && remainingT > 0 && (

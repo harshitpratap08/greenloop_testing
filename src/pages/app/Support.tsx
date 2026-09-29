@@ -4,24 +4,25 @@ import PageMeta from "@/components/common/PageMeta";
 import Button from "@/components/ui/button/Button";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
+import { useAuth } from "@/context/AuthContext";
+import { useGreenLoopStore } from "@/store/GreenLoopStore";
 
 export default function Support() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { dataset, addSupportRequestAction } = useGreenLoopStore();
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSuccess(false);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSuccess(true);
-      setSubject("");
-      setMessage("");
-      setTimeout(() => setSuccess(false), 5000);
-    }, 800);
+    const request = addSupportRequestAction({ email: user?.email ?? "", subject: subject.trim(), message: message.trim() });
+    setSubmittedId(request.id);
+    setSubject("");
+    setMessage("");
+    setIsSubmitting(false);
   };
 
   return (
@@ -80,18 +81,32 @@ export default function Support() {
             </div>
 
             <div className="flex items-center gap-4 pt-2">
-              <Button size="md" disabled={isSubmitting}>
+              <Button size="md" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Submitting..." : "Submit"}
               </Button>
-              {success && (
-                <span className="text-sm font-medium text-loop-600 dark:text-loop-400">
-                  Support request submitted.
+              {submittedId && (
+                <span role="status" className="text-sm font-medium text-loop-600 dark:text-loop-400">
+                  Support request {submittedId} saved to your GreenLoop account.
                 </span>
               )}
             </div>
           </form>
         </section>
 
+        {(dataset.supportRequests ?? []).filter((request) => request.email === user?.email).length > 0 && (
+          <section className="rounded-sm border border-steel-200 bg-white p-8 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
+            <h2 className="mb-4 font-archivo text-xl font-bold text-ink-900 dark:text-white">Your support requests</h2>
+            <div className="space-y-4">
+              {(dataset.supportRequests ?? []).filter((request) => request.email === user?.email).map((request) => (
+                <article key={request.id} className="border-t border-steel-100 pt-4 dark:border-steel-800">
+                  <p className="font-semibold text-ink-900 dark:text-white">{request.subject} · {request.id}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-steel-600 dark:text-gray-400">{request.message}</p>
+                  <p className="mt-2 text-xs text-steel-500">{new Date(request.submittedAt).toLocaleString()}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

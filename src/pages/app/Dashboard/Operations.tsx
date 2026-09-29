@@ -153,7 +153,7 @@ export default function Operations() {
         <section className="surface-card p-5 md:p-6">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-base font-semibold text-ink-900 dark:text-white/90">HOLD requests</h3>
-            <Link to="/allocations" className="text-theme-sm font-medium text-ink-900 underline dark:text-white">
+            <Link to="/app/allocations" className="text-theme-sm font-medium text-ink-900 underline dark:text-white">
               View allocations
             </Link>
           </div>

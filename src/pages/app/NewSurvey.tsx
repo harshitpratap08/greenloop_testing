@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
@@ -17,7 +17,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function NewSurvey() {
-  const { dataset, addMaterialAction } = useGreenLoopStore();
+  const { dataset, addMaterialAction, addProjectAction } = useGreenLoopStore();
   const navigate = useNavigate();
   
   const [step, setStep] = useState(1);
@@ -29,40 +29,61 @@ export default function NewSurvey() {
   const [condition, setCondition] = useState<MaterialCondition>("good");
   const [grade, setGrade] = useState<MaterialGrade>("A");
   const [confidence] = useState("0.85");
-  
-  const evidence = useMemo<Evidence[]>(() => {
-    const images: Record<string, string> = {
-      concrete: "/images/site/auth-concrete.jpg",
-      brick: "/images/site/brick-pallets.jpg",
-      steel: "/images/site/auth-truck.jpg",
-      timber: "/images/site/sorting-facility.jpg",
-      plasterboard: "/images/site/yard-wide.jpg",
-      glass: "/images/site/sorting-facility.jpg",
-    };
-    return [
-      {
-        kind: "site-photo",
-        label: `${TYPE_LABEL[type] ?? "Material"} stockpile overview`,
-        ref: images[type] || "/images/site/auth-concrete.jpg",
-        recordedAt: new Date().toISOString(),
-      },
-      {
-        kind: "survey-sheet",
-        label: "Auditor site notes",
-        ref: "notes-1.pdf",
-        recordedAt: new Date().toISOString(),
-      }
-    ];
-  }, [type]);
+  const [showProjectForm, setShowProjectForm] = useState(dataset.projects.length === 0);
+  const [projectName, setProjectName] = useState("");
+  const [projectLocation, setProjectLocation] = useState("");
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [uploadError, setUploadError] = useState("");
+  const [validationError, setValidationError] = useState("");
 
   const [createdPassport, setCreatedPassport] = useState<MaterialPassport | null>(null);
 
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return;
+    setUploadError("");
+    Array.from(files).forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        setUploadError(`${file.name} exceeds the 5 MB per-file limit.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const kind: Evidence["kind"] = file.type.startsWith("image/") ? "site-photo" : "survey-sheet";
+        setEvidence((current) => [...current, {
+          kind,
+          label: file.name,
+          ref: typeof reader.result === "string" ? reader.result : undefined,
+          recordedAt: new Date().toISOString(),
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleCreateProject = () => {
+    if (!projectName.trim() || !projectLocation.trim()) return;
+    const project = addProjectAction({ name: projectName.trim(), location: projectLocation.trim(), status: "active" });
+    setProjectId(project.id);
+    setProjectName("");
+    setProjectLocation("");
+    setShowProjectForm(false);
+  };
+
   const handleSubmit = () => {
+    const quantityValue = Number(quantity);
+    const minValue = Number(rangeMin);
+    const maxValue = Number(rangeMax);
+    if (!projectId || !Number.isFinite(quantityValue) || quantityValue <= 0 || !Number.isFinite(minValue) || !Number.isFinite(maxValue) || minValue < 0 || maxValue < minValue || minValue > quantityValue || maxValue < quantityValue) {
+      setValidationError("Choose a project and enter a positive quantity within a valid range.");
+      setStep(2);
+      return;
+    }
+    setValidationError("");
     const passport = addMaterialAction({
       projectId,
       type,
-      quantityT: parseFloat(quantity) || 0,
-      quantityRangeT: [parseFloat(rangeMin) || 0, parseFloat(rangeMax) || 0],
+      quantityT: quantityValue,
+      quantityRangeT: [minValue, maxValue],
       condition,
       grade,
       confidence: parseFloat(confidence) || 0,
@@ -106,6 +127,16 @@ export default function NewSurvey() {
                     </div>
                   </label>
                 ))}
+                {showProjectForm ? (
+                  <div className="grid gap-3 rounded-sm border border-steel-200 p-4 dark:border-steel-800">
+                    <input value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Project name" aria-label="Project name" className="w-full rounded-sm border border-steel-300 p-3 dark:border-steel-700 dark:bg-black dark:text-white" />
+                    <input value={projectLocation} onChange={(event) => setProjectLocation(event.target.value)} placeholder="Project location" aria-label="Project location" className="w-full rounded-sm border border-steel-300 p-3 dark:border-steel-700 dark:bg-black dark:text-white" />
+                    <div className="flex gap-3">
+                      <button type="button" onClick={handleCreateProject} disabled={!projectName.trim() || !projectLocation.trim()} className="bg-loop-600 px-4 py-2 font-semibold text-white disabled:opacity-50">Create project</button>
+                      {dataset.projects.length > 0 && <button type="button" onClick={() => setShowProjectForm(false)} className="px-4 py-2 text-steel-600 dark:text-gray-300">Cancel</button>}
+                    </div>
+                  </div>
+                ) : <button type="button" onClick={() => setShowProjectForm(true)} className="text-sm font-semibold text-loop-600 underline dark:text-loop-400">Create a project</button>}
               </div>
 
               <div className="mt-8 flex justify-end">
@@ -170,8 +201,10 @@ export default function NewSurvey() {
               <p className="mt-2 text-steel-600 dark:text-gray-400">Add photos, notes, and lab reports to back up the survey estimate.</p>
               
               <div className="mt-8 border-2 border-dashed border-steel-300 p-8 text-center dark:border-steel-700">
-                <p className="text-sm font-semibold uppercase text-steel-500">Drag & Drop media here</p>
-                <button className="mt-4 border border-steel-300 px-4 py-2 text-sm font-bold hover:bg-gray-50 dark:border-steel-700 dark:text-white dark:hover:bg-white/5">Browse Files</button>
+                <label className="text-sm font-semibold uppercase text-steel-500">Photos and survey evidence (up to 5 MB each)</label>
+                <input type="file" multiple accept="image/*,.pdf" onChange={(event) => handleFiles(event.target.files)} className="mt-4 block w-full text-sm text-steel-600 file:me-4 file:border file:border-steel-300 file:bg-white file:px-4 file:py-2 file:font-semibold dark:text-gray-300 dark:file:border-steel-700 dark:file:bg-black" />
+                {uploadError && <p role="alert" className="mt-2 text-sm text-error-500">{uploadError}</p>}
+                {evidence.length === 0 && <p className="mt-3 text-xs text-steel-500">No evidence attached yet.</p>}
               </div>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -234,6 +267,7 @@ export default function NewSurvey() {
                 </div>
               </dl>
 
+              {validationError && <p role="alert" className="mt-4 text-sm text-error-500">{validationError}</p>}
               <div className="mt-10 flex justify-between">
                 <button onClick={() => setStep(3)} className="font-bold text-steel-500 hover:text-ink-900 dark:hover:text-white">Back</button>
                 <button onClick={handleSubmit} className="bg-loop-600 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-700">Create Material Passport</button>

@@ -16,7 +16,7 @@ export default function SignUpForm() {
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState("");
   const [socialMessage, setSocialMessage] = useState("");
-  const { createAccount } = useAuth();
+  const { createAccount, simulateGoogleLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -61,7 +61,14 @@ export default function SignUpForm() {
             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Local demo only: account details and password are stored in this browser, not sent to a server. Do not use a real password.</p>
           </div>
           <div className="grid grid-cols-1 gap-3">
-            <button type="button" onClick={() => setSocialMessage("External Google sign-up is not connected in this local demo. Create an account using the form below.")} className="inline-flex w-full items-center justify-center gap-3 rounded-sm border border-steel-200 bg-steel-50 px-5 py-3 text-sm font-medium text-ink-800 transition-colors hover:border-steel-400 hover:bg-gray-25 dark:border-steel-800 dark:bg-white/5 dark:text-gray-200 dark:hover:border-steel-600 dark:hover:bg-white/10">
+            <button type="button" onClick={() => {
+              if (!simulateGoogleLogin()) {
+                setSocialMessage("Google demo sign-in could not start in this browser.");
+                return;
+              }
+              const savedRoles = localStorage.getItem("gl_workspaces_google-user@example.com");
+              navigate(savedRoles && savedRoles !== "[]" ? "/app" : "/onboarding");
+            }} className="inline-flex w-full items-center justify-center gap-3 rounded-sm border border-steel-200 bg-steel-50 px-5 py-3 text-sm font-medium text-ink-800 transition-colors hover:border-steel-400 hover:bg-gray-25 dark:border-steel-800 dark:bg-white/5 dark:text-gray-200 dark:hover:border-steel-600 dark:hover:bg-white/10">
               <span aria-hidden="true" className="font-semibold text-blue-600">G</span>
               Continue with Google
             </button>

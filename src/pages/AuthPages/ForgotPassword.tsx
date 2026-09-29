@@ -59,7 +59,7 @@ export default function ForgotPassword() {
                   <div><Label>New demo password</Label><Input type="password" autoComplete="new-password" placeholder="At least 8 characters" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
                   <div><Label>Confirm new password</Label><Input type="password" autoComplete="new-password" placeholder="Confirm your new password" minLength={8} value={confirmation} onChange={(e) => setConfirmation(e.target.value)} required /></div>
                   {error && <p role="alert" className="text-sm text-error-500">{error}</p>}
-                  <Button className="w-full" size="md">Save New Demo Password</Button>
+                  <Button className="w-full" size="md" type="submit">Save New Demo Password</Button>
                 </div>
               </form>
             )}

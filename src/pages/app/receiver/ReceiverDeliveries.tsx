@@ -5,16 +5,17 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion, AnimatePresence } from "motion/react";
 import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ReceiverDeliveries() {
   const { dataset, receiveLoadAction } = useGreenLoopStore();
-  const receiverId = "R-001";
+  const { user } = useAuth();
+  const receiverId = user?.receiverId ?? "R-001";
   
   // Confirmed bookings that don't have a verification record yet
-  const expectedDeliveries = dataset.bookings.filter(b => 
-    b.receiverId === receiverId && 
-    b.status === "confirmed" && 
-    !dataset.verifications.some(v => v.bookingId === b.id)
+  const expectedDeliveries = dataset.bookings.filter((booking) =>
+    booking.receiverId === receiverId && booking.status === "confirmed" && Boolean(booking.loadRef) &&
+    !dataset.verifications.some((verification) => verification.bookingId === booking.id)
   );
 
   const [receivingId, setReceivingId] = useState<string | null>(null);
@@ -109,9 +110,9 @@ export default function ReceiverDeliveries() {
                               step="0.1"
                             />
                           </div>
-                          <Button 
-                            size="sm" 
-                            disabled={!actualT || isNaN(Number(actualT))} 
+                          <Button
+                            size="sm"
+                            disabled={!actualT || !Number.isFinite(Number(actualT)) || Number(actualT) < 0}
                             onClick={() => {
                               receiveLoadAction(booking.id, Number(actualT), [{
                                 kind: "weighbridge-ticket",
