@@ -41,11 +41,14 @@ export default function NewSurvey() {
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
     setUploadError("");
-    Array.from(files).forEach((file) => {
-      if (file.size > 5 * 1024 * 1024) {
-        setUploadError(`${file.name} exceeds the 5 MB per-file limit.`);
-        return;
-      }
+    const selectedFiles = Array.from(files);
+    const storedBytes = evidence.reduce((total, item) => total + Math.round((item.ref?.length ?? 0) * 0.75), 0);
+    const addedBytes = selectedFiles.reduce((total, file) => total + file.size, 0);
+    if (selectedFiles.some((file) => file.size > 2 * 1024 * 1024) || storedBytes + addedBytes > 4 * 1024 * 1024) {
+      setUploadError("Each file must be no larger than 2 MB, with 4 MB total evidence per passport.");
+      return;
+    }
+    selectedFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
         const kind: Evidence["kind"] = file.type.startsWith("image/") ? "site-photo" : "survey-sheet";
@@ -201,7 +204,7 @@ export default function NewSurvey() {
               <p className="mt-2 text-steel-600 dark:text-gray-400">Add photos, notes, and lab reports to back up the survey estimate.</p>
               
               <div className="mt-8 border-2 border-dashed border-steel-300 p-8 text-center dark:border-steel-700">
-                <label className="text-sm font-semibold uppercase text-steel-500">Photos and survey evidence (up to 5 MB each)</label>
+                <label className="text-sm font-semibold uppercase text-steel-500">Photos and survey evidence (up to 2 MB each; 4 MB total)</label>
                 <input type="file" multiple accept="image/*,.pdf" onChange={(event) => handleFiles(event.target.files)} className="mt-4 block w-full text-sm text-steel-600 file:me-4 file:border file:border-steel-300 file:bg-white file:px-4 file:py-2 file:font-semibold dark:text-gray-300 dark:file:border-steel-700 dark:file:bg-black" />
                 {uploadError && <p role="alert" className="mt-2 text-sm text-error-500">{uploadError}</p>}
                 {evidence.length === 0 && <p className="mt-3 text-xs text-steel-500">No evidence attached yet.</p>}
@@ -235,7 +238,7 @@ export default function NewSurvey() {
 
               <div className="mt-10 flex justify-between">
                 <button onClick={() => setStep(2)} className="font-bold text-steel-500 hover:text-ink-900 dark:hover:text-white">Back</button>
-                <button onClick={() => setStep(4)} className="bg-ink-900 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">Continue</button>
+                <button onClick={() => setStep(4)} disabled={evidence.length === 0} className="bg-ink-900 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">Continue</button>
               </div>
             </motion.div>
           )}

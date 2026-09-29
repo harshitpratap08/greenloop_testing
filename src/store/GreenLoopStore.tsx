@@ -312,7 +312,11 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
 
   const addSupportRequestAction = useCallback((input: Omit<SupportRequest, "id" | "submittedAt">) => {
     const request: SupportRequest = { ...input, id: nextId("SUP", dataset.supportRequests ?? []), submittedAt: new Date().toISOString() };
-    setDataset((prev) => ({ ...prev, supportRequests: [request, ...(prev.supportRequests ?? [])] }));
+    setDataset((prev) => ({
+      ...prev,
+      supportRequests: [request, ...(prev.supportRequests ?? [])],
+      events: [...prev.events, eventFor(prev, "support.submitted", { kind: "system", name: request.email }, "Support request submitted", [request.id])],
+    }));
     return request;
   }, [dataset.supportRequests]);
 
@@ -492,7 +496,7 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
         [record.materialId, record.receiverId, record.bookingId, record.id],
         rejected > 0 ? `${rejected.toFixed(1)} t rejected${rejectReason ? `: ${rejectReason}` : ""}` : undefined,
         at);
-      let next: GreenLoopDataset = {
+      const next: GreenLoopDataset = {
         ...prev,
         verifications: prev.verifications.map((item) => item.id === verificationId ? updated : item),
         materials: prev.materials.map((item) => item.id === record.materialId ? { ...item, status: "verified" } : item),
@@ -532,7 +536,14 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
       if (!slot) return prev;
 
       const at = new Date().toISOString();
-      const requested = Math.min(offer.offeredQuantityT, material.quantityT);
+      const committedMaterialT = prev.bookings.filter((booking) => booking.materialId === material.id && booking.status !== "cancelled")
+        .reduce((total, booking) => total + booking.tonnesT, 0);
+      const coveredDemandT = prev.bookings.filter((booking) => booking.demandId === demand.id && booking.status === "confirmed")
+        .reduce((total, booking) => total + booking.tonnesT, 0);
+      const materialAvailableT = Math.max(0, material.quantityT - committedMaterialT);
+      const demandRemainingT = Math.max(0, demand.requiredT - coveredDemandT);
+      const requested = offer.offeredQuantityT;
+      if (requested > materialAvailableT || requested > demandRemainingT) return prev;
       const capacityResult = requestCapacity(prev, {
         materialId: material.id,
         receiverId: demand.receiverId,
@@ -542,7 +553,7 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
         at,
       });
       const createdBooking = capacityResult.output.booking;
-      const acceptedBooking: Booking = { ...createdBooking, demandId: demand.id };
+      const acceptedBooking: Booking = { ...createdBooking, demandId: demand.id, receiverAcceptedAt: at };
       const attachedDataset: GreenLoopDataset = {
         ...capacityResult.dataset,
         bookings: capacityResult.dataset.bookings.map((item) => item.id === createdBooking.id ? acceptedBooking : item),

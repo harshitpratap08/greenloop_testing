@@ -33,13 +33,16 @@ export default function MarketDemand() {
     const quantity = Number(offerQuantity);
     const passport = dataset.materials.find((item) => item.id === selectedPassportId);
     const demand = dataset.demands.find((item) => item.id === selectedDemandId);
-    if (!passport || !demand || !Number.isFinite(quantity) || quantity <= 0 || quantity > passport.quantityT) {
+    const committedT = dataset.bookings.filter((booking) => booking.materialId === selectedPassportId && booking.status !== "cancelled")
+      .reduce((total, booking) => total + booking.tonnesT, 0);
+    const availableT = Math.max(0, (passport?.quantityT ?? 0) - committedT);
+    if (!passport || !demand || !Number.isFinite(quantity) || quantity <= 0 || quantity > availableT) {
       setOfferError("Choose a passport and offer a positive quantity within its available amount.");
       return;
     }
     setOfferError("");
     addOfferAction({
-      demandId: selectedDemandId,
+      demandId: demand.id,
       providerId,
       passportId: selectedPassportId,
       offeredQuantityT: quantity,
@@ -154,9 +157,11 @@ export default function MarketDemand() {
                             className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white"
                           >
                             <option value="">-- Choose a passport --</option>
-                            {availablePassports.map(mp => (
-                              <option key={mp.id} value={mp.id}>{mp.id} - {mp.quantityT}t available</option>
-                            ))}
+                            {availablePassports.map((mp) => {
+                              const committedT = dataset.bookings.filter((booking) => booking.materialId === mp.id && booking.status !== "cancelled")
+                                .reduce((total, booking) => total + booking.tonnesT, 0);
+                              return <option key={mp.id} value={mp.id}>{mp.id} - {Math.max(0, mp.quantityT - committedT).toFixed(1)} t available</option>;
+                            })}
                           </select>
                         </div>
                         <div>
@@ -168,7 +173,12 @@ export default function MarketDemand() {
                             value={offerQuantity}
                             onChange={(e) => setOfferQuantity(e.target.value)}
                             required
-                            max={availablePassports.find(p => p.id === selectedPassportId)?.quantityT || ""}
+                            max={(() => {
+                              const passport = availablePassports.find((item) => item.id === selectedPassportId);
+                              const committedT = dataset.bookings.filter((booking) => booking.materialId === selectedPassportId && booking.status !== "cancelled")
+                                .reduce((total, booking) => total + booking.tonnesT, 0);
+                              return passport ? Math.max(0, passport.quantityT - committedT) : "";
+                            })()}
                             className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white"
                           />
                         </div>

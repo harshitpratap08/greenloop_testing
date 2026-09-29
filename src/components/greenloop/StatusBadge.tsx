@@ -1,10 +1,11 @@
 import Badge from "@/components/ui/badge/Badge";
-import type { AllocationStatus, BookingStatus, MaterialStatus, VerificationStatus, DemandStatus } from "@/domain/types";
+import type { AllocationStatus, BookingStatus, MaterialStatus, VerificationStatus, DemandStatus, MaterialOffer } from "@/domain/types";
 
-type AnyStatus = AllocationStatus | BookingStatus | MaterialStatus | VerificationStatus | DemandStatus;
+type AnyStatus = AllocationStatus | BookingStatus | MaterialStatus | VerificationStatus | DemandStatus | MaterialOffer["status"];
 
 const COLOR: Record<AnyStatus, "success" | "warning" | "error" | "info" | "primary" | "light"> = {
   confirmed: "success",
+  accepted: "success",
   verified: "success",
   reserved: "success",
   allocated: "success",
@@ -15,6 +16,7 @@ const COLOR: Record<AnyStatus, "success" | "warning" | "error" | "info" | "prima
   dispatched: "primary",
   cancelled: "light",
   rejected: "error",
+  declined: "error",
   OPEN: "info",
   PARTIALLY_COVERED: "warning",
   COVERED: "success",
@@ -23,6 +25,7 @@ const COLOR: Record<AnyStatus, "success" | "warning" | "error" | "info" | "prima
 
 const LABEL: Record<AnyStatus, string> = {
   confirmed: "Confirmed",
+  accepted: "Accepted",
   verified: "Verified",
   reserved: "Reserved",
   allocated: "Allocated",
@@ -33,6 +36,7 @@ const LABEL: Record<AnyStatus, string> = {
   dispatched: "Dispatched",
   cancelled: "Cancelled",
   rejected: "Rejected",
+  declined: "Declined",
   OPEN: "Open",
   PARTIALLY_COVERED: "Partially covered",
   COVERED: "Covered",

@@ -130,6 +130,7 @@ export default function Bookings() {
           {dataset.bookings.map((booking, i) => {
             const slot = slotById(booking.slotId);
             const cancelled = booking.status === "cancelled";
+            const dispatched = Boolean(booking.loadRef) || dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id));
             return (
               <motion.article 
                 initial={{ opacity: 0 }}
@@ -170,7 +171,7 @@ export default function Bookings() {
                     </div>
                   </div>
                   
-                  {booking.status === "confirmed" && (
+                  {booking.status === "confirmed" && !dispatched && (
                     <Button
                       size="sm"
                       variant="outline"

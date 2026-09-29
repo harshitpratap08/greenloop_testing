@@ -4,10 +4,12 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { slotLedger } from "@/domain/capacity";
 import { motion } from "motion/react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Overview() {
   const { dataset } = useGreenLoopStore();
-  const receiverId = "R-001"; // Using the primary demo receiver
+  const { user } = useAuth();
+  const receiverId = user?.receiverId ?? "R-001";
 
   // Summary Metrics
   const activeDemands = dataset.demands?.filter((d) => d.receiverId === receiverId && d.status !== "PAUSED") ?? [];
@@ -19,8 +21,8 @@ export default function Overview() {
   const availableCapacityT = Math.max(0, totalCapacityT - totalReservedT);
 
   const receiverBookings = dataset.bookings.filter((b) => b.receiverId === receiverId);
-  const incomingRequests = receiverBookings.filter((b) => b.status === "hold");
-  const materialExpected = receiverBookings.filter((b) => b.status === "confirmed");
+  const incomingRequests = receiverBookings.filter((booking) => booking.status === "hold" || (booking.status === "confirmed" && !booking.receiverAcceptedAt && !booking.loadRef));
+  const materialExpected = receiverBookings.filter((booking) => booking.status === "confirmed" && !booking.loadRef);
   const expectedT = materialExpected.reduce((sum, b) => sum + b.tonnesT, 0);
 
   // Capacity breakdown by material

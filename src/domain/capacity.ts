@@ -326,7 +326,7 @@ export function releaseCapacity(
 ): EngineOutput<ReleaseOutput> {
   const booking = dataset.bookings.find((b) => b.id === input.bookingId);
   if (!booking) throw new Error(`Unknown booking: ${input.bookingId}`);
-  if (booking.status !== "confirmed") {
+  if (booking.status !== "confirmed" || booking.loadRef || dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id))) {
     return { dataset, events: [], output: { cancelledBooking: booking, reconfirmed: [] } };
   }
 
@@ -473,7 +473,7 @@ export function dispatchLoad(
 ): EngineOutput<DispatchOutput> {
   const booking = dataset.bookings.find((b) => b.id === input.bookingId);
   if (!booking) throw new Error(`Unknown booking: ${input.bookingId}`);
-  const alreadyDispatched = booking.status !== "confirmed" || Boolean(booking.loadRef) ||
+  const alreadyDispatched = booking.status !== "confirmed" || !booking.receiverAcceptedAt || Boolean(booking.loadRef) ||
     dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id));
   if (alreadyDispatched) return { dataset, events: [], output: {} };
 

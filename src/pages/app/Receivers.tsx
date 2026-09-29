@@ -24,6 +24,8 @@ export default function Receivers() {
   const location = useLocation();
   const [materialId, setMaterialId] = useState<string>(location.state?.materialId || STORY.materialAId);
   const [receiverId, setReceiverId] = useState<string>("");
+  const [selectedSlotId, setSelectedSlotId] = useState("");
+  const [requestQuantity, setRequestQuantity] = useState("");
   const [holdState, setHoldState] = useState<{ requested: number, available: number, slotId: string, receiverId: string } | null>(null);
   const [chooseAnotherDate, setChooseAnotherDate] = useState(false);
   const [alternateSlotId, setAlternateSlotId] = useState("");
@@ -39,14 +41,17 @@ export default function Receivers() {
   const orderedMatches = [...matches].sort((a, b) => Number(b.recommended) - Number(a.recommended));
   const selectedMatch = orderedMatches.find((candidate) => candidate.receiverId === receiverId) ?? orderedMatches[0];
   const selectedReceiver = selectedMatch && dataset.receivers.find((receiver) => receiver.id === selectedMatch.receiverId);
-  const selectedSlot = selectedMatch && dataset.slots
-    .filter((slot) => slot.receiverId === selectedMatch.receiverId && slot.materialType === material?.type)
-    .sort((a, b) => a.date.localeCompare(b.date))[0];
+  const receiverSlots = selectedMatch && material ? dataset.slots
+    .filter((slot) => slot.receiverId === selectedMatch.receiverId && slot.materialType === material.type)
+    .sort((a, b) => a.date.localeCompare(b.date)) : [];
+  const selectedSlot = receiverSlots.find((slot) => slot.id === selectedSlotId) ?? receiverSlots[0];
+  const requestedT = requestQuantity ? Number(requestQuantity) : remainingT;
+  const requestValid = Number.isFinite(requestedT) && requestedT > 0 && requestedT <= remainingT;
   const existingAllocation = selectedMatch && material
     ? dataset.allocations.find((allocation) => allocation.materialId === material.id && allocation.receiverId === selectedMatch.receiverId && allocation.status !== "cancelled")
     : undefined;
   const selectedLedger = selectedSlot ? slotLedger(dataset, selectedSlot.id) : undefined;
-  const capacityFits = Boolean(material && selectedMatch && selectedMatch.availableT >= remainingT);
+  const capacityFits = Boolean(material && selectedMatch && selectedLedger && selectedLedger.available >= requestedT);
 
   return (
     <div className="relative min-h-screen pb-24">
@@ -104,6 +109,8 @@ export default function Receivers() {
               onChange={(event) => {
                 setMaterialId(event.target.value);
                 setReceiverId("");
+                setSelectedSlotId("");
+                setRequestQuantity("");
                 setHoldState(null);
               }}
               className="peer min-w-72 cursor-pointer appearance-none rounded-sm border-2 border-steel-300 bg-white px-5 py-3 pr-10 font-medium text-ink-900 outline-none transition-all focus:border-loop-500 focus:ring-4 focus:ring-loop-500/20 dark:border-steel-700 dark:bg-black dark:text-white dark:focus:border-loop-500"
@@ -261,6 +268,7 @@ export default function Receivers() {
                       aria-pressed={isSelected}
                       onClick={() => {
                         setReceiverId(candidate.receiverId);
+                        setSelectedSlotId("");
                         setHoldState(null);
                       }}
                       className={cn(
@@ -301,15 +309,29 @@ export default function Receivers() {
                   <p className="eyebrow-label text-loop-600 dark:text-loop-400">03 · Capacity → 04 · Action</p>
                   <h2 id="capacity-heading" className="mt-3 font-archivo text-4xl font-bold uppercase text-ink-900 dark:text-white">{selectedReceiver.name}</h2>
                   <p className="mt-2 text-lg text-steel-600 dark:text-gray-300">
-                    <span className="font-semibold text-ink-900 dark:text-white">{remainingT.toFixed(1)} t</span> of {TYPE_LABEL[material.type] ?? material.type} · {selectedMatch.distanceKm} km · {selectedSlot?.date ? formatDate(selectedSlot.date) : "No intake date"}
+                    <span className="font-semibold text-ink-900 dark:text-white">{requestedT.toFixed(1)} t</span> of {TYPE_LABEL[material.type] ?? material.type} · {selectedMatch.distanceKm} km · {selectedSlot?.date ? formatDate(selectedSlot.date) : "No intake date"}
                   </p>
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <label className="text-sm font-semibold text-ink-900 dark:text-white">Request quantity (t)
+                      <input type="number" min="0.1" max={remainingT} step="0.1" value={requestQuantity || remainingT.toString()} onChange={(event) => setRequestQuantity(event.target.value)} className="mt-1 block w-full rounded-sm border-steel-300 dark:border-steel-700 dark:bg-black dark:text-white" />
+                      {!requestValid && <span role="alert" className="mt-1 block text-xs text-error-500">Enter a quantity greater than zero and no more than {remainingT.toFixed(1)} t.</span>}
+                    </label>
+                    <label className="text-sm font-semibold text-ink-900 dark:text-white">Intake date / slot
+                      <select value={selectedSlot?.id ?? ""} onChange={(event) => setSelectedSlotId(event.target.value)} className="mt-1 block w-full rounded-sm border-steel-300 dark:border-steel-700 dark:bg-black dark:text-white">
+                        {receiverSlots.map((slot) => {
+                          const ledger = slotLedger(dataset, slot.id);
+                          return <option key={slot.id} value={slot.id}>{slot.date} · {ledger?.available.toFixed(1)} t free</option>;
+                        })}
+                      </select>
+                    </label>
+                  </div>
                   
                   {selectedLedger && (
                     <div className="mt-8 max-w-2xl rounded-sm border border-steel-200 bg-gray-50 p-6 dark:border-steel-800 dark:bg-white/[0.02]">
                       <div className="mb-4 flex items-end justify-between gap-3 text-sm">
                         <span className="font-medium text-steel-600 dark:text-gray-400">Live slot capacity</span>
                         <span className={cn("ledger-numeral text-lg font-bold", capacityFits ? "text-loop-600 dark:text-loop-400" : "text-signal-600 dark:text-signal-400")}>
-                          {selectedMatch.availableT.toFixed(1)} t free <span className="text-steel-400 text-sm">of {selectedLedger.slot.capacityT.toFixed(1)} t</span>
+                          {selectedLedger.available.toFixed(1)} t free <span className="text-steel-400 text-sm">of {selectedLedger.slot.capacityT.toFixed(1)} t</span>
                         </span>
                       </div>
                       
@@ -317,7 +339,7 @@ export default function Receivers() {
                       <div className="relative h-4 overflow-hidden rounded-full bg-steel-200 shadow-inner dark:bg-steel-900" role="img" aria-label="Capacity">
                         <motion.div 
                           initial={{ width: 0 }}
-                          whileInView={{ width: `${Math.min(100, (selectedMatch.availableT / Math.max(selectedLedger.slot.capacityT, 0.1)) * 100)}%` }}
+                          whileInView={{ width: `${Math.min(100, (selectedLedger.available / Math.max(selectedLedger.slot.capacityT, 0.1)) * 100)}%` }}
                           transition={{ duration: 1.5, ease: "easeOut" }}
                           viewport={{ once: true }}
                           className={cn("absolute inset-y-0 shadow-[0_0_10px_rgba(0,0,0,0.2)]", capacityFits ? "bg-loop-500" : "bg-signal-500")} 
@@ -427,18 +449,20 @@ export default function Receivers() {
                     whileTap={{ scale: 0.95 }}
                     type="button"
                     onClick={() => {
-                      if (remainingT > selectedMatch.availableT) {
+                      if (!requestValid) return;
+                      if (requestedT > (selectedLedger?.available ?? 0)) {
                         setHoldState({
-                          requested: remainingT,
-                          available: selectedMatch.availableT,
+                          requested: requestedT,
+                          available: selectedLedger?.available ?? 0,
                           slotId: selectedSlot.id,
                           receiverId: selectedReceiver.id
                         });
                       } else {
-                        requestCapacityAction({ materialId: material.id, receiverId: selectedReceiver.id, slotId: selectedSlot.id, tonnesT: remainingT });
+                        requestCapacityAction({ materialId: material.id, receiverId: selectedReceiver.id, slotId: selectedSlot.id, tonnesT: requestedT });
                       }
                     }}
-                    className="relative overflow-hidden bg-loop-600 px-8 py-5 font-archivo text-xl font-bold uppercase tracking-wide text-white shadow-lg transition-colors hover:bg-loop-700 dark:bg-loop-500 dark:hover:bg-loop-600"
+                    disabled={!requestValid}
+                    className="relative overflow-hidden bg-loop-600 px-8 py-5 font-archivo text-xl font-bold uppercase tracking-wide text-white shadow-lg transition-colors hover:bg-loop-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-loop-500 dark:hover:bg-loop-600"
                   >
                     Request Capacity
                   </motion.button>

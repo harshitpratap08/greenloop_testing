@@ -130,7 +130,7 @@ function LoadCard({ booking }: { booking: Booking }) {
     { label: "Evidence", detail: verification?.evidence.length ? `${verification.evidence.length} records` : "Awaiting", complete: Boolean(verification?.evidence.length) },
   ];
   
-  const isEnRoute = Boolean(dispatchEvent) && !Boolean(verification);
+  const isEnRoute = Boolean(dispatchEvent) && !verification;
   const progressPercent = verification ? 100 : dispatchEvent ? 50 : 10;
 
   return (
@@ -313,7 +313,9 @@ function LoadCard({ booking }: { booking: Booking }) {
         {/* Footer Actions */}
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-steel-200 pt-6 dark:border-steel-800">
           <p className="text-sm font-medium text-steel-500 dark:text-gray-400">Booking {booking.id} · receiver intake {slot ? formatDate(slot.date) : "date pending"}</p>
-          {!dispatchEvent && !verification ? (
+          {!dispatchEvent && !verification && !booking.receiverAcceptedAt ? (
+            <span className="text-sm font-semibold text-warning-600">Waiting for receiver request approval</span>
+          ) : !dispatchEvent && !verification ? (
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button size="md" className="bg-ink-900 uppercase tracking-widest hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500" onClick={() => dispatchAction({ bookingId: booking.id })}>
                 Dispatch Load
@@ -354,5 +356,3 @@ function LoadMetric({ label, value, highlight = false }: { label: string; value:
     </div>
   );
 }
-
-

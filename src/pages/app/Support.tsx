@@ -10,6 +10,7 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 export default function Support() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [formError, setFormError] = useState("");
   const { user } = useAuth();
   const { dataset, addSupportRequestAction } = useGreenLoopStore();
   const [subject, setSubject] = useState("");
@@ -17,6 +18,11 @@ export default function Support() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!subject.trim() || !message.trim()) {
+      setFormError("Enter a subject and message before submitting.");
+      return;
+    }
+    setFormError("");
     setIsSubmitting(true);
     const request = addSupportRequestAction({ email: user?.email ?? "", subject: subject.trim(), message: message.trim() });
     setSubmittedId(request.id);
@@ -84,6 +90,7 @@ export default function Support() {
               <Button size="md" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Submitting..." : "Submit"}
               </Button>
+              {formError && <span role="alert" className="text-sm text-error-500">{formError}</span>}
               {submittedId && (
                 <span role="status" className="text-sm font-medium text-loop-600 dark:text-loop-400">
                   Support request {submittedId} saved to your GreenLoop account.

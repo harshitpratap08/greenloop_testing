@@ -58,14 +58,8 @@ export default function Demand() {
   // Helper to calculate how much of a material type is covered by confirmed bookings
   const calculateCoveredT = (demandId: string) => {
     return dataset.bookings
-      .filter((b) => b.demandId === demandId && b.status === "confirmed")
-      .reduce((sum, booking) => {
-        const material = dataset.materials.find((m) => m.id === booking.materialId);
-        if (material?.type === materialType) {
-          return sum + booking.tonnesT;
-        }
-        return sum;
-      }, 0);
+      .filter((booking) => booking.demandId === demandId && booking.status === "confirmed")
+      .reduce((sum, booking) => sum + booking.tonnesT, 0);
   };
 
   return (
@@ -259,6 +253,9 @@ export default function Demand() {
                     <div className="space-y-3">
                       {dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").map(offer => {
                         const passport = dataset.materials.find((material) => material.id === offer.passportId);
+                        const committedT = dataset.bookings.filter((booking) => booking.materialId === offer.passportId && booking.status !== "cancelled")
+                          .reduce((total, booking) => total + booking.tonnesT, 0);
+                        const passportAvailableT = Math.max(0, (passport?.quantityT ?? 0) - committedT);
                         const hasCapacity = dataset.slots.some((slot) => slot.receiverId === demand.receiverId && slot.materialType === demand.materialType);
                         return (
                           <div key={offer.id} className="flex flex-col gap-3 bg-white p-3 shadow-sm rounded-sm dark:bg-gray-900 border border-steel-100 dark:border-steel-800 sm:flex-row sm:items-center sm:justify-between">
@@ -269,10 +266,12 @@ export default function Demand() {
                               {passport?.evidence.map((item) => <span key={`${offer.id}-${item.label}`} className="me-2 text-xs text-loop-600 dark:text-loop-400">{item.label}</span>)}
                             </div>
                             <div className="flex gap-2">
-                              <Button size="sm" disabled={!hasCapacity} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
+                              <Button size="sm" disabled={!hasCapacity || offer.offeredQuantityT > passportAvailableT || offer.offeredQuantityT > remainingT} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
                               <Button size="sm" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
                             </div>
                             {!hasCapacity && <p className="text-xs text-warning-600 sm:basis-full">Add a capacity slot before accepting this offer.</p>}
+                            {hasCapacity && offer.offeredQuantityT > passportAvailableT && <p className="text-xs text-warning-600 sm:basis-full">Only {passportAvailableT.toFixed(1)} t remains on this passport.</p>}
+                            {offer.offeredQuantityT > remainingT && <p className="text-xs text-warning-600 sm:basis-full">This offer exceeds the {remainingT.toFixed(1)} t remaining for this demand.</p>}
                           </div>
                         );
                       })}
