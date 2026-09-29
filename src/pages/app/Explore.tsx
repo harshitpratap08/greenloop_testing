@@ -54,6 +54,37 @@ export default function Explore() {
   const awaitingVerification = dispatchedBookings.filter(
     (booking) => !dataset.verifications.some((verification) => verification.bookingId === booking.id),
   );
+  const readyToDispatch = dataset.bookings.filter((booking) => booking.status === "confirmed" && booking.receiverAcceptedAt && !booking.loadRef);
+  const unmatchedMaterials = dataset.materials.filter((material) =>
+    material.status !== "verified" && material.status !== "dispatched" &&
+    !dataset.allocations.some((allocation) => allocation.materialId === material.id && allocation.status !== "cancelled"),
+  );
+  const attentionItems = [
+    ...unmatchedMaterials.map((material) => ({
+      key: material.id,
+      title: `${material.quantityT.toFixed(1)} t ${material.type} needs a receiver`,
+      status: "No receiving slot has been requested yet.",
+      action: "Find receiver",
+      to: "/app/receivers",
+      state: { materialId: material.id },
+    })),
+    ...readyToDispatch.map((booking) => ({
+      key: booking.id,
+      title: "Delivery booking confirmed",
+      status: `${booking.tonnesT.toFixed(1)} t is ready to send to ${dataset.receivers.find((receiver) => receiver.id === booking.receiverId)?.name ?? "the receiver"}.`,
+      action: "Send load",
+      to: "/app/deliveries",
+      state: undefined,
+    })),
+    ...awaitingVerification.map((booking) => ({
+      key: booking.id,
+      title: "Delivered load needs checking",
+      status: `${booking.tonnesT.toFixed(1)} t is waiting for the receiver to record what arrived.`,
+      action: "View record",
+      to: "/app/deliveries",
+      state: undefined,
+    })),
+  ];
   const latestVerification = [...dataset.verifications].sort(
     (a, b) => (b.verifiedAt ?? "").localeCompare(a.verifiedAt ?? ""),
   )[0];
@@ -74,6 +105,19 @@ export default function Explore() {
       >
         <RoleSwitchNote role={role} />
       </FriendlyPageHeader>
+
+      <section className="mt-8 rounded-sm border border-steel-200 bg-white p-5 shadow-sm dark:border-steel-800 dark:bg-white/[0.02] sm:p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-steel-100 pb-4 dark:border-steel-800">
+          <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">{attentionItems.length} {attentionItems.length === 1 ? "thing needs" : "things need"} your attention</h2>
+          <p className="text-sm text-steel-500 dark:text-gray-400">The next step for your materials and deliveries.</p>
+        </div>
+        {attentionItems.length ? <ul className="mt-4 grid gap-3 lg:grid-cols-3">
+          {attentionItems.slice(0, 6).map((item) => <li key={item.key} className="flex flex-col justify-between gap-4 rounded-sm border border-steel-200 p-4 dark:border-steel-800">
+            <div><h3 className="font-semibold text-ink-900 dark:text-white">{item.title}</h3><p className="mt-1 text-sm text-steel-600 dark:text-gray-400">{item.status}</p><p className="mt-2 text-xs font-medium text-steel-500">Next step: {item.action}</p></div>
+            <Link to={item.to} state={item.state} className="inline-flex w-fit bg-ink-900 px-4 py-2 text-sm font-semibold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">{item.action}</Link>
+          </li>)}
+        </ul> : <p className="mt-4 text-sm text-steel-600 dark:text-gray-400">Nothing needs action right now. Your project information and progress are below.</p>}
+      </section>
 
       {project ? (
         <section className="mt-8 grid items-start gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-8">

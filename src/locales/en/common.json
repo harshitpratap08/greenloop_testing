@@ -24,6 +24,7 @@
       "dashboard": "Operations console",
       "projects": "Projects",
       "materials": "Materials & Passports",
+      "marketDemand": "Who Needs Material",
       "receivers": "Find a receiver",
       "allocations": "Allocations (admin)",
       "bookings": "Bookings",

@@ -8,6 +8,7 @@ import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { cn } from "@/utils";
 import { useAuth } from "@/context/AuthContext";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -30,6 +31,7 @@ export default function Demand() {
   const [error, setError] = useState("");
   const [location, setLocation] = useState("Riverstone Aggregates");
   const [notes, setNotes] = useState("");
+  const [sentMessage, setSentMessage] = useState("");
 
   const receiverDemands = dataset.demands?.filter((d) => d.receiverId === receiverId) ?? [];
 
@@ -50,6 +52,7 @@ export default function Demand() {
     });
     
     setIsAdding(false);
+    setSentMessage("Request sent. Providers near you are notified.");
     setRequiredT("");
     setPeriod("");
     setNotes("");
@@ -64,32 +67,16 @@ export default function Demand() {
 
   return (
     <div className="relative min-h-screen pb-24">
-      <PageMeta title="Material Demand | GreenLoop" description="Manage material demand." />
-      <PageBreadcrumb pageTitle="Demand" />
+      <PageMeta title="Material Requests | GreenLoop" description="Tell providers what material your facility needs." />
+      <PageBreadcrumb pageTitle="Material Requests" />
+      <WorkflowPageHeader
+        title="Material Requests"
+        description="Tell providers what you need. Offers come to you. A material request describes the type, amount, and date your facility needs."
+        status={`${receiverDemands.length} request${receiverDemands.length === 1 ? "" : "s"} from this facility`}
+      />
+      {!isAdding && <Button size="md" onClick={() => { setIsAdding(true); setSentMessage(""); }}>Request material</Button>}
 
-      {/* Header */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-steel-200 pb-6 dark:border-steel-800"
-      >
-        <div>
-          <p className="eyebrow-label text-loop-600 dark:text-loop-400">Receiver Operations</p>
-          <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-4xl">
-            Material Demand
-          </h1>
-          <p className="mt-3 max-w-2xl text-lg text-steel-600 dark:text-gray-400">
-            Define the required construction materials you are looking to source. GreenLoop uses this to match suitable recovery projects to your capacity.
-          </p>
-        </div>
-        {!isAdding && receiverDemands.length > 0 && (
-          <Button size="md" onClick={() => setIsAdding(true)}>
-            Request Material
-          </Button>
-        )}
-      </motion.header>
-
+      {sentMessage && <p role="status" className="mb-5 border-l-4 border-loop-500 bg-loop-50 px-4 py-3 text-sm font-medium text-loop-800 dark:bg-loop-500/10 dark:text-loop-200">{sentMessage}</p>}
       {/* Add Demand Form */}
       {isAdding && (
         <motion.div 
@@ -97,8 +84,8 @@ export default function Demand() {
           animate={{ opacity: 1, height: "auto" }}
           className="mb-10 overflow-hidden"
         >
-          <div className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
-            <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Add material requirement</h2>
+          <div id="request-form" className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
+            <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Tell providers what you need</h2>
             <form onSubmit={handleAddDemand} className="mt-6 grid gap-6 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Material Type</label>
@@ -163,7 +150,7 @@ export default function Demand() {
 
               {error && <p role="alert" className="text-sm text-error-500 sm:col-span-2">{error}</p>}
               <div className="flex gap-4 sm:col-span-2">
-                <Button size="md" type="submit">Publish Request</Button>
+                <Button size="md" type="submit">Send request</Button>
                 <Button size="md" variant="outline" type="button" onClick={() => setIsAdding(false)}>Cancel</Button>
               </div>
             </form>
@@ -200,7 +187,7 @@ export default function Demand() {
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex flex-wrap items-start gap-x-12 gap-y-6">
                     <div>
-                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material Requirement</p>
+                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material Request</p>
                       <h3 className="mt-1 font-archivo text-2xl font-bold text-ink-900 dark:text-white">{TYPE_LABEL[demand.materialType] ?? demand.materialType}</h3>
                       <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">
                         <span className="font-semibold text-ink-900 dark:text-gray-200">{demand.period}</span> · {demand.location}
@@ -215,17 +202,18 @@ export default function Demand() {
                         </p>
                       </div>
                       <div>
-                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Remaining</p>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Open</p>
                         <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-loop-600 dark:text-loop-400">
                           {remainingT.toFixed(1)} <span className="text-xl text-steel-400">t</span>
                         </p>
+                        <p className="mt-1 text-xs text-steel-500">{coveredT.toFixed(1)} t filled · {remainingT.toFixed(1)} t open</p>
                       </div>
                     </div>
                   </div>
                   
                   <div className="text-left sm:text-right">
                     <StatusBadge status={demand.status} />
-                    <p className="mt-3 ledger-numeral text-xs text-steel-500">ID: {demand.id}</p>
+                    <details className="mt-3 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-2 block ledger-numeral">Request ID: {demand.id}</span>{demand.notes && <span className="mt-1 block">Notes: {demand.notes}</span>}</details>
                   </div>
                 </div>
 
@@ -249,7 +237,7 @@ export default function Demand() {
                 {/* Offers */}
                 {dataset.offers && dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").length > 0 && (
                   <div className="mt-6 rounded-sm border border-loop-200 bg-loop-50/50 p-4 dark:border-loop-900/30 dark:bg-loop-900/10">
-                    <h4 className="font-archivo text-sm font-bold text-ink-900 dark:text-white mb-3">Pending Provider Offers</h4>
+                    <h4 className="font-archivo text-sm font-bold text-ink-900 dark:text-white mb-3">Provider offers waiting for a decision</h4>
                     <div className="space-y-3">
                       {dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").map(offer => {
                         const passport = dataset.materials.find((material) => material.id === offer.passportId);
