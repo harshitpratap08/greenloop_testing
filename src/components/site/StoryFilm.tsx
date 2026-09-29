@@ -55,11 +55,21 @@ export default function StoryFilm() {
         className="absolute inset-0 -z-10"
         style={reduceMotion ? undefined : { y: imageY, scale: imageScale }}
       >
-        <img 
-          src="/images/site/hero-demolition.jpg" 
-          alt="Demolition site" 
+        <video 
+          autoPlay 
+          muted 
+          loop 
+          playsInline
+          poster="/images/site/hero-demolition.jpg" 
           className="h-full min-h-[calc(100svh-72px)] w-full object-cover object-center opacity-40" 
-        />
+        >
+          <source src="/videos/hero-demolition.mp4" type="video/mp4" />
+          <img 
+            src="/images/site/hero-demolition.jpg" 
+            alt="Demolition site fallback" 
+            className="h-full min-h-[calc(100svh-72px)] w-full object-cover object-center opacity-40" 
+          />
+        </video>
         <div className="absolute inset-0 bg-gradient-to-r from-ink-950/95 via-ink-950/70 to-ink-950/40" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-ink-950/10" />
       </motion.div>
@@ -100,15 +110,21 @@ export default function StoryFilm() {
           >
             <a
               href="/#workflow"
-              className="border border-white bg-white px-5 py-3 text-theme-sm font-semibold text-ink-900 transition-colors hover:bg-gray-200"
+              className="border border-white/35 px-5 py-3 text-theme-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10 backdrop-blur-sm"
             >
               See the recovery process
             </a>
             <Link
-              to="/app/dashboard"
-              className="border border-white/35 px-5 py-3 text-theme-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10 backdrop-blur-sm"
+              to="/signup"
+              className="border border-white bg-white px-5 py-3 text-theme-sm font-semibold text-ink-900 transition-colors hover:bg-gray-200"
             >
-              Enter GreenLoop
+              Create account
+            </Link>
+            <Link
+              to="/signin"
+              className="px-5 py-3 text-theme-sm font-semibold text-white transition-colors hover:text-gray-300"
+            >
+              Sign in
             </Link>
           </motion.div>
         </div>

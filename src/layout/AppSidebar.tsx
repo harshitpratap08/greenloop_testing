@@ -1,7 +1,9 @@
 import { useSidebar } from "@/context/SidebarContext";
+import { useAuth } from "@/context/AuthContext";
+import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import {
   BoxIconLine,
   CalenderIcon,
@@ -42,7 +44,7 @@ type NavItem = {
  * Bookings, Deliveries, Verification, Reports); the technical/operational
  * surfaces (Operations console, Allocations scoring) live in the Admin group.
  */
-const navItems: NavItem[] = [
+const providerNavItems: NavItem[] = [
   {
     icon: <GridIcon fontSize={24} />,
     name: "Home",
@@ -60,6 +62,12 @@ const navItems: NavItem[] = [
     name: "Materials & Passports",
     key: "materials",
     path: "/app/materials",
+  },
+  {
+    icon: <ListIcon fontSize={24} />,
+    name: "Market Demand",
+    key: "market-demand",
+    path: "/app/market-demand",
   },
   {
     icon: <BoxTapped fontSize={24} />,
@@ -87,7 +95,7 @@ const navItems: NavItem[] = [
   },
 ];
 
-const othersItems: NavItem[] = [
+const providerOthersItems: NavItem[] = [
   {
     icon: <TaskIcon fontSize={24} />,
     name: "Reports",
@@ -114,10 +122,58 @@ const othersItems: NavItem[] = [
   },
 ];
 
+const receiverNavItems: NavItem[] = [
+  {
+    icon: <GridIcon fontSize={24} />,
+    name: "Overview",
+    path: "/app/receiver/overview",
+  },
+  {
+    icon: <BoxMoving fontSize={24} />,
+    name: "Demand",
+    path: "/app/receiver/demand",
+  },
+  {
+    icon: <BoxIconLine fontSize={24} />,
+    name: "Capacity",
+    path: "/app/receiver/capacity",
+  },
+  {
+    icon: <BoxTapped fontSize={24} />,
+    name: "Incoming Requests",
+    path: "/app/receiver/incoming-requests",
+  },
+  {
+    icon: <TruckDelivery fontSize={24} />,
+    name: "Deliveries",
+    path: "/app/receiver/deliveries",
+  },
+  {
+    icon: <CheckCircleIcon fontSize={24} />,
+    name: "Verification",
+    path: "/app/receiver/verification",
+  },
+];
+
+const receiverOthersItems: NavItem[] = [
+  {
+    icon: <ListIcon fontSize={24} />,
+    name: "Public website",
+    path: "/",
+  },
+];
+
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered, setIsMobileOpen } =
     useSidebar();
+  const { user, setActiveWorkspace } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  
+  const [isSwitcherOpen, setSwitcherOpen] = useState(false);
+
+  const currentNavItems = user?.activeWorkspace === 'receiver' ? receiverNavItems : providerNavItems;
+  const currentOthersItems = user?.activeWorkspace === 'receiver' ? receiverOthersItems : providerOthersItems;
   const location = useLocation();
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -146,7 +202,7 @@ const AppSidebar: React.FC = () => {
     let submenuMatched = false;
 
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+      const items = menuType === "main" ? currentNavItems : currentOthersItems;
 
       items.forEach((nav, index) => {
         if (nav.subItems) {
@@ -384,6 +440,53 @@ const AppSidebar: React.FC = () => {
         </Link>
       </div>
 
+      {(isExpanded || isHovered || isMobileOpen) && user && (
+        <div className="px-5 mb-6 relative">
+          <button 
+            className="dropdown-toggle flex w-full items-center justify-between rounded-lg border border-steel-200 bg-white p-3 text-sm font-medium text-ink-900 hover:bg-gray-25 dark:border-steel-800 dark:bg-gray-dark dark:text-white dark:hover:bg-gray-800"
+            onClick={() => setSwitcherOpen(!isSwitcherOpen)}
+          >
+            <span>{user.activeWorkspace === 'receiver' ? 'Material Receiver' : 'Material Provider'}</span>
+            <ChevronDownIcon className="size-4 text-gray-500" />
+          </button>
+          
+          <Dropdown isOpen={isSwitcherOpen} onClose={() => setSwitcherOpen(false)} className="w-[calc(100%-2.5rem)] top-full mt-2">
+            <div className="flex flex-col py-2">
+              {user.workspaces.includes('provider') && (
+                <button
+                  className={cn(
+                    "flex w-full items-center px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-800",
+                    user.activeWorkspace === 'provider' ? "text-loop-600 font-semibold dark:text-loop-500" : "text-ink-900 dark:text-white"
+                  )}
+                  onClick={() => {
+                    setActiveWorkspace('provider');
+                    setSwitcherOpen(false);
+                    navigate('/app/explore');
+                  }}
+                >
+                  Material Provider
+                </button>
+              )}
+              {user.workspaces.includes('receiver') && (
+                <button
+                  className={cn(
+                    "flex w-full items-center px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-800",
+                    user.activeWorkspace === 'receiver' ? "text-loop-600 font-semibold dark:text-loop-500" : "text-ink-900 dark:text-white"
+                  )}
+                  onClick={() => {
+                    setActiveWorkspace('receiver');
+                    setSwitcherOpen(false);
+                    navigate('/app/receiver/overview');
+                  }}
+                >
+                  Material Receiver
+                </button>
+              )}
+            </div>
+          </Dropdown>
+        </div>
+      )}
+
       <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
@@ -401,7 +504,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots className="size-6" />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(currentNavItems, "main")}
             </div>
 
             <div>
@@ -418,7 +521,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots className="size-6" />
                 )}
               </h2>
-              {renderMenuItems(othersItems, "others")}
+              {renderMenuItems(currentOthersItems, "others")}
             </div>
           </div>
         </nav>

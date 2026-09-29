@@ -6,7 +6,7 @@ import EventLog from "@/components/greenloop/EventLog";
 import { eventsForSubjects } from "@/domain/events";
 import type { VerificationRecord } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { cn } from "@/utils";
+import { cn, formatStamp } from "@/utils";
 import { motion, AnimatePresence } from "motion/react";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -69,7 +69,7 @@ export default function Verification() {
               className="flex flex-col items-start gap-1 border-l-2 border-loop-500 pl-6 md:items-end md:border-l-0 md:border-r-2 md:pl-0 md:pr-6 md:text-right"
             >
               <span className="eyebrow-label text-white/60">Total Accepted Recovery</span>
-              <span className="ledger-numeral text-5xl font-bold text-loop-400 drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+              <span className="ledger-numeral text-5xl font-bold text-loop-400">
                 {totalAccepted.toFixed(1)} <span className="text-3xl text-white/60">t</span>
               </span>
               <span className="mt-2 text-sm text-white/60">{dataset.verifications.length} verified loads</span>
@@ -162,7 +162,7 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
             </p>
           </div>
         </div>
-        <StatusBadge status={verification.status} size="lg" />
+        <StatusBadge status={verification.status} size="md" />
       </div>
 
       <div className="p-6 sm:p-8">
@@ -222,7 +222,7 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
                       milestone.complete ? "border-loop-500" : "border-steel-300 dark:border-steel-700"
                     )}
                   >
-                    {milestone.complete && <div className="h-2.5 w-2.5 rounded-full bg-loop-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />}
+                    {milestone.complete && <div className="h-2.5 w-2.5 rounded-full bg-loop-500" />}
                   </motion.div>
                   <div className="sm:pr-4">
                     <p className="text-xs font-bold uppercase tracking-wider text-steel-500 dark:text-gray-500">{milestone.label}</p>
@@ -257,7 +257,7 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
                 whileInView={{ width: `${acceptedVsPlan}%` }}
                 transition={{ duration: 1.5, ease: "easeOut" }}
                 viewport={{ once: true }}
-                className="absolute inset-y-0 bg-loop-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]" 
+                className="absolute inset-y-0 bg-loop-500" 
               />
             </div>
             <p className="mt-3 text-xs font-medium uppercase tracking-wider text-steel-500 dark:text-gray-500">Accepted tonnes are the final verified recovery figure.</p>
@@ -307,8 +307,12 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
                     className="flex flex-wrap items-center justify-between gap-4 rounded-sm border border-steel-200 bg-gray-50 p-4 transition-colors hover:border-loop-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-loop-500"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-white shadow-sm dark:bg-black">
-                        <span className="text-lg">{evidence.kind === "weighbridge-ticket" ? "🧾" : "📸"}</span>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded bg-white shadow-sm dark:bg-black">
+                        {evidence.kind === "site-photo" && evidence.ref?.startsWith("/images/") ? (
+                          <img src={evidence.ref} alt={evidence.label} className="size-full object-cover" />
+                        ) : (
+                          <span className="text-lg">{evidence.kind === "weighbridge-ticket" ? "🧾" : "📸"}</span>
+                        )}
                       </div>
                       <div>
                         <p className="font-archivo text-lg font-bold text-ink-900 dark:text-white">{evidence.label}</p>
@@ -317,7 +321,7 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
                     </div>
                     <div className="text-right">
                       <time className="ledger-numeral block text-sm font-semibold text-ink-800 dark:text-gray-200" dateTime={evidence.recordedAt}>{formatStamp(evidence.recordedAt)}</time>
-                      {evidence.ref && <span className="ledger-numeral mt-1 block text-xs text-steel-500 dark:text-gray-400">Ref: {evidence.ref}</span>}
+                      {evidence.ref && !evidence.ref.startsWith("/images/") && <span className="ledger-numeral mt-1 block text-xs text-steel-500 dark:text-gray-400">Ref: {evidence.ref}</span>}
                     </div>
                   </motion.li>
                 ))}
@@ -355,8 +359,3 @@ function Difference({ label, value, detail, isAlert = false }: { label: string; 
   );
 }
 
-function formatStamp(iso: string) {
-  if (!iso) return "—";
-  const date = new Date(iso);
-  return `${date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} · ${date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
-}

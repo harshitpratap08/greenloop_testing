@@ -6,7 +6,7 @@ import Button from "@/components/ui/button/Button";
 import { slotLedger } from "@/domain/capacity";
 import type { ReceiverDaySlot } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { cn } from "@/utils";
+import { cn, formatDate } from "@/utils";
 import { motion } from "motion/react";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -61,13 +61,13 @@ export default function Bookings() {
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="group relative mb-12 grid overflow-hidden rounded-sm border border-transparent bg-ink-950 text-white shadow-xl transition-all hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] sm:grid-cols-[1.4fr_1fr] dark:border-steel-700 dark:bg-black" 
+        className="group relative mb-12 grid overflow-hidden rounded-sm border border-transparent bg-ink-950 text-white shadow-lg sm:grid-cols-[1.4fr_1fr] dark:border-steel-800 dark:bg-black" 
         aria-label="Capacity rule"
       >
-        <div className="p-8 sm:p-10">
+        <div className="p-6 sm:p-8">
           <p className="eyebrow-label text-white/50">Capacity Rule</p>
-          <h2 className="mt-3 font-archivo text-2xl font-bold tracking-tight text-white sm:text-3xl">Reserved tonnes cannot be double-booked.</h2>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-white/70">
+          <h2 className="mt-2 font-archivo text-xl font-bold tracking-tight text-white sm:text-2xl">Reserved tonnes cannot be double-booked.</h2>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/70">
             A confirmed booking consumes slot capacity. A HOLD is a request waiting for enough free tonnes; it is not a confirmed reservation. Cancelling a confirmed booking releases those tonnes and rechecks waiting requests.
           </p>
         </div>
@@ -138,40 +138,68 @@ export default function Bookings() {
                 transition={{ delay: i * 0.05 }}
                 key={booking.id} 
                 className={cn(
-                  "grid gap-4 border-b border-steel-200 p-6 transition-colors last:border-b-0 hover:bg-gray-50 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center dark:border-steel-800 dark:hover:bg-white/[0.04]", 
-                  cancelled && "opacity-70 grayscale"
+                  "border-b border-steel-200 p-5 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-steel-800 dark:hover:bg-white/[0.04]", 
+                  cancelled && "opacity-60 grayscale"
                 )}
               >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <span className="ledger-numeral text-sm font-bold text-ink-900 dark:text-white">{booking.id}</span>
-                    <StatusBadge status={booking.status} />
-                    {booking.status === "confirmed" && <span className="text-xs font-bold uppercase tracking-wider text-loop-600 dark:text-loop-400">Confirmed · capacity reserved</span>}
-                  </div>
-                  <h3 className="mt-2 font-archivo text-lg font-bold text-ink-900 dark:text-white">{receiverName(booking.receiverId)}</h3>
-                  <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">
-                    <span className="font-semibold text-ink-900 dark:text-gray-200">{booking.tonnesT.toFixed(1)} t</span> · {materialLabel(booking.materialId)} · {slot ? `${slot.date} · ${TYPE_LABEL[slot.materialType] ?? slot.materialType} intake` : booking.slotId}
-                  </p>
-                  <p className="mt-2 ledger-numeral text-xs text-steel-500 dark:text-gray-500">
-                    {cancelled
-                      ? `Released ${booking.tonnesT.toFixed(1)} t · ${booking.cancelledReason ?? "Booking cancelled"}`
-                      : `${booking.capacityBeforeT.toFixed(1)} → ${booking.capacityAfterT.toFixed(1)} t free after request`}
-                  </p>
-                  {booking.holdReason && (
-                    <div className="mt-3 border-l-2 border-signal-500 bg-signal-50 px-4 py-2 dark:bg-signal-500/10">
-                      <p className="text-sm font-medium text-signal-900 dark:text-signal-100">{booking.holdReason}</p>
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="grid grid-cols-2 gap-4 sm:flex sm:flex-wrap sm:gap-8">
+                    <div>
+                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material</p>
+                      <p className="mt-1 text-sm font-semibold text-ink-900 dark:text-white">{materialLabel(booking.materialId)}</p>
                     </div>
+                    <div>
+                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Receiver</p>
+                      <p className="mt-1 text-sm font-semibold text-ink-900 dark:text-white">{receiverName(booking.receiverId)}</p>
+                    </div>
+                    <div>
+                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Quantity</p>
+                      <p className="mt-1 ledger-numeral text-sm font-semibold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t</p>
+                    </div>
+                    <div>
+                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Date / Slot</p>
+                      <p className="mt-1 text-sm font-semibold text-ink-900 dark:text-white">
+                        {slot ? formatDate(slot.date) : booking.slotId}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Status</p>
+                      <div className="mt-1">
+                        <StatusBadge status={booking.status} />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {booking.status === "confirmed" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 border-steel-300 dark:border-steel-700 dark:text-white dark:hover:border-white"
+                      onClick={() => cancelBookingAction({ bookingId: booking.id, reason: "Programme change — material retained on site" })}
+                    >
+                      Cancel
+                    </Button>
                   )}
                 </div>
-                {booking.status === "confirmed" && (
-                  <Button
-                    size="md"
-                    variant="outline"
-                    className="border-steel-300 dark:border-steel-700 dark:text-white dark:hover:border-white"
-                    onClick={() => cancelBookingAction({ bookingId: booking.id, reason: "Programme change — material retained on site" })}
-                  >
-                    Cancel Booking
-                  </Button>
+
+                <div className="mt-4 flex flex-wrap items-center justify-between border-t border-steel-100 pt-3 text-xs text-steel-600 dark:border-steel-800/50 dark:text-gray-400">
+                  <span className="ledger-numeral text-steel-500">ID: {booking.id}</span>
+                  <div className="flex items-center gap-3">
+                    {cancelled ? (
+                      <span>{booking.cancelledReason ?? "Booking cancelled"}</span>
+                    ) : (
+                      <>
+                        <span className="font-semibold text-ink-900 dark:text-gray-300">{booking.capacityAfterT.toFixed(1)} t free</span>
+                        <span>(was {booking.capacityBeforeT.toFixed(1)} t before request)</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                
+                {booking.holdReason && (
+                  <div className="mt-3 border-l-2 border-signal-400 bg-signal-50 px-3 py-2 text-xs font-medium text-signal-900 dark:border-signal-500/50 dark:bg-signal-900/20 dark:text-signal-200">
+                    {booking.holdReason}
+                  </div>
                 )}
               </motion.article>
             );
@@ -202,7 +230,7 @@ function SlotTimelineItem({
   const availableT = ledger?.available ?? slot.capacityT;
   const reservedPercent = Math.min(100, (reservedT / Math.max(slot.capacityT, 0.1)) * 100);
   const date = new Date(`${slot.date}T12:00:00`);
-  const dateLabel = date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  const dateLabel = formatDate(slot.date);
   const weekday = date.toLocaleDateString("en-GB", { weekday: "short" });
 
   return (
@@ -213,64 +241,66 @@ function SlotTimelineItem({
         <p className="ledger-numeral mt-1 text-xl font-bold tracking-tight text-ink-900 dark:text-white">{dateLabel}</p>
       </div>
       
-      <div className="group min-w-0 rounded-sm border border-steel-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-steel-800 dark:bg-white/[0.02]">
+      <div className="group min-w-0 rounded-sm border border-steel-200 bg-white p-5 shadow-sm transition-shadow hover:border-steel-300 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-700">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h3 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">{receiverName}</h3>
-            <p className="mt-1 text-sm text-steel-600 dark:text-gray-400"><span className="font-semibold">{TYPE_LABEL[slot.materialType] ?? slot.materialType}</span> intake · {slot.id}</p>
+            <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">
+              <span className="font-semibold">{TYPE_LABEL[slot.materialType] ?? slot.materialType}</span> intake · {slot.id}
+            </p>
           </div>
-          <span className={cn(
-            "rounded-sm border px-3 py-1.5 text-xs font-bold uppercase tracking-wider shadow-sm", 
-            availableT > 0 ? "border-loop-300 bg-loop-50 text-loop-700 dark:border-loop-500/40 dark:bg-loop-500/10 dark:text-loop-300" : "border-steel-300 bg-steel-100 text-steel-700 dark:border-steel-700 dark:bg-white/5 dark:text-steel-300"
-          )}>
-            {availableT > 0 ? `${availableT.toFixed(1)} t available` : "At capacity"}
-          </span>
+          
+          <div className="text-left sm:text-right">
+            <p className="ledger-numeral text-xl font-bold text-ink-900 dark:text-white">
+              {slot.capacityT.toFixed(1)} <span className="text-sm font-medium text-steel-500">t limit</span>
+            </p>
+          </div>
         </div>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-          <div>
-            <div className="mb-3 flex flex-wrap justify-between gap-2 text-sm">
-              <span className="font-medium text-steel-600 dark:text-gray-400">Confirmed capacity use</span>
-              <span className="ledger-numeral font-bold text-ink-900 dark:text-white">{reservedT.toFixed(1)} <span className="text-steel-400">/ {slot.capacityT.toFixed(1)} t reserved</span></span>
-            </div>
-            
-            {/* Animated Capacity Bar */}
-            <div className="relative h-4 overflow-hidden rounded-full bg-steel-100 shadow-inner dark:bg-steel-900" role="img" aria-label="Capacity">
-              <motion.div 
-                initial={{ width: 0 }}
-                whileInView={{ width: `${reservedPercent}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                viewport={{ once: true }}
-                className="absolute inset-y-0 bg-loop-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]" 
-              />
-            </div>
-            
-            <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs font-bold uppercase tracking-wider">
-              <span className="text-loop-600 dark:text-loop-400">Reserved {reservedT.toFixed(1)} t</span>
-              <span className="text-loop-600 dark:text-loop-400">Available {availableT.toFixed(1)} t</span>
-            </div>
+        <div className="mt-5 flex flex-wrap items-center gap-6 border-t border-steel-100 pt-4 dark:border-steel-800/50">
+          <div className="flex items-center gap-3">
+            <span className={cn(
+              "rounded-sm border px-2 py-1 text-xs font-bold uppercase tracking-wider", 
+              availableT > 0 ? "border-steel-200 bg-steel-50 text-steel-700 dark:border-steel-700 dark:bg-white/5 dark:text-steel-300" : "border-signal-200 bg-signal-50 text-signal-700 dark:border-signal-800 dark:bg-signal-900/20 dark:text-signal-300"
+            )}>
+              {availableT > 0 ? `${availableT.toFixed(1)} t available` : "FULL · 0 t available"}
+            </span>
           </div>
-          <div className="border-t border-steel-200 pt-4 text-start sm:min-w-40 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0 dark:border-steel-800">
-            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Daily slot limit</p>
-            <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-ink-900 dark:text-white">{slot.capacityT.toFixed(1)} <span className="text-xl text-steel-400">t</span></p>
-          </div>
+          
+          {availableT > 0 && reservedT > 0 && (
+            <div className="flex items-center gap-3">
+               <div className="h-1.5 w-16 overflow-hidden rounded-full bg-steel-100 dark:bg-steel-800 sm:w-24">
+                  <div className="h-full bg-loop-500" style={{ width: `${reservedPercent}%` }} />
+               </div>
+               <span className="text-xs font-medium text-steel-600 dark:text-gray-400">
+                 {reservedT.toFixed(1)} t reserved
+               </span>
+            </div>
+          )}
+          
+          {availableT === slot.capacityT && (
+            <span className="text-xs font-medium text-steel-600 dark:text-gray-400">
+              Completely free
+            </span>
+          )}
         </div>
 
         {held.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            className="mt-6 border-l-4 border-signal-500 bg-signal-50 px-5 py-4 dark:bg-signal-500/10"
-          >
-            <p className="text-sm font-bold text-signal-900 dark:text-signal-100">{held.length} request{held.length === 1 ? "" : "s"} on HOLD · {held.reduce((total, booking) => total + booking.tonnesT, 0).toFixed(1)} t waiting</p>
-            <p className="mt-1 text-sm text-signal-800/90 dark:text-signal-200/90">Held tonnes are not confirmed capacity. This request needs additional free intake before it can be reserved.</p>
-          </motion.div>
+          <div className="mt-4 border-l-2 border-signal-400 bg-signal-50 px-4 py-2 dark:border-signal-500/50 dark:bg-signal-500/10">
+            <p className="text-sm font-bold text-signal-900 dark:text-signal-100">
+              {held.length} request{held.length === 1 ? "" : "s"} on HOLD
+            </p>
+            <p className="text-xs text-signal-800/90 dark:text-signal-200/90">
+              {held.reduce((total, booking) => total + booking.tonnesT, 0).toFixed(1)} t waiting for free intake.
+            </p>
+          </div>
         )}
+
         {confirmed.length > 0 && (
-          <div className="mt-6 flex flex-wrap gap-3 border-t border-steel-100 pt-4 dark:border-steel-800">
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-steel-100 pt-4 dark:border-steel-800/50">
             {confirmed.map((booking) => (
-              <span key={booking.id} className="inline-flex items-center gap-2 rounded bg-steel-100 px-3 py-1.5 text-xs font-bold text-ink-900 transition-colors hover:bg-loop-100 dark:bg-white/10 dark:text-white dark:hover:bg-loop-500/20">
-                <span className="h-2 w-2 rounded-full bg-loop-500 shadow-sm" aria-hidden="true" />
+              <span key={booking.id} className="inline-flex items-center gap-1.5 rounded bg-steel-100 px-2 py-1 text-xs font-medium text-ink-900 dark:bg-white/10 dark:text-gray-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-loop-500" aria-hidden="true" />
                 {booking.id} · {booking.tonnesT.toFixed(1)} t
               </span>
             ))}
@@ -282,11 +312,11 @@ function SlotTimelineItem({
 }
 
 function CapacitySummary({ label, value, tone }: { label: string; value: string; tone: "available" | "reserved" | "held" }) {
-  const toneClass = tone === "held" ? "text-signal-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" : "text-loop-400 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]";
+  const toneClass = tone === "held" ? "text-signal-400" : "text-loop-500 dark:text-loop-400";
   return (
-    <div className="flex flex-col justify-center border-l border-white/10 px-6 py-8 first:border-l-0">
+    <div className="flex flex-col justify-center border-l border-white/10 px-4 py-6 sm:px-6 sm:py-8 first:border-l-0">
       <dt className="eyebrow-label text-white/50">{label}</dt>
-      <dd className={cn("ledger-numeral mt-2 text-3xl font-bold tracking-tight", toneClass)}>{value}</dd>
+      <dd className={cn("ledger-numeral mt-2 text-2xl font-bold tracking-tight sm:text-3xl", toneClass)}>{value}</dd>
     </div>
   );
 }

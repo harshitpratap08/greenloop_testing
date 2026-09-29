@@ -4,11 +4,10 @@ import StatusBadge from "@/components/greenloop/StatusBadge";
 import {
   ProjectSiteMedia,
   materialMedia,
-  type MaterialMediaItem,
 } from "@/components/greenloop/AppExploration";
 import Badge from "@/components/ui/badge/Badge";
 import { computeMatch } from "@/domain/capacity";
-import { cn } from "@/utils";
+
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { Link } from "react-router";
 import { motion } from "motion/react";
@@ -25,8 +24,7 @@ const TYPE_LABEL: Record<string, string> = {
 export default function Materials() {
   const { dataset } = useGreenLoopStore();
   const projectName = (id: string) => dataset.projects.find((project) => project.id === id)?.name ?? id;
-  const projectById = (id: string) => dataset.projects.find((project) => project.id === id);
-  const maxSurveyRange = Math.max(...dataset.materials.map((material) => material.quantityRangeT[1]), 1);
+
   const totalT = dataset.materials.reduce((total, material) => total + material.quantityT, 0);
 
   return (
@@ -62,6 +60,9 @@ export default function Materials() {
             <p className="mt-4 text-lg text-white/80 drop-shadow-sm">
               Each passport connects surveyed tonnes and evidence to a project origin, a suitable receiver, and its recovery status.
             </p>
+            <Link to="/app/materials/new" className="mt-6 inline-flex bg-loop-600 px-6 py-3 font-archivo font-bold text-white uppercase tracking-wide hover:bg-loop-700">
+              New Survey
+            </Link>
           </div>
           <div className="flex flex-col items-start gap-1 border-l-2 border-loop-500 pl-6 md:items-end md:border-l-0 md:border-r-2 md:pl-0 md:pr-6 md:text-right">
             <span className="ledger-numeral text-4xl font-bold text-white">{dataset.materials.length}</span>
@@ -72,10 +73,18 @@ export default function Materials() {
         </div>
       </motion.div>
 
-      <section className="space-y-8" aria-label="Material passports">
+      {dataset.materials.length === 0 ? (
+        <div className="flex flex-col items-center justify-center border-2 border-dashed border-steel-300 py-24 text-center dark:border-steel-700">
+          <h3 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">No material passports yet.</h3>
+          <p className="mt-2 text-steel-600 dark:text-gray-400">Start a survey to create your first material passport.</p>
+          <Link to="/app/materials/new" className="mt-6 inline-flex bg-ink-900 px-8 py-4 font-archivo font-bold text-white uppercase tracking-wide hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">
+            New Survey
+          </Link>
+        </div>
+      ) : (
+        <section className="space-y-8" aria-label="Material passports">
         {dataset.materials.map((material, i) => {
           const media = materialMedia(material);
-          const project = projectById(material.projectId);
           const existingAllocation = dataset.allocations.find(
             (allocation) => allocation.materialId === material.id && allocation.status !== "cancelled",
           );
@@ -84,189 +93,98 @@ export default function Materials() {
           const receiver = receiverId
             ? dataset.receivers.find((item) => item.id === receiverId)
             : undefined;
-          const activeSlot = existingAllocation
-            ? dataset.slots.find((slot) => slot.id === existingAllocation.slotId)
-            : undefined;
-          const rangeStart = (material.quantityRangeT[0] / maxSurveyRange) * 100;
-          const rangeWidth = ((material.quantityRangeT[1] - material.quantityRangeT[0]) / maxSurveyRange) * 100;
           const capacityFits = candidate ? candidate.availableT >= material.quantityT : false;
 
           return (
             <motion.article 
               key={material.id} 
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.6, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="group grid overflow-hidden border border-steel-200 bg-white shadow-md transition-all hover:border-loop-400 hover:shadow-xl dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-loop-500/50 dark:hover:bg-white/[0.04] lg:grid-cols-[1fr_1.5fr]"
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.4, delay: Math.min(i * 0.05, 0.3), ease: "easeOut" }}
+              className="flex flex-col gap-5 rounded-sm border border-steel-200 bg-white p-4 shadow-sm transition-colors hover:border-steel-300 sm:flex-row sm:p-5 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-700"
             >
-              {/* Media Section with 3D Depth Hover */}
-              <div className="relative min-h-64 overflow-hidden bg-steel-100 dark:bg-black lg:min-h-full">
+              {/* Compact Evidence Thumbnail */}
+              <div className="relative size-24 shrink-0 overflow-hidden rounded bg-steel-100 sm:size-28 dark:bg-steel-900">
                 {media[0] ? (
                   <img
                     src={media[0].src}
                     alt={media[0].caption}
-                    className="absolute inset-0 size-full animate-slow-mo object-cover opacity-90 transition-opacity duration-700 group-hover:opacity-100"
+                    className="size-full object-cover"
                     loading="lazy"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-steel-200 dark:bg-steel-900" />
+                  <div className="flex size-full items-center justify-center text-xs text-steel-400">No media</div>
                 )}
-                
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-950 via-ink-950/60 to-transparent p-6 pt-24 text-white">
-                  <div className="flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                      <p className="eyebrow-label text-white/70 tracking-widest">Physical Material</p>
-                      <h2 className="mt-2 font-archivo text-4xl font-bold uppercase tracking-tight text-white drop-shadow-md">
-                        {TYPE_LABEL[material.type] ?? material.type}
-                      </h2>
-                    </div>
-                    <p className="ledger-numeral rounded border border-white/20 bg-black/40 px-3 py-1.5 text-sm backdrop-blur-md">
-                      {media[0]?.recordedAt.slice(0, 10) ?? material.surveyedAt.slice(0, 10)}
-                    </p>
-                  </div>
-                  {media[0] && <p className="mt-3 border-l-2 border-loop-500 pl-3 text-sm text-white/80">{media[0].caption}</p>}
-                </div>
-
                 {media.length > 1 && (
-                  <div className="absolute end-4 top-4 flex flex-col gap-2">
-                    {media.slice(1).map((item: MaterialMediaItem, index) => (
-                      <motion.img 
-                        whileHover={{ scale: 1.1, x: -5 }}
-                        key={item.id} 
-                        src={item.src} 
-                        alt={item.caption} 
-                        loading="lazy" 
-                        className="size-16 rounded-sm border-2 border-white/80 object-cover shadow-lg transition-all hover:border-loop-400" 
-                      />
-                    ))}
+                  <div className="absolute bottom-1 right-1 rounded bg-ink-900/80 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                    +{media.length - 1}
                   </div>
                 )}
               </div>
 
               {/* Data Section */}
-              <div className="flex min-w-0 flex-col p-6 sm:p-8">
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-steel-200 pb-5 dark:border-steel-800">
+              <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <p className="eyebrow-label text-steel-500 dark:text-steel-400">Digital Material Passport</p>
-                    <p className="ledger-numeral mt-1 text-sm text-ink-600 dark:text-gray-400">
-                      ID: <span className="font-semibold text-ink-900 dark:text-white">{material.id}</span> · Surveyed {material.surveyedAt.slice(0, 10)}
+                    <div className="flex items-center gap-3">
+                      <h2 className="font-archivo text-xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">
+                        {TYPE_LABEL[material.type] ?? material.type}
+                      </h2>
+                      <StatusBadge status={material.status} />
+                    </div>
+                    <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">
+                      <Link to="/app/explore" state={{ projectId: material.projectId }} className="font-semibold text-ink-800 hover:text-loop-600 dark:text-gray-200 dark:hover:text-loop-400">
+                        {projectName(material.projectId)}
+                      </Link>
+                      {" · "}
+                      <span className="ledger-numeral text-xs">ID {material.id}</span>
                     </p>
                   </div>
-                  <div className="transition-transform group-hover:scale-105">
-                    <StatusBadge status={material.status} />
-                  </div>
-                </div>
 
-                <div className="grid gap-6 py-8 sm:grid-cols-[1fr_auto] sm:items-end">
-                  <div>
-                    <p className="eyebrow-label text-steel-500 dark:text-steel-400">Surveyed Quantity</p>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <p className="ledger-numeral text-5xl font-bold tracking-tight text-ink-900 dark:text-white">
+                  <div className="text-left sm:text-right">
+                    <div className="flex items-baseline gap-1 sm:justify-end">
+                      <p className="ledger-numeral text-2xl font-bold text-ink-900 dark:text-white">
                         {material.quantityT.toFixed(1)}
                       </p>
-                      <span className="text-2xl font-medium text-steel-400">t</span>
+                      <span className="text-sm font-medium text-steel-500">t</span>
                     </div>
-                  </div>
-                  <div className="sm:text-right">
-                    <p className="eyebrow-label text-steel-500 dark:text-steel-400">Estimate Range</p>
-                    <p className="ledger-numeral mt-2 text-xl font-medium text-ink-800 dark:text-gray-200">
-                      {material.quantityRangeT[0].toFixed(1)}–{material.quantityRangeT[1].toFixed(1)} t
+                    <p className="ledger-numeral mt-0.5 text-xs text-steel-500 dark:text-steel-400">
+                      est. {material.quantityRangeT[0].toFixed(1)}–{material.quantityRangeT[1].toFixed(1)} t
                     </p>
                   </div>
                 </div>
 
-                {/* Animated Range Slider */}
-                <div className="relative mt-2 h-3 overflow-hidden rounded-full bg-steel-100 shadow-inner dark:bg-black" role="img" aria-label="Quantity Range">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    whileInView={{ width: `${rangeWidth}%` }}
-                    transition={{ duration: 1.5, delay: 0.2, ease: "easeOut" }}
-                    viewport={{ once: true }}
-                    className="absolute inset-y-0 rounded-full bg-steel-400/50 dark:bg-steel-600/50"
-                    style={{ left: `${rangeStart}%` }}
-                  />
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    whileInView={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 300, delay: 1 }}
-                    viewport={{ once: true }}
-                    className="absolute top-0 bottom-0 w-1.5 bg-ink-900 shadow-[0_0_10px_rgba(0,0,0,0.5)] dark:bg-white dark:shadow-[0_0_10px_rgba(255,255,255,0.8)]"
-                    style={{ left: `calc(${(material.quantityT / maxSurveyRange) * 100}%)` }}
-                  />
+                {/* Horizontal Metadata Group */}
+                <div className="mt-1 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-steel-600 dark:text-gray-400">
+                  <span className="capitalize"><span className="font-medium text-ink-900 dark:text-gray-300">Cond:</span> {material.condition}</span>
+                  <span><span className="font-medium text-ink-900 dark:text-gray-300">Grade:</span> {material.grade}</span>
+                  <span><span className="font-medium text-ink-900 dark:text-gray-300">Conf:</span> {Math.round(material.confidence * 100)}%</span>
+                  <span><span className="font-medium text-ink-900 dark:text-gray-300">Evidence:</span> {material.evidence.length}</span>
                 </div>
-                <p className="mt-3 text-xs font-medium uppercase tracking-wider text-steel-500 dark:text-gray-500">
-                  Range reflects survey uncertainty · Marker shows current estimate
-                </p>
 
-                <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 border-y border-steel-200 py-6 sm:grid-cols-4 dark:border-steel-800">
-                  <PassportField label="Condition" value={material.condition} />
-                  <PassportField label="Grade" value={`Grade ${material.grade}`} />
-                  <PassportField label="Confidence" value={`${Math.round(material.confidence * 100)}%`} highlight={material.confidence > 0.8} />
-                  <PassportField label="Evidence" value={`${material.evidence.length} records`} />
-                </dl>
-
-                <div className="mt-8 flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-                  <div className="flex-1">
-                    <p className="eyebrow-label text-steel-500 dark:text-steel-400">Survey Evidence</p>
-                    <ul className="mt-4 space-y-3">
-                      {material.evidence.map((evidence, idx) => (
-                        <motion.li 
-                          initial={{ opacity: 0, x: -10 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.4 + (idx * 0.1) }}
-                          viewport={{ once: true }}
-                          key={evidence.ref ?? evidence.label} 
-                          className="flex items-center justify-between gap-4 border-l-2 border-steel-300 pl-4 transition-colors hover:border-loop-500 dark:border-steel-700 dark:hover:border-loop-400"
-                        >
-                          <span className="text-sm font-medium text-ink-800 dark:text-gray-200">{evidence.label}</span>
-                          <span className="ledger-numeral rounded bg-steel-100 px-2 py-1 text-xs text-steel-600 dark:bg-white/10 dark:text-gray-400">
-                            {evidence.recordedAt.slice(0, 10)}
-                          </span>
-                        </motion.li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="flex-1 rounded-sm border border-steel-200 bg-gray-50 p-5 dark:border-steel-800 dark:bg-white/[0.02]">
-                    <p className="eyebrow-label text-steel-500 dark:text-steel-400">Origin & Receiver Fit</p>
+                {/* Receiver Action / Context */}
+                {receiver && (
+                  <div className="mt-2 flex flex-wrap items-center gap-3 border-t border-steel-100 pt-3 dark:border-steel-800/50">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-steel-500">
+                      {existingAllocation ? "Allocated" : "Match"}
+                    </span>
+                    <span className="text-sm font-semibold text-ink-900 dark:text-gray-200">{receiver.name}</span>
                     
-                    <div className="mt-3">
-                      <Link
-                        to="/app/explore"
-                        state={{ projectId: material.projectId }}
-                        className="group inline-flex items-center gap-2 font-archivo text-lg font-bold text-ink-900 transition-colors hover:text-loop-600 dark:text-white dark:hover:text-loop-400"
-                      >
-                        {projectName(material.projectId)}
-                        <span className="text-loop-500 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100">→</span>
-                      </Link>
-                      {project && <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">{project.location}</p>}
-                    </div>
-
-                    {receiver && (
-                      <div className="mt-5 border-t border-steel-200 pt-4 dark:border-steel-800">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-steel-500 dark:text-gray-500">
-                          {existingAllocation ? "Allocated Receiver" : "Best Suitable Receiver"}
-                        </p>
-                        <p className="mt-1 font-archivo text-lg font-semibold text-ink-900 dark:text-white">{receiver.name}</p>
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          {candidate && <Badge color="info" size="sm">{Math.round(candidate.suitability * 100)}% Match</Badge>}
-                          {!existingAllocation && candidate && (
-                            <Badge color={capacityFits ? "success" : "warning"} size="sm">
-                              {capacityFits ? `${candidate.availableT.toFixed(1)}t free` : `Capacity short`}
-                            </Badge>
-                          )}
-                          {existingAllocation && <StatusBadge status={existingAllocation.status} />}
-                        </div>
-                      </div>
+                    {!existingAllocation && candidate && (
+                      <Badge color={capacityFits ? "success" : "warning"} size="sm">
+                        {capacityFits ? `${candidate.availableT.toFixed(1)}t free` : `Capacity short`}
+                      </Badge>
                     )}
+                    {existingAllocation && <StatusBadge status={existingAllocation.status} />}
                   </div>
-                </div>
+                )}
               </div>
             </motion.article>
           );
         })}
-      </section>
+        </section>
+      )}
 
       {/* Media Gallery Section */}
       <section className="mt-16 border-t border-steel-300 pt-10 dark:border-steel-700">
@@ -308,16 +226,3 @@ export default function Materials() {
   );
 }
 
-function PassportField({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <dt className="eyebrow-label text-steel-500 dark:text-steel-400">{label}</dt>
-      <dd className={cn(
-        "ledger-numeral mt-1 text-lg font-semibold capitalize",
-        highlight ? "text-loop-600 dark:text-loop-400" : "text-ink-900 dark:text-white"
-      )}>
-        {value}
-      </dd>
-    </div>
-  );
-}

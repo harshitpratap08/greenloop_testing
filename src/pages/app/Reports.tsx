@@ -46,7 +46,7 @@ export default function Reports() {
     <div className="relative min-h-screen pb-24">
       <PageMeta
         title="Reports | GreenLoop"
-        description="Six charts answering real questions from the demo dataset."
+        description="Six charts answering real operational questions."
       />
       <PageBreadCrumb pageTitle="Reports" />
 
@@ -412,7 +412,7 @@ function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
     <section className="h-full rounded-sm border border-steel-200 bg-white p-6 shadow-sm sm:p-8 dark:border-steel-800 dark:bg-white/[0.02]">
       <ChartHeader
         question="How does the ledger resolve conflicts?"
-        note={`Riverstone Aggregates ${capacity.toFixed(0)} t concrete slot — the A/B story.`}
+        note={`Riverstone Aggregates ${capacity.toFixed(0)} t concrete slot — receiving capacity timeline.`}
         figure={`${steps[steps.length - 1].availableT.toFixed(1)} t final free`}
       />
       <div className="mt-8 space-y-6">

@@ -17,6 +17,7 @@ import { reservedT, availableT, findSlot, slotLedger } from "@/domain/capacity";
 import { STORY } from "@/domain/demoData";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { Link } from "react-router";
+import { formatDate } from "@/utils";
 
 export default function Operations() {
   const { dataset } = useGreenLoopStore();
@@ -54,7 +55,7 @@ export default function Operations() {
             label="Active projects"
             value={String(dataset.projects.filter((p) => p.status !== "complete").length)}
             icon={<GroupIcon className="size-6 text-ink-900 dark:text-white/90" />}
-            detail={`${dataset.projects.length} total in dataset`}
+            detail={`${dataset.projects.length} managed projects`}
           />
           <MetricCard
             label="Recoverable material"
@@ -103,7 +104,7 @@ export default function Operations() {
                 <div>
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-theme-sm font-medium text-ink-900 dark:text-white/90">
-                      Concrete intake · {scenarioLedger.slot.date}
+                      Concrete intake · {formatDate(scenarioLedger.slot.date)}
                     </p>
                     <Badge color="success" size="sm">
                       In use
@@ -118,7 +119,7 @@ export default function Operations() {
                 <div>
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-theme-sm font-medium text-ink-900 dark:text-white/90">
-                      Concrete intake · {nextSlotLedger.slot.date}
+                      Concrete intake · {formatDate(nextSlotLedger.slot.date)}
                     </p>
                     <Badge color="info" size="sm">
                       Open
@@ -244,7 +245,7 @@ export default function Operations() {
               ))}
               {dataset.verifications.length === 0 && (
                 <li className="py-3 text-theme-sm text-gray-500 dark:text-gray-400">
-                  No verified loads yet — replay the scenario to generate one.
+                  No verified loads yet.
                 </li>
               )}
             </ul>

@@ -5,8 +5,8 @@ import StatusBadge from "@/components/greenloop/StatusBadge";
 import Button from "@/components/ui/button/Button";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import type { Booking } from "@/domain/types";
-import { cn } from "@/utils";
-import { motion } from "motion/react";
+import { cn, formatStamp, formatDate } from "@/utils";
+import { motion, AnimatePresence } from "motion/react";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -57,13 +57,12 @@ export default function Deliveries() {
             </p>
           </div>
           
-          {/* Active Deliveries Counter */}
           <div className="flex flex-col items-start gap-1 border-l-2 border-loop-500 pl-6 md:items-end md:border-l-0 md:border-r-2 md:pl-0 md:pr-6 md:text-right">
             <motion.span 
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5, type: "spring" }}
-              className="ledger-numeral text-5xl font-bold text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+              className="ledger-numeral text-5xl font-bold text-white"
             >
               {dispatchable.length}
             </motion.span>
@@ -76,8 +75,7 @@ export default function Deliveries() {
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: "100%" }}
-            transition={{ duration: 3, ease: "linear", repeat: Infinity }}
-            className="h-full bg-loop-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]"
+            className="h-full bg-loop-500"
           />
         </div>
       </motion.div>
@@ -148,7 +146,7 @@ function LoadCard({ booking }: { booking: Booking }) {
             </p>
           </div>
         </div>
-        <StatusBadge status={currentStatus} size="lg" />
+        <StatusBadge status={currentStatus} size="md" />
       </div>
 
       <div className="p-6 sm:p-8">
@@ -184,7 +182,7 @@ function LoadCard({ booking }: { booking: Booking }) {
                     transition={{ duration: 2, ease: "easeOut" }}
                     className="absolute inset-x-8 top-1/2 -translate-y-1/2"
                   >
-                    <div className="flex h-8 w-8 -translate-y-1 items-center justify-center rounded-full border-4 border-white bg-loop-500 text-lg shadow-[0_0_15px_rgba(34,197,94,0.5)] dark:border-ink-950">
+                    <div className="flex h-8 w-8 -translate-y-1 items-center justify-center rounded-full border-4 border-white bg-loop-500 text-lg dark:border-ink-950">
                       🚛
                     </div>
                   </motion.div>
@@ -200,7 +198,7 @@ function LoadCard({ booking }: { booking: Booking }) {
         <dl className="grid grid-cols-2 gap-x-8 gap-y-6 border-y border-steel-200 py-6 sm:grid-cols-4 dark:border-steel-800">
           <LoadMetric label="Material" value={TYPE_LABEL[material?.type ?? ""] ?? material?.type ?? "—"} />
           <LoadMetric label="Planned quantity" value={`${booking.tonnesT.toFixed(1)} t`} />
-          <LoadMetric label="Intake slot" value={slot?.date ?? "—"} />
+          <LoadMetric label="Intake slot" value={slot ? formatDate(slot.date) : "—"} />
           <LoadMetric label="Received / accepted" value={verification ? `${verification.actualT.toFixed(1)} / ${verification.acceptedT.toFixed(1)} t` : "Awaiting arrival"} highlight={Boolean(verification)} />
         </dl>
 
@@ -230,7 +228,7 @@ function LoadCard({ booking }: { booking: Booking }) {
                       stage.complete ? "border-loop-500" : "border-steel-300 dark:border-steel-700"
                     )}
                   >
-                    {stage.complete && <div className="h-2.5 w-2.5 rounded-full bg-loop-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />}
+                    {stage.complete && <div className="h-2.5 w-2.5 rounded-full bg-loop-500" />}
                   </motion.div>
                   <div className="sm:text-center">
                     <p className={cn("text-xs font-bold uppercase tracking-wider", stage.complete ? "text-ink-900 dark:text-white" : "text-steel-400 dark:text-gray-600")}>{stage.label}</p>
@@ -254,9 +252,18 @@ function LoadCard({ booking }: { booking: Booking }) {
               <ul className="mt-4 divide-y divide-steel-200 dark:divide-steel-800">
                 {verification.evidence.map((evidence) => (
                   <li key={evidence.ref ?? evidence.label} className="flex flex-wrap items-center justify-between gap-3 py-3 hover:bg-white dark:hover:bg-white/5">
-                    <div>
-                      <p className="text-sm font-semibold text-ink-800 dark:text-gray-200">{evidence.label}</p>
-                      <p className="ledger-numeral mt-0.5 text-xs text-steel-500 dark:text-gray-400">{evidence.ref ?? evidence.kind}</p>
+                    <div className="flex items-center gap-3">
+                      {evidence.kind === "site-photo" && evidence.ref?.startsWith("/images/") && (
+                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-steel-100 dark:bg-steel-900">
+                           <img src={evidence.ref} alt={evidence.label} className="size-full object-cover" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold text-ink-800 dark:text-gray-200">{evidence.label}</p>
+                        <p className="ledger-numeral mt-0.5 text-xs text-steel-500 dark:text-gray-400">
+                          {evidence.ref?.startsWith("/images/") ? evidence.kind : (evidence.ref ?? evidence.kind)}
+                        </p>
+                      </div>
                     </div>
                     <time className="ledger-numeral rounded bg-steel-200/50 px-2 py-1 text-xs font-medium text-steel-700 dark:bg-white/10 dark:text-gray-300" dateTime={evidence.recordedAt}>{formatStamp(evidence.recordedAt)}</time>
                   </li>
@@ -305,10 +312,10 @@ function LoadCard({ booking }: { booking: Booking }) {
 
         {/* Footer Actions */}
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-steel-200 pt-6 dark:border-steel-800">
-          <p className="text-sm font-medium text-steel-500 dark:text-gray-400">Booking {booking.id} · receiver intake {slot?.date ?? "date pending"}</p>
+          <p className="text-sm font-medium text-steel-500 dark:text-gray-400">Booking {booking.id} · receiver intake {slot ? formatDate(slot.date) : "date pending"}</p>
           {!dispatchEvent && !verification ? (
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button size="lg" className="bg-ink-900 uppercase tracking-widest hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500" onClick={() => dispatchAction({ bookingId: booking.id })}>
+              <Button size="md" className="bg-ink-900 uppercase tracking-widest hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500" onClick={() => dispatchAction({ bookingId: booking.id })}>
                 Dispatch Load
               </Button>
             </motion.div>
@@ -348,8 +355,4 @@ function LoadMetric({ label, value, highlight = false }: { label: string; value:
   );
 }
 
-function formatStamp(iso: string) {
-  if (!iso) return "—";
-  const date = new Date(iso);
-  return `${date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} · ${date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
-}
+

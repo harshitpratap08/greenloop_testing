@@ -33,12 +33,20 @@ export default function SiteNav() {
           ))}
         </nav>
 
-        <Link
-          to="/app/dashboard"
-          className="rounded-sm bg-ink-900 px-4 py-2.5 text-theme-sm font-medium text-white transition-colors hover:bg-ink-800 dark:bg-white dark:text-ink-900 dark:hover:bg-gray-200"
-        >
-          Enter GreenLoop
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/sign-in"
+            className="text-theme-sm font-medium text-ink-900 transition-colors hover:text-ink-700 dark:text-white dark:hover:text-gray-300"
+          >
+            Sign in
+          </Link>
+          <Link
+            to="/sign-up"
+            className="rounded-sm bg-ink-900 px-4 py-2 text-theme-sm font-medium text-white transition-colors hover:bg-ink-800 dark:bg-white dark:text-ink-900 dark:hover:bg-gray-200"
+          >
+            Create account
+          </Link>
+        </div>
       </div>
     </header>
   );

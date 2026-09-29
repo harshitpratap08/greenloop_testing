@@ -478,9 +478,8 @@ function PlatformShowcase() {
       />
       <Reveal delay={0.15}>
         <p className="mt-6 max-w-lg text-base leading-7 text-ink-700 dark:text-gray-300">
-          Everything on this page is the shipped interface. Open it and run the
-          same scenario the marketing claims — the demo controls are on the
-          dashboard.
+          Everything on this page is the shipped interface. Open it and manage
+          your operational recovery workflows directly.
         </p>
       </Reveal>
 
@@ -542,12 +541,20 @@ function FinalCta() {
           ]}
         />
         <Reveal delay={0.2}>
-          <Link
-            to="/app/dashboard"
-            className="mt-10 inline-block rounded-md bg-white px-7 py-4 text-sm font-medium text-ink-900 transition-colors hover:bg-gray-200"
-          >
-            Enter GreenLoop
-          </Link>
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Link
+              to="/sign-up"
+              className="inline-block rounded-sm bg-white px-7 py-4 text-theme-sm font-semibold text-ink-900 transition-colors hover:bg-gray-200"
+            >
+              Create account
+            </Link>
+            <Link
+              to="/sign-in"
+              className="inline-block rounded-sm border border-white/35 px-7 py-4 text-theme-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10"
+            >
+              Sign in
+            </Link>
+          </div>
         </Reveal>
       </div>
     </section>

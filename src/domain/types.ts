@@ -28,6 +28,7 @@ export type MaterialStatus =
 export type AllocationStatus = "confirmed" | "hold" | "pending" | "cancelled";
 export type BookingStatus = "confirmed" | "hold" | "pending" | "cancelled";
 export type VerificationStatus = "verified" | "rejected" | "pending";
+export type DemandStatus = "OPEN" | "PARTIALLY_COVERED" | "COVERED" | "PAUSED";
 
 export type ActorKind = "system" | "contractor" | "receiver";
 
@@ -161,6 +162,16 @@ export interface Booking {
   cancelledReason?: string;
 }
 
+export interface MaterialOffer {
+  id: string;
+  demandId: string;
+  providerId: string;
+  passportId: string;
+  offeredQuantityT: number;
+  status: "pending" | "accepted" | "declined";
+  createdAt: string;
+}
+
 export interface VerificationRecord {
   id: string;
   bookingId: string;
@@ -179,6 +190,18 @@ export interface VerificationRecord {
   evidence: Evidence[];
 }
 
+export interface DemandRecord {
+  id: string;
+  receiverId: string;
+  materialType: MaterialTypeKey;
+  requiredT: number;
+  period: string;
+  location: string;
+  status: DemandStatus;
+  createdAt: string;
+  notes?: string;
+}
+
 export interface GreenLoopDataset {
   projects: Project[];
   materials: MaterialPassport[];
@@ -188,6 +211,8 @@ export interface GreenLoopDataset {
   bookings: Booking[];
   verifications: VerificationRecord[];
   events: DomainEvent[];
+  demands: DemandRecord[];
+  offers?: MaterialOffer[];
 }
 
 export interface EngineResult<T> {

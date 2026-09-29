@@ -176,7 +176,7 @@ const base: GreenLoopDataset = {
       id: "PR-03",
       name: "Bermondsey Warehouse Refurb",
       location: "London SE16",
-      status: "complete",
+      status: "active",
       surveyedAt: "2026-09-10T08:00:00Z",
       lastActivityAt: "2026-09-18T16:40:00Z",
     },
@@ -203,7 +203,7 @@ const base: GreenLoopDataset = {
       confidence: 0.85,
       evidence: [
         { kind: "survey-sheet", label: "Walkover sheet — bays 2–4", ref: "survey-hr-014", recordedAt: "2026-09-14T09:10:00Z" },
-        { kind: "site-photo", label: "Crushed concrete stockpile", ref: "photo-hr-conc-01", recordedAt: "2026-09-14T09:35:00Z" },
+        { kind: "site-photo", label: "Crushed concrete stockpile", ref: "/images/site/auth-concrete.jpg", recordedAt: "2026-09-14T09:35:00Z" },
       ],
     },
     {
@@ -219,7 +219,7 @@ const base: GreenLoopDataset = {
       confidence: 0.78,
       evidence: [
         { kind: "survey-sheet", label: "Slab breakout survey", ref: "survey-kx-007", recordedAt: "2026-09-15T11:30:00Z" },
-        { kind: "site-photo", label: "Breakout stockpile", ref: "photo-kx-conc-01", recordedAt: "2026-09-15T12:10:00Z" },
+        { kind: "site-photo", label: "Breakout stockpile", ref: "/images/site/hero-demolition.jpg", recordedAt: "2026-09-15T12:10:00Z" },
         { kind: "lab-report", label: "Aggregate grading report", ref: "lab-2231", recordedAt: "2026-09-16T09:00:00Z" },
       ],
     },
@@ -236,7 +236,7 @@ const base: GreenLoopDataset = {
       confidence: 0.9,
       evidence: [
         { kind: "survey-sheet", label: "Soft-strip survey — facade pallets", ref: "survey-hr-015", recordedAt: "2026-09-14T10:05:00Z" },
-        { kind: "site-photo", label: "Palletised reclaimed brick", ref: "photo-hr-brick-01", recordedAt: "2026-09-14T10:40:00Z" },
+        { kind: "site-photo", label: "Palletised reclaimed brick", ref: "/images/site/brick-pallets.jpg", recordedAt: "2026-09-14T10:40:00Z" },
       ],
     },
     {
@@ -252,6 +252,7 @@ const base: GreenLoopDataset = {
       confidence: 0.72,
       evidence: [
         { kind: "survey-sheet", label: "Beam and joist survey", ref: "survey-cy-003", recordedAt: "2026-09-17T10:45:00Z" },
+        { kind: "site-photo", label: "Timber sorting area", ref: "/images/site/sorting-facility.jpg", recordedAt: "2026-09-17T10:45:00Z" },
       ],
     },
     {
@@ -267,7 +268,7 @@ const base: GreenLoopDataset = {
       confidence: 0.95,
       evidence: [
         { kind: "survey-sheet", label: "Structural steel schedule", ref: "survey-ber-011", recordedAt: "2026-09-10T08:00:00Z" },
-        { kind: "site-photo", label: "Cut and graded sections", ref: "photo-ber-steel-01", recordedAt: "2026-09-10T08:30:00Z" },
+        { kind: "site-photo", label: "Cut and graded sections", ref: "/images/site/auth-truck.jpg", recordedAt: "2026-09-10T08:30:00Z" },
       ],
     },
     {
@@ -283,6 +284,7 @@ const base: GreenLoopDataset = {
       confidence: 0.6,
       evidence: [
         { kind: "survey-sheet", label: "Drywall strip-out tally", ref: "survey-kx-008", recordedAt: "2026-09-15T13:15:00Z" },
+        { kind: "site-photo", label: "Yard — drywall bays", ref: "/images/site/yard-wide.jpg", recordedAt: "2026-09-15T13:20:00Z" },
       ],
     },
     {
@@ -298,6 +300,7 @@ const base: GreenLoopDataset = {
       confidence: 0.8,
       evidence: [
         { kind: "survey-sheet", label: "Curtain-wall glazing survey", ref: "survey-ber-012", recordedAt: "2026-09-10T09:20:00Z" },
+        { kind: "site-photo", label: "Glazing storage", ref: "/images/site/sorting-facility.jpg", recordedAt: "2026-09-10T09:30:00Z" },
       ],
     },
   ],
@@ -448,6 +451,28 @@ const base: GreenLoopDataset = {
     },
   ],
   events,
+  demands: [
+    {
+      id: "DM-201",
+      receiverId: "R-001",
+      materialType: "concrete",
+      requiredT: 100,
+      period: "October 2026",
+      location: "Riverstone Aggregates",
+      status: "OPEN",
+      createdAt: "2026-09-15T10:00:00Z",
+    },
+    {
+      id: "DM-202",
+      receiverId: "R-002",
+      materialType: "brick",
+      requiredT: 20,
+      period: "Q4 2026",
+      location: "London Reclaimed Brick",
+      status: "PARTIALLY_COVERED",
+      createdAt: "2026-09-20T09:00:00Z",
+    },
+  ],
 };
 
 /**

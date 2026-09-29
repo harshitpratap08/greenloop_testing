@@ -11,6 +11,7 @@ import {
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion } from "motion/react";
 import { cn } from "@/utils";
+import { EmptyState } from "@/components/greenloop/AppExploration";
 
 export default function Allocations() {
   const { dataset } = useGreenLoopStore();
@@ -148,11 +149,11 @@ export default function Allocations() {
         ))}
 
         {dataset.allocations.length === 0 && (
-          <div className="flex items-center justify-center rounded-sm border-2 border-dashed border-steel-300 py-20 dark:border-steel-700">
-            <p className="text-lg font-medium text-steel-500 dark:text-gray-400">
-              No allocations yet — request capacity from a receiver to create one.
-            </p>
-          </div>
+          <EmptyState 
+            title="No allocations yet"
+            body="Request capacity from a receiver to create a new material allocation."
+            action={{ label: "Find receivers", to: "/app/receivers" }}
+          />
         )}
       </div>
     </div>

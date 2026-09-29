@@ -1,4 +1,3 @@
-import GridShape from "@/components/common/GridShape";
 import ThemeTogglerTwo from "@/components/common/ThemeTogglerTwo";
 import React from "react";
 import { Link } from "react-router";
@@ -9,8 +8,8 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative z-1 bg-gray-25 p-6 sm:p-0 dark:bg-gray-900">
-      <div className="relative flex h-screen w-full flex-col justify-center sm:p-0 lg:flex-row dark:bg-gray-900">
+    <div className="relative z-1 bg-white p-6 sm:p-0 dark:bg-ink-950">
+      <div className="relative flex h-screen w-full flex-col justify-center sm:p-0 lg:flex-row dark:bg-ink-950">
         {children}
         <div className="relative hidden h-full w-full items-center overflow-hidden lg:grid lg:w-1/2">
           {/* Construction photography — recovered concrete stockpiles */}
@@ -23,7 +22,6 @@ export default function AuthLayout({
           <div className="absolute inset-0 bg-ink-950/80" aria-hidden="true" />
 
           <div className="relative z-1 flex items-center justify-center">
-            <GridShape />
 
             <div className="flex max-w-sm flex-col items-center px-6">
               <Link to="/" className="mb-6 block">

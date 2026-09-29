@@ -1,7 +1,7 @@
 import Badge from "@/components/ui/badge/Badge";
-import type { AllocationStatus, BookingStatus, MaterialStatus, VerificationStatus } from "@/domain/types";
+import type { AllocationStatus, BookingStatus, MaterialStatus, VerificationStatus, DemandStatus } from "@/domain/types";
 
-type AnyStatus = AllocationStatus | BookingStatus | MaterialStatus | VerificationStatus;
+type AnyStatus = AllocationStatus | BookingStatus | MaterialStatus | VerificationStatus | DemandStatus;
 
 const COLOR: Record<AnyStatus, "success" | "warning" | "error" | "info" | "primary" | "light"> = {
   confirmed: "success",
@@ -15,6 +15,10 @@ const COLOR: Record<AnyStatus, "success" | "warning" | "error" | "info" | "prima
   dispatched: "primary",
   cancelled: "light",
   rejected: "error",
+  OPEN: "info",
+  PARTIALLY_COVERED: "warning",
+  COVERED: "success",
+  PAUSED: "light",
 };
 
 const LABEL: Record<AnyStatus, string> = {
@@ -29,6 +33,10 @@ const LABEL: Record<AnyStatus, string> = {
   dispatched: "Dispatched",
   cancelled: "Cancelled",
   rejected: "Rejected",
+  OPEN: "Open",
+  PARTIALLY_COVERED: "Partially covered",
+  COVERED: "Covered",
+  PAUSED: "Paused",
 };
 
 /** One mapping for every status pill in the product — no ad-hoc colors. */

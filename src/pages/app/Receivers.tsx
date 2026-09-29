@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import StatusBadge from "@/components/greenloop/StatusBadge";
@@ -7,7 +7,7 @@ import { materialMedia } from "@/components/greenloop/AppExploration";
 import { computeMatch, slotLedger } from "@/domain/capacity";
 import { STORY } from "@/domain/demoData";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { cn } from "@/utils";
+import { cn, formatDate } from "@/utils";
 import { motion, AnimatePresence } from "motion/react";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -21,9 +21,16 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function Receivers() {
   const { dataset, requestCapacityAction } = useGreenLoopStore();
-  const [materialId, setMaterialId] = useState<string>(STORY.materialAId);
+  const location = useLocation();
+  const [materialId, setMaterialId] = useState<string>(location.state?.materialId || STORY.materialAId);
   const [receiverId, setReceiverId] = useState<string>("");
+  const [holdState, setHoldState] = useState<{ requested: number, available: number, slotId: string, receiverId: string } | null>(null);
+  
   const material = dataset.materials.find((item) => item.id === materialId);
+  const allocatedT = material ? dataset.allocations
+    .filter((a) => a.materialId === material.id && a.status === "confirmed")
+    .reduce((sum, a) => sum + a.requestedT, 0) : 0;
+  const remainingT = material ? Math.max(0, material.quantityT - allocatedT) : 0;
   const project = material && dataset.projects.find((item) => item.id === material.projectId);
   const media = material ? materialMedia(material) : [];
   const matches = material ? computeMatch(dataset, material.id) : [];
@@ -37,7 +44,7 @@ export default function Receivers() {
     ? dataset.allocations.find((allocation) => allocation.materialId === material.id && allocation.receiverId === selectedMatch.receiverId && allocation.status !== "cancelled")
     : undefined;
   const selectedLedger = selectedSlot ? slotLedger(dataset, selectedSlot.id) : undefined;
-  const capacityFits = Boolean(material && selectedMatch && selectedMatch.availableT >= material.quantityT);
+  const capacityFits = Boolean(material && selectedMatch && selectedMatch.availableT >= remainingT);
 
   return (
     <div className="relative min-h-screen pb-24">
@@ -95,12 +102,17 @@ export default function Receivers() {
               onChange={(event) => {
                 setMaterialId(event.target.value);
                 setReceiverId("");
+                setHoldState(null);
               }}
               className="peer min-w-72 cursor-pointer appearance-none rounded-sm border-2 border-steel-300 bg-white px-5 py-3 pr-10 font-medium text-ink-900 outline-none transition-all focus:border-loop-500 focus:ring-4 focus:ring-loop-500/20 dark:border-steel-700 dark:bg-black dark:text-white dark:focus:border-loop-500"
             >
-              {dataset.materials.map((item) => (
-                <option key={item.id} value={item.id}>{item.id} · {TYPE_LABEL[item.type] ?? item.type} · {item.quantityT.toFixed(1)} t</option>
-              ))}
+              {dataset.materials.map((item) => {
+                const itemAllocated = dataset.allocations.filter(a => a.materialId === item.id && a.status === "confirmed").reduce((s, a) => s + a.requestedT, 0);
+                const itemRemaining = Math.max(0, item.quantityT - itemAllocated);
+                return (
+                  <option key={item.id} value={item.id}>{item.id} · {TYPE_LABEL[item.type] ?? item.type} · {itemRemaining.toFixed(1)} t remaining</option>
+                );
+              })}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-steel-500 peer-focus:text-loop-500">
               ▼
@@ -137,7 +149,7 @@ export default function Receivers() {
                   <div>
                     <p className="eyebrow-label text-steel-500 dark:text-steel-400">Digital material passport</p>
                     <p className="ledger-numeral mt-1 text-sm text-ink-600 dark:text-gray-400">
-                      ID: <span className="font-semibold text-ink-900 dark:text-white">{material.id}</span> · surveyed {material.surveyedAt.slice(0, 10)}
+                      ID: <span className="font-semibold text-ink-900 dark:text-white">{material.id}</span> · surveyed {formatDate(material.surveyedAt)}
                     </p>
                   </div>
                   <StatusBadge status={material.status} />
@@ -185,7 +197,7 @@ export default function Receivers() {
                 .sort((a, b) => a.date.localeCompare(b.date))[0];
               const ledger = slot ? slotLedger(dataset, slot.id) : undefined;
               const allocation = material && dataset.allocations.find((item) => item.materialId === material.id && item.receiverId === candidate.receiverId && item.status !== "cancelled");
-              const fits = Boolean(material && candidate.availableT >= material.quantityT);
+              const fits = Boolean(material && candidate.availableT >= remainingT);
               const isSelected = selectedMatch?.receiverId === candidate.receiverId;
               const availableStatus = allocation?.status === "confirmed" ? "Confirmed" : allocation?.status === "hold" ? "HOLD" : fits ? "Available" : candidate.availableT > 0 ? "Limited capacity" : "Full";
               const statusClass = allocation?.status === "confirmed" || (!allocation && fits)
@@ -195,7 +207,7 @@ export default function Receivers() {
                   : "border-steel-300 bg-steel-50 text-steel-700 dark:border-steel-700 dark:bg-white/5 dark:text-steel-300";
               const potential = allocation?.status === "confirmed"
                 ? allocation.requestedT
-                : Math.min(material?.quantityT ?? 0, candidate.availableT);
+                : Math.min(remainingT, candidate.availableT);
 
               return (
                 <motion.article 
@@ -236,8 +248,8 @@ export default function Receivers() {
                     
                     <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
                       <span className="font-semibold text-ink-900 dark:text-white">Accepts {TYPE_LABEL[material?.type ?? ""] ?? material?.type}</span>
-                      {slot && <span className="text-steel-600 dark:text-gray-400">Next listed intake · <span className="ledger-numeral font-medium text-ink-900 dark:text-gray-200">{slot.date}</span></span>}
-                      {material && candidate.availableT < material.quantityT && <span className="font-medium text-signal-600 dark:text-signal-400">{(material.quantityT - candidate.availableT).toFixed(1)} t short of the full surveyed quantity</span>}
+                      {slot && <span className="text-steel-600 dark:text-gray-400">Next listed intake · <span className="ledger-numeral font-medium text-ink-900 dark:text-gray-200">{formatDate(slot.date)}</span></span>}
+                      {material && candidate.availableT < remainingT && <span className="font-medium text-signal-600 dark:text-signal-400">{(remainingT - candidate.availableT).toFixed(1)} t short of the remaining requested quantity</span>}
                     </div>
                   </div>
                   
@@ -245,7 +257,10 @@ export default function Receivers() {
                     <button
                       type="button"
                       aria-pressed={isSelected}
-                      onClick={() => setReceiverId(candidate.receiverId)}
+                      onClick={() => {
+                        setReceiverId(candidate.receiverId);
+                        setHoldState(null);
+                      }}
                       className={cn(
                         "group/btn relative w-full overflow-hidden border-2 px-6 py-4 font-archivo text-lg font-bold uppercase tracking-wide transition-all", 
                         isSelected 
@@ -284,7 +299,7 @@ export default function Receivers() {
                   <p className="eyebrow-label text-loop-600 dark:text-loop-400">03 · Capacity → 04 · Action</p>
                   <h2 id="capacity-heading" className="mt-3 font-archivo text-4xl font-bold uppercase text-ink-900 dark:text-white">{selectedReceiver.name}</h2>
                   <p className="mt-2 text-lg text-steel-600 dark:text-gray-300">
-                    <span className="font-semibold text-ink-900 dark:text-white">{material.quantityT.toFixed(1)} t</span> of {TYPE_LABEL[material.type] ?? material.type} · {selectedMatch.distanceKm} km · {selectedSlot?.date ?? "No intake date"}
+                    <span className="font-semibold text-ink-900 dark:text-white">{remainingT.toFixed(1)} t</span> of {TYPE_LABEL[material.type] ?? material.type} · {selectedMatch.distanceKm} km · {selectedSlot?.date ? formatDate(selectedSlot.date) : "No intake date"}
                   </p>
                   
                   {selectedLedger && (
@@ -317,16 +332,91 @@ export default function Receivers() {
                   )}
                   
                   <p className="mt-6 max-w-2xl text-sm leading-relaxed text-steel-500 dark:text-gray-400">
-                    A request uses the surveyed quantity. If the selected intake cannot take the full load, GreenLoop records it as a HOLD rather than confirming unavailable capacity.
+                    A request uses the remaining quantity. If the selected intake cannot take the full load, GreenLoop records it as a HOLD rather than confirming unavailable capacity.
                   </p>
                 </div>
 
-                {!existingAllocation && selectedSlot && (
+                {holdState && holdState.receiverId === selectedReceiver.id ? (
+                  <div className="mt-8 rounded-sm border border-signal-300 bg-signal-50 p-6 shadow-sm dark:border-signal-500/40 dark:bg-signal-500/10 col-span-full">
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-sm bg-signal-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white dark:bg-signal-500">HOLD</span>
+                      <h3 className="font-archivo text-xl font-bold text-signal-900 dark:text-signal-100">
+                        {holdState.available > 0 ? "Receiving Capacity — Partially Available" : "Receiving Capacity — Unavailable"}
+                      </h3>
+                    </div>
+                    
+                    <div className="mt-6 flex flex-col gap-2 border-l-2 border-signal-200 pl-4 dark:border-signal-700/50">
+                      <div className="flex justify-between max-w-sm">
+                        <span className="text-signal-800 dark:text-signal-200">Requested:</span>
+                        <span className="font-bold text-signal-900 dark:text-signal-100">{holdState.requested.toFixed(1)} t</span>
+                      </div>
+                      <div className="flex justify-between max-w-sm">
+                        <span className="text-signal-800 dark:text-signal-200">Currently available:</span>
+                        <span className="font-bold text-signal-900 dark:text-signal-100">{holdState.available.toFixed(1)} t</span>
+                      </div>
+                      <div className="flex justify-between border-t border-signal-200 pt-2 mt-2 max-w-sm dark:border-signal-700/50">
+                        <span className="text-signal-800 dark:text-signal-200">Shortfall:</span>
+                        <span className="font-bold text-signal-900 dark:text-signal-100">{(holdState.requested - holdState.available).toFixed(1)} t</span>
+                      </div>
+                    </div>
+
+                    <p className="mt-6 text-signal-800 dark:text-signal-200 max-w-2xl">
+                      {holdState.available > 0
+                        ? `${holdState.available.toFixed(1)} t can currently be received. ${(holdState.requested - holdState.available).toFixed(1)} t still needs another receiving option.`
+                        : `This receiver has no available capacity in this intake slot.`}
+                    </p>
+
+                    <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+                      {holdState.available > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            requestCapacityAction({ materialId: material.id, receiverId: holdState.receiverId, slotId: holdState.slotId, tonnesT: holdState.available });
+                            setHoldState(null);
+                          }}
+                          className="bg-signal-600 px-6 py-3 font-bold text-white shadow-sm transition-colors hover:bg-signal-700 dark:bg-signal-500 dark:hover:bg-signal-600"
+                        >
+                          Reserve available quantity
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHoldState(null);
+                          setReceiverId("");
+                        }}
+                        className="border border-signal-300 bg-white px-6 py-3 font-bold text-signal-900 shadow-sm transition-colors hover:bg-signal-50 dark:border-signal-600 dark:bg-transparent dark:text-signal-100 dark:hover:bg-signal-900/30"
+                      >
+                        Find another receiver for remaining quantity
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          alert("Date selection calendar opens here.");
+                        }}
+                        className="px-6 py-3 font-bold text-signal-700 transition-colors hover:text-signal-900 dark:text-signal-300 dark:hover:text-signal-100"
+                      >
+                        Choose another date
+                      </button>
+                    </div>
+                  </div>
+                ) : !existingAllocation && selectedSlot && remainingT > 0 && (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     type="button"
-                    onClick={() => requestCapacityAction({ materialId: material.id, receiverId: selectedReceiver.id, slotId: selectedSlot.id, tonnesT: material.quantityT })}
+                    onClick={() => {
+                      if (remainingT > selectedMatch.availableT) {
+                        setHoldState({
+                          requested: remainingT,
+                          available: selectedMatch.availableT,
+                          slotId: selectedSlot.id,
+                          receiverId: selectedReceiver.id
+                        });
+                      } else {
+                        requestCapacityAction({ materialId: material.id, receiverId: selectedReceiver.id, slotId: selectedSlot.id, tonnesT: remainingT });
+                      }
+                    }}
                     className="relative overflow-hidden bg-loop-600 px-8 py-5 font-archivo text-xl font-bold uppercase tracking-wide text-white shadow-lg transition-colors hover:bg-loop-700 dark:bg-loop-500 dark:hover:bg-loop-600"
                   >
                     Request Capacity
@@ -334,7 +424,7 @@ export default function Receivers() {
                 )}
               </div>
               
-              {existingAllocation?.status === "hold" && existingAllocation.holdReason && (
+              {existingAllocation?.status === "hold" && existingAllocation.holdReason && !holdState && (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}

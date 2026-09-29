@@ -16,7 +16,7 @@ import type {
   MaterialPassport,
   Project,
 } from "@/domain/types";
-import { cn } from "@/utils";
+import { cn, formatDate } from "@/utils";
 import { Link } from "react-router";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -406,31 +406,16 @@ export interface MaterialMediaItem {
   recordedAt: string;
 }
 
-/** Demo media pool, keyed by material type — real Unsplash photography already in /public/images/site. */
-const MEDIA_BY_TYPE: Record<string, MaterialMediaItem[]> = {
-  concrete: [
-    { id: "med-conc-1", kind: "photo", src: "/images/site/auth-concrete.jpg", caption: "Crushed concrete stockpile", recordedAt: "2026-09-14T09:35:00Z" },
-    { id: "med-conc-2", kind: "photo", src: "/images/site/hero-demolition.jpg", caption: "Breakout area, bays 2–4", recordedAt: "2026-09-14T09:10:00Z" },
-  ],
-  brick: [
-    { id: "med-brick-1", kind: "photo", src: "/images/site/brick-pallets.jpg", caption: "Palletised reclaimed brick", recordedAt: "2026-09-14T10:40:00Z" },
-  ],
-  steel: [
-    { id: "med-steel-1", kind: "photo", src: "/images/site/auth-truck.jpg", caption: "Cut and graded sections loaded", recordedAt: "2026-09-10T08:30:00Z" },
-  ],
-  timber: [
-    { id: "med-timber-1", kind: "photo", src: "/images/site/sorting-facility.jpg", caption: "Timber sorting area", recordedAt: "2026-09-17T10:45:00Z" },
-  ],
-  plasterboard: [
-    { id: "med-pla-1", kind: "photo", src: "/images/site/yard-wide.jpg", caption: "Yard — drywall bays", recordedAt: "2026-09-15T13:15:00Z" },
-  ],
-  glass: [
-    { id: "med-glass-1", kind: "photo", src: "/images/site/sorting-facility.jpg", caption: "Glazing storage", recordedAt: "2026-09-10T09:20:00Z" },
-  ],
-};
-
 export function materialMedia(material: MaterialPassport): MaterialMediaItem[] {
-  return MEDIA_BY_TYPE[material.type] ?? [];
+  return material.evidence
+    .filter((e) => e.kind === "site-photo" && e.ref)
+    .map((e, idx) => ({
+      id: `${material.id}-ev-${idx}`,
+      kind: "photo",
+      src: e.ref!,
+      caption: e.label,
+      recordedAt: e.recordedAt,
+    }));
 }
 
 /** Project site-media timeline: timestamped photo/video evidence per project. */
@@ -611,12 +596,25 @@ export function SlotAvailability({ slotId }: { slotId: string }) {
   const { dataset } = useGreenLoopStore();
   const ledger = slotLedger(dataset, slotId);
   if (!ledger) return null;
+  if (ledger.available === 0) {
+    return (
+      <div>
+        <div className="flex items-baseline justify-between">
+          <p className="eyebrow-label text-steel-600 dark:text-steel-400">{formatDate(ledger.slot.date)} · {ledger.slot.materialType}</p>
+          <p className="text-theme-sm font-bold uppercase tracking-wider text-signal-600 dark:text-signal-400">
+            Full
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const capacityT = ledger.slot.capacityT;
   const pct = Math.round((ledger.available / capacityT) * 100);
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <p className="eyebrow-label text-steel-600 dark:text-steel-400">{ledger.slot.date} · {ledger.slot.materialType}</p>
+        <p className="eyebrow-label text-steel-600 dark:text-steel-400">{formatDate(ledger.slot.date)} · {ledger.slot.materialType}</p>
         <p className="ledger-numeral text-theme-sm font-semibold text-ink-900 dark:text-white">
           {ledger.available.toFixed(1)} / {capacityT.toFixed(1)} t free
         </p>

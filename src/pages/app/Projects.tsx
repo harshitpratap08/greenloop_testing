@@ -8,6 +8,7 @@ import {
   STEP_LABELS,
   currentStepIndex,
   WorkflowRail,
+  EmptyState,
 } from "@/components/greenloop/AppExploration";
 import type { Project } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
@@ -258,6 +259,14 @@ export default function Projects() {
             ))}
           </div>
         </section>
+
+        {rows.length === 0 && (
+          <EmptyState 
+            title="No active projects"
+            body="You haven't added any recovery projects yet. Start by creating a new survey."
+            action={{ label: "New Survey", to: "/app/materials/new" }}
+          />
+        )}
       </div>
     </div>
   );

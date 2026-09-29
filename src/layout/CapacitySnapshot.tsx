@@ -1,5 +1,6 @@
 import { demoDataset, slotLedger, STORY } from "@/domain";
 import { useMemo } from "react";
+import { formatDate } from "@/utils";
 
 /**
  * Sidebar capacity snapshot — live view of the demo dataset's Riverstone
@@ -13,7 +14,7 @@ export default function CapacitySnapshot() {
     const receiver = dataset.receivers.find((r) => r.id === STORY.receiverId);
     return {
       receiverName: receiver?.name ?? "Receiver",
-      slotDate: l?.slot.date ?? "",
+      slotDate: l?.slot.date ? formatDate(l.slot.date) : "",
       ledger: l,
     };
   }, []);
