@@ -263,8 +263,8 @@ export default function Projects() {
         {rows.length === 0 && (
           <EmptyState 
             title="No active projects"
-            body="You haven't added any recovery projects yet. Start by creating a new survey."
-            action={{ label: "New Survey", to: "/app/materials/new" }}
+            body="You haven't added any recovery projects yet. Start by adding material from a project."
+            action={{ label: "Add Material", to: "/app/materials/new" }}
           />
         )}
       </div>

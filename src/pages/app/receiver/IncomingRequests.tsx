@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import Button from "@/components/ui/button/Button";
 import { slotLedger } from "@/domain/capacity";
 import { useAuth } from "@/context/AuthContext";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 
 export default function IncomingRequests() {
   const { dataset, acceptRequestAction, rejectRequestAction, rescheduleRequestAction } = useGreenLoopStore();
@@ -20,24 +21,13 @@ export default function IncomingRequests() {
 
   return (
     <div className="relative min-h-screen pb-24">
-      <PageMeta title="Incoming Requests | GreenLoop" description="Review material requests." />
+      <PageMeta title="Incoming Requests | GreenLoop" description="Review provider requests for receiving capacity." />
       <PageBreadcrumb pageTitle="Incoming Requests" />
-
-      {/* Header */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="mb-8 border-b border-steel-200 pb-6 dark:border-steel-800"
-      >
-        <p className="eyebrow-label text-loop-600 dark:text-loop-400">Receiver Operations</p>
-        <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-4xl">
-          Incoming Requests
-        </h1>
-        <p className="mt-3 max-w-2xl text-lg text-steel-600 dark:text-gray-400">
-          Review requests that exceeded your automatic capacity limits. You can manually accept them, suggest a different slot, or reject them.
-        </p>
-      </motion.header>
+      <WorkflowPageHeader
+        title="Incoming Requests"
+        description="Providers are asking to book space at your facility. Confirm the amount you can receive, choose another date, or decline."
+        status={`${requests.length} request${requests.length === 1 ? "" : "s"} waiting for your decision`}
+      />
 
       {requests.length === 0 ? (
         <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-sm border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01]">
@@ -72,17 +62,17 @@ export default function IncomingRequests() {
                   <div className="grid gap-6 md:grid-cols-[1fr_auto]">
                     <div>
                       <div className="flex items-center gap-3">
-                        <span className="rounded-sm border border-signal-200 bg-signal-50 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-signal-700 dark:border-signal-500/30 dark:bg-signal-500/10 dark:text-signal-400">
-                          Needs Review
+                        <span className="rounded-sm border border-signal-200 bg-signal-50 px-2 py-0.5 text-xs font-bold tracking-wider text-signal-700 dark:border-signal-500/30 dark:bg-signal-500/10 dark:text-signal-400">
+                          {booking.status === "hold" ? "Waiting on Capacity" : "Needs your approval"}
                         </span>
-                        <p className="text-sm font-medium text-steel-500 dark:text-steel-400">Request {booking.id}</p>
+                        <p className="text-sm font-semibold text-ink-900 dark:text-white">{project?.name ?? "Provider"} wants {booking.tonnesT.toFixed(1)} t {material?.type ?? "material"} {slot?.date ? `on ${slot.date}` : ""}.</p>
                       </div>
                       
                       <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
                           <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Material</p>
                           <p className="mt-1 font-semibold text-ink-900 dark:text-white capitalize">{material?.type}</p>
-                          <p className="mt-0.5 text-sm text-steel-600 dark:text-gray-400">Passport: {material?.id}</p>
+                          <details className="mt-1 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Material Passport ID: {material?.id} · Request ID: {booking.id}</span></details>
                         </div>
                         <div>
                           <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Project</p>
@@ -91,7 +81,7 @@ export default function IncomingRequests() {
                         <div>
                           <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Requested Slot</p>
                           <p className="mt-1 font-semibold text-ink-900 dark:text-white">{slot?.date}</p>
-                          <p className="mt-0.5 text-sm text-signal-600 dark:text-signal-400">{booking.holdReason}</p>
+                          {booking.holdReason && <p className="mt-0.5 text-sm text-signal-600 dark:text-signal-400">{booking.holdReason.replaceAll("HOLD", "Waiting on Capacity")}</p>}
                         </div>
                         <div>
                           <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Requested Quantity</p>
@@ -103,8 +93,9 @@ export default function IncomingRequests() {
                       
                       {ledger && (
                         <div className="mt-6 flex items-center gap-4 rounded bg-steel-50 px-4 py-3 text-sm dark:bg-white/5">
-                          <span className="font-medium text-steel-700 dark:text-gray-300">Slot {slot?.date} Status:</span>
-                          <span className="font-bold text-ink-900 dark:text-white">{ledger.available.toFixed(1)} t available</span>
+                          <span className="font-medium text-steel-700 dark:text-gray-300">Capacity on {slot?.date}:</span>
+                          <span className="font-bold text-ink-900 dark:text-white">{ledger.available.toFixed(1)} t free</span>
+                          {booking.status === "hold" && ledger.available < booking.tonnesT && <span className="basis-full text-signal-700 dark:text-signal-300">You have {ledger.available.toFixed(1)} t free; this request is for {booking.tonnesT.toFixed(1)} t.</span>}
                           <span className="text-steel-500">/</span>
                           <span className="text-steel-600 dark:text-gray-400">{ledger.reserved.toFixed(1)} t reserved</span>
                         </div>
@@ -131,7 +122,7 @@ export default function IncomingRequests() {
                             rescheduleRequestAction(booking.id, selectedSlotId);
                             setReschedulingId(null);
                           }}>
-                            Confirm Reschedule
+                            Confirm new date
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => setReschedulingId(null)}>
                             Cancel
@@ -139,19 +130,14 @@ export default function IncomingRequests() {
                         </div>
                       ) : (
                         <>
-                          {booking.status === "hold" && (ledger?.available ?? 0) < booking.tonnesT && <p className="text-xs text-warning-600">Only {ledger?.available.toFixed(1)} t is free. Reschedule to an available slot or reject this request.</p>}
-                          <Button size="sm" disabled={booking.status === "hold" && (ledger?.available ?? 0) < booking.tonnesT} onClick={() => acceptRequestAction(booking.id)}>
-                            {booking.status === "confirmed" ? "Confirm Request" : "Accept"}
+                          <Button size="sm" disabled={booking.status === "hold" && (ledger?.available ?? 0) <= 0} onClick={() => acceptRequestAction(booking.id, booking.status === "hold" && (ledger?.available ?? 0) < booking.tonnesT ? ledger?.available : undefined)}>
+                            {booking.status === "confirmed" ? "Confirm request" : booking.status === "hold" && (ledger?.available ?? 0) < booking.tonnesT ? `Confirm ${ledger?.available.toFixed(1)} t` : "Confirm request"}
                           </Button>
                           {booking.status === "hold" && <Button size="sm" variant="outline" disabled={alternativeSlots.length === 0} onClick={() => setReschedulingId(booking.id)}>
-                            Reschedule
+                            Propose another date
                           </Button>}
-                          <Button size="sm" variant="outline" onClick={() => {
-                            if (window.confirm("Are you sure you want to reject this request?")) {
-                              rejectRequestAction(booking.id);
-                            }
-                          }}>
-                            Reject
+                          <Button size="sm" variant="outline" onClick={() => rejectRequestAction(booking.id)}>
+                            Decline
                           </Button>
                         </>
                       )}

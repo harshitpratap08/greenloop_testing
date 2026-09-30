@@ -83,7 +83,7 @@ export interface GreenLoopStoreValue {
   addOfferAction: (offer: Omit<MaterialOffer, "id" | "status" | "createdAt">) => void;
   acceptOfferAction: (offerId: string) => void;
   declineOfferAction: (offerId: string) => void;
-  acceptRequestAction: (bookingId: string) => void;
+  acceptRequestAction: (bookingId: string, acceptedT?: number) => void;
   rejectRequestAction: (bookingId: string) => void;
   rescheduleRequestAction: (bookingId: string, slotId: string) => void;
   receiveLoadAction: (bookingId: string, actualT: number, evidence: Evidence[]) => void;
@@ -336,7 +336,7 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
     return slot;
   }, [dataset.slots]);
 
-  const acceptRequestAction = useCallback((bookingId: string) => {
+  const acceptRequestAction = useCallback((bookingId: string, requestedAcceptedT?: number) => {
     setDataset((prev) => {
       const booking = prev.bookings.find((item) => item.id === bookingId);
       if (!booking || (booking.status !== "hold" && booking.status !== "confirmed") || booking.receiverAcceptedAt) return prev;
@@ -355,6 +355,26 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
       const material = prev.materials.find((item) => item.id === booking.materialId);
       if (!slot || !material || slot.receiverId !== booking.receiverId || slot.materialType !== material.type) return prev;
       const before = availableT(slot, prev.bookings);
+      const acceptedT = Math.min(booking.tonnesT, requestedAcceptedT ?? booking.tonnesT);
+      if (!Number.isFinite(acceptedT) || acceptedT <= 0 || acceptedT > before + 1e-9) return prev;
+      if (acceptedT < booking.tonnesT) {
+        const remainingT = Math.round((booking.tonnesT - acceptedT) * 10) / 10;
+        const allocation = prev.allocations.find((item) => item.id === booking.allocationId);
+        if (!allocation) return prev;
+        const allocationId = nextId("AL", prev.allocations);
+        const confirmedAllocation = { ...allocation, id: allocationId, requestedT: acceptedT, status: "confirmed" as const, holdReason: undefined, capacityBeforeT: before, capacityAfterT: Math.max(0, Math.round((before - acceptedT) * 10) / 10), decidedAt: at, updatedAt: at };
+        const confirmedBooking = { ...booking, id: nextId("BK", prev.bookings), allocationId, tonnesT: acceptedT, status: "confirmed" as const, holdReason: undefined, receiverAcceptedAt: at, capacityBeforeT: before, capacityAfterT: confirmedAllocation.capacityAfterT, createdAt: at, updatedAt: at };
+        const next: GreenLoopDataset = {
+          ...prev,
+          allocations: [...prev.allocations.map((item) => item.id === allocation.id ? { ...item, status: "cancelled" as const, updatedAt: at } : item), confirmedAllocation],
+          bookings: [...prev.bookings.map((item) => item.id === bookingId ? { ...item, status: "cancelled" as const, cancelledAt: at, cancelledReason: `Receiver confirmed ${acceptedT.toFixed(1)} t; ${remainingT.toFixed(1)} t remains available to book elsewhere`, updatedAt: at } : item), confirmedBooking],
+          materials: prev.materials.map((item) => item.id === booking.materialId ? { ...item, status: "reserved" } : item),
+          events: [...prev.events, eventFor(prev, "request.partially-accepted", ACTOR_RECEIVER,
+            `Receiver confirmed ${acceptedT.toFixed(1)} t; ${remainingT.toFixed(1)} t remains available to book elsewhere`,
+            [booking.materialId, booking.receiverId, booking.allocationId, booking.id, allocationId, confirmedBooking.id], undefined, at)],
+        };
+        return booking.demandId ? updateDemandCoverage(next, booking.demandId) : next;
+      }
       if (booking.tonnesT > before + 1e-9) return prev;
       const after = Math.max(0, Math.round((before - booking.tonnesT) * 10) / 10);
       let next: GreenLoopDataset = {

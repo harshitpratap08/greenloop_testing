@@ -89,7 +89,7 @@ const providerNavItems: NavItem[] = [
   },
   {
     icon: <CheckCircleIcon fontSize={24} />,
-    name: "Verification",
+    name: "Proof of Recovery",
     key: "verification",
     path: "/app/verification",
   },
@@ -110,7 +110,7 @@ const providerOthersItems: NavItem[] = [
   },
   {
     icon: <LayoutIcon fontSize={24} />,
-    name: "Allocations (admin)",
+    name: "Matches (admin)",
     key: "allocations",
     path: "/app/allocations",
   },

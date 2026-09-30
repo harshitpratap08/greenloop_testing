@@ -8,6 +8,7 @@ import type { VerificationRecord } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { cn, formatStamp } from "@/utils";
 import { motion, AnimatePresence } from "motion/react";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -26,57 +27,16 @@ export default function Verification() {
   return (
     <div className="relative min-h-screen pb-24">
       <PageMeta
-        title="Verification | GreenLoop"
-        description="Evidence-backed reconciliation of planned, dispatched, received, and accepted recovery loads."
+        title="Proof of Recovery | GreenLoop"
+        description="Evidence-backed records of loads received and accepted by material receivers."
       />
-      <PageBreadCrumb pageTitle="Verification" />
+      <PageBreadCrumb pageTitle="Proof of Recovery" />
 
-      {/* Cinematic Verification Header */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="group relative mb-12 overflow-hidden rounded-sm border border-steel-200 bg-ink-950 p-8 shadow-lg sm:p-12 dark:border-steel-800 dark:bg-black"
-      >
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          {/* Animated Background Image - Weighbridge/Evidence context */}
-          <img
-            src="/images/site/verify-photo.jpg"
-            alt="Verification Evidence"
-            onError={(e) => { (e.target as HTMLImageElement).src = "/images/site/auth-concrete.jpg" }}
-            className="h-full w-full animate-slow-mo object-cover opacity-30 dark:opacity-40"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink-950/95 via-ink-950/80 to-transparent dark:from-black/95 dark:via-black/70" />
-        </div>
-
-        <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
-            <p className="eyebrow-label text-loop-400">Recovery Chain · Final Record</p>
-            <h1 className="mt-4 font-archivo text-4xl font-bold tracking-tight text-white drop-shadow-md sm:text-5xl">
-              Every recovery claim<br />has evidence.
-            </h1>
-            <p className="mt-4 text-lg text-white/80 drop-shadow-sm">
-              Reconcile what was planned and dispatched with what reached the receiver, what they accepted, and the records that prove it.
-            </p>
-          </div>
-          
-          {/* Active Evidence Counter */}
-          {dataset.verifications.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex flex-col items-start gap-1 border-l-2 border-loop-500 pl-6 md:items-end md:border-l-0 md:border-r-2 md:pl-0 md:pr-6 md:text-right"
-            >
-              <span className="eyebrow-label text-white/60">Total Accepted Recovery</span>
-              <span className="ledger-numeral text-5xl font-bold text-loop-400">
-                {totalAccepted.toFixed(1)} <span className="text-3xl text-white/60">t</span>
-              </span>
-              <span className="mt-2 text-sm text-white/60">{dataset.verifications.length} verified loads</span>
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
+      <WorkflowPageHeader
+        title="Proof of Recovery"
+        description="See what the receiver accepted and the records that prove each load was recovered."
+        status={`${dataset.verifications.length} records · ${totalAccepted.toFixed(1)} t accepted · ${totalRejected.toFixed(1)} t rejected`}
+      />
 
       {/* Global Rejected/Discrepancy Banner */}
       <AnimatePresence>
@@ -118,9 +78,9 @@ export default function Verification() {
             <div className="mb-4 rounded-full bg-steel-100 p-4 dark:bg-steel-900">
               <span className="text-4xl opacity-50">📋</span>
             </div>
-            <p className="eyebrow-label text-steel-500 dark:text-steel-400">No records to reconcile</p>
-            <h2 className="mt-3 font-archivo text-2xl font-bold text-ink-900 dark:text-white">Verification evidence appears after receiver intake</h2>
-            <p className="mt-2 max-w-md text-steel-600 dark:text-gray-400">Dispatch a confirmed load, then record actual and accepted tonnes with weighbridge and intake evidence.</p>
+            <p className="eyebrow-label text-steel-500 dark:text-steel-400">No proof of recovery yet</p>
+            <h2 className="mt-3 font-archivo text-2xl font-bold text-ink-900 dark:text-white">A recovery record appears after the receiver checks a load</h2>
+            <p className="mt-2 max-w-md text-steel-600 dark:text-gray-400">Send an approved load. The receiver records what arrived and accepted tonnes, with Weighbridge Ticket evidence.</p>
             <Link to="/app/deliveries" className="mt-6 font-semibold text-ink-900 underline decoration-steel-300 underline-offset-4 hover:text-loop-600 dark:text-white dark:hover:text-loop-400">View deliveries →</Link>
           </section>
         )}
@@ -154,18 +114,21 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-steel-200 bg-gray-50 px-6 py-5 dark:border-steel-800 dark:bg-white/[0.02]">
         <div>
-          <p className="eyebrow-label text-steel-500 dark:text-steel-400">Receiver Verification · {verification.id}</p>
-          <div className="mt-1 flex items-baseline gap-4">
-            <h2 className="ledger-numeral text-2xl font-bold tracking-tight text-ink-900 dark:text-white">{verification.loadRef}</h2>
-            <p className="font-archivo text-lg font-semibold uppercase text-loop-600 dark:text-loop-400">
-              {TYPE_LABEL[material?.type ?? ""] ?? material?.type ?? "Material"} · {receiver?.name ?? verification.receiverId}
-            </p>
+          <p className="eyebrow-label text-steel-500 dark:text-steel-400">Proof of Recovery</p>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <h2 className="font-archivo text-xl font-bold tracking-tight text-ink-900 dark:text-white">{verification.acceptedT.toFixed(1)} t accepted of {verification.plannedT.toFixed(1)} t planned</h2>
+            <p className="text-sm font-medium text-ink-700 dark:text-gray-300">{TYPE_LABEL[material?.type ?? ""] ?? material?.type ?? "Material"} · {receiver?.name ?? verification.receiverId}</p>
           </div>
+          <p className="mt-2 ledger-numeral text-xs text-steel-500">Load reference: {verification.loadRef}</p>
         </div>
         <StatusBadge status={verification.status} size="md" />
       </div>
 
       <div className="p-6 sm:p-8">
+        <details className="rounded-sm border border-steel-200 dark:border-steel-800">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink-800 dark:text-gray-200">View details ▾</summary>
+          <div className="border-t border-steel-200 p-4 dark:border-steel-800">
+        <p className="mb-4 text-xs text-steel-500">Verification ID: {verification.id} · Booking ID: {booking?.id}</p>
         {/* Animated Map Context */}
         <div className="relative mb-10 overflow-hidden rounded-sm border border-steel-200 bg-steel-50 p-6 dark:border-steel-800 dark:bg-black/40">
           <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -196,7 +159,7 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
         {/* Load Reconciliation Milestones */}
         <section className="mb-10">
           <div className="mb-4 flex items-center justify-between">
-            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Load Reconciliation Tracker</p>
+            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Load progress</p>
             {verification.verifiedAt && <p className="ledger-numeral text-sm font-semibold text-loop-600 dark:text-loop-400">Verified {formatStamp(verification.verifiedAt)}</p>}
           </div>
           
@@ -242,7 +205,7 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
               <div>
                 <p className="eyebrow-label text-steel-500 dark:text-steel-400">Final Accepted Recovery</p>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <p className="ledger-numeral text-6xl font-bold tracking-tight text-loop-600 dark:text-loop-400">{verification.acceptedT.toFixed(1)}</p>
+                  <p className="ledger-numeral text-4xl font-bold tracking-tight text-loop-600 dark:text-loop-400">{verification.acceptedT.toFixed(1)}</p>
                   <span className="text-3xl font-medium text-steel-400">t</span>
                 </div>
               </div>
@@ -341,6 +304,8 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
             </div>
           </section>
         </div>
+          </div>
+        </details>
       </div>
     </article>
   );
@@ -358,4 +323,3 @@ function Difference({ label, value, detail, isAlert = false }: { label: string; 
     </div>
   );
 }
-

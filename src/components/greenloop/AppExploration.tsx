@@ -63,7 +63,7 @@ export function currentStepIndex(steps: ProjectSteps): number {
   return 5; // complete
 }
 
-export const STEP_LABELS = ["Survey", "Find receiver", "Book capacity", "Deliver", "Verify"] as const;
+export const STEP_LABELS = ["Add Material", "Find receiver", "Request slot", "Send load", "Proof of Recovery"] as const;
 
 /** The seeded story project (Project A) for the default exploration view. */
 export const STORY_PROJECT_ID = STORY.projectAId;
@@ -115,7 +115,7 @@ export function WorkflowRail({ projectId, compact = false, inverse = false }: { 
         const displayLabel = compact
           ? label === "Find receiver"
             ? "Match"
-            : label === "Book capacity"
+            : label === "Request slot"
               ? "Reserve"
               : label
           : label;
@@ -181,7 +181,7 @@ export function projectNextAction(dataset: GreenLoopDataset, projectId: string):
   const projectName = dataset.projects.find((p) => p.id === projectId)?.name ?? "Project";
   switch (current) {
     case 0:
-      return { label: "Survey a material", to: "/app/materials", reason: `${projectName} has no surveyed materials yet.` };
+      return { label: "Add Material", to: "/app/materials/new", reason: `${projectName} has no material records yet.` };
     case 1:
       return { label: "Find a receiver", to: "/app/receivers", reason: "Materials are surveyed — match them to a facility." };
     case 2: {
@@ -189,14 +189,14 @@ export function projectNextAction(dataset: GreenLoopDataset, projectId: string):
         (b) => b.status === "hold" && dataset.allocations.some((a) => a.id === b.allocationId && materialInProject(dataset, a.materialId, projectId)),
       );
       if (held) {
-        return { label: "Review held booking", to: "/app/bookings", reason: held.holdReason ?? "Capacity is waiting to free up." };
+        return { label: "Review booking", to: "/app/bookings", reason: held.holdReason ?? "Waiting on Capacity — check another available slot." };
       }
-      return { label: "Book capacity", to: "/app/bookings", reason: "A receiver is matched — reserve an intake slot." };
+      return { label: "Request slot", to: "/app/bookings", reason: "A receiver is matched — request an intake slot." };
     }
     case 3:
-      return { label: "Dispatch a load", to: "/app/deliveries", reason: "Capacity is reserved — get the material on the road." };
+      return { label: "Send load", to: "/app/deliveries", reason: "The receiver approved the slot — get the material on the road." };
     case 4:
-      return { label: "Record delivery verification", to: "/app/verification", reason: "A load is out — confirm what arrived." };
+      return { label: "View Proof of Recovery", to: "/app/verification", reason: "The receiver has checked the load and recorded what arrived." };
     default:
       return { label: "View project report", to: "/app/reports", reason: "Every stage is complete — review the outcomes." };
   }

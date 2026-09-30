@@ -24,6 +24,9 @@ export default function Overview() {
   const incomingRequests = receiverBookings.filter((booking) => booking.status === "hold" || (booking.status === "confirmed" && !booking.receiverAcceptedAt && !booking.loadRef));
   const materialExpected = receiverBookings.filter((booking) => booking.status === "confirmed" && !booking.loadRef);
   const expectedT = materialExpected.reduce((sum, b) => sum + b.tonnesT, 0);
+  const pendingOffers = dataset.offers?.filter((offer) => offer.status === "pending" && dataset.demands.some((demand) => demand.id === offer.demandId && demand.receiverId === receiverId)) ?? [];
+  const pendingChecks = dataset.verifications.filter((verification) => verification.receiverId === receiverId && verification.status === "pending");
+  const attentionCount = pendingOffers.length + pendingChecks.length + incomingRequests.length;
 
   // Capacity breakdown by material
   const capacityByMaterial = receiverSlots.reduce((acc, slot) => {
@@ -47,12 +50,24 @@ export default function Overview() {
       >
         <p className="eyebrow-label text-loop-600 dark:text-loop-400">Receiver Operations</p>
         <h1 className="mt-2 font-archivo text-4xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-5xl">
-          Receiver Overview
+          Receiver Home
         </h1>
         <p className="mt-3 max-w-2xl text-lg text-steel-600 dark:text-gray-400">
-          Monitor active demand, manage your available receiving capacity, and review incoming material requests.
+          See incoming offers and deliveries, check what needs your attention, and manage what your facility can receive.
         </p>
       </motion.header>
+
+      <section className="mb-8 rounded-sm border border-steel-200 bg-white p-5 shadow-sm dark:border-steel-800 dark:bg-white/[0.02] sm:p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-steel-100 pb-4 dark:border-steel-800">
+          <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">{attentionCount} {attentionCount === 1 ? "thing needs" : "things need"} your attention</h2>
+          <p className="text-sm text-steel-500 dark:text-gray-400">Your next steps as the material receiver.</p>
+        </div>
+        {attentionCount ? <ul className="mt-4 grid gap-3 lg:grid-cols-3">
+          {incomingRequests.length > 0 && <li className="flex flex-col justify-between gap-4 rounded-sm border border-steel-200 p-4 dark:border-steel-800"><div><h3 className="font-semibold text-ink-900 dark:text-white">{incomingRequests.length} provider request{incomingRequests.length === 1 ? "" : "s"} need your review</h3><p className="mt-1 text-sm text-steel-600 dark:text-gray-400">Confirm the amount your facility can receive, or suggest another date.</p></div><Link to="/app/receiver/incoming-requests" className="inline-flex min-h-11 w-fit items-center bg-ink-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-ink-900">Review requests</Link></li>}
+          {pendingOffers.length > 0 && <li className="flex flex-col justify-between gap-4 rounded-sm border border-steel-200 p-4 dark:border-steel-800"><div><h3 className="font-semibold text-ink-900 dark:text-white">{pendingOffers.length} provider offer{pendingOffers.length === 1 ? "" : "s"} are waiting</h3><p className="mt-1 text-sm text-steel-600 dark:text-gray-400">Review the Material Passport, quantity, and evidence.</p></div><Link to="/app/receiver/demand" className="inline-flex min-h-11 w-fit items-center bg-ink-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-ink-900">Review offers</Link></li>}
+          {pendingChecks.length > 0 && <li className="flex flex-col justify-between gap-4 rounded-sm border border-steel-200 p-4 dark:border-steel-800"><div><h3 className="font-semibold text-ink-900 dark:text-white">{pendingChecks.length} received load{pendingChecks.length === 1 ? "" : "s"} need checking</h3><p className="mt-1 text-sm text-steel-600 dark:text-gray-400">Compare received tonnes and confirm what you accept.</p></div><Link to="/app/receiver/verification" className="inline-flex min-h-11 w-fit items-center bg-ink-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-ink-900">Check &amp; accept</Link></li>}
+        </ul> : <p className="mt-4 text-sm text-steel-600 dark:text-gray-400">Nothing needs action right now. Your capacity and material requests are below.</p>}
+      </section>
 
       {/* Summary Figures */}
       <section className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -123,7 +138,7 @@ export default function Overview() {
         {/* Attention / Action Area */}
         <section>
           <div className="mb-6 border-b border-steel-200 pb-4 dark:border-steel-800">
-            <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Needs attention</h2>
+            <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Other next steps</h2>
           </div>
           <div className="space-y-4">
             {incomingRequests.length > 0 && (

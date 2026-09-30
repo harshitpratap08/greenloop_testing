@@ -4,10 +4,11 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { slotLedger } from "@/domain/capacity";
 import { motion } from "motion/react";
-import { cn } from "@/utils";
+import { cn, formatDate } from "@/utils";
 import Button from "@/components/ui/button/Button";
 import type { MaterialTypeKey } from "@/domain/types";
 import { useAuth } from "@/context/AuthContext";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 
 export default function Capacity() {
   const { dataset, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
@@ -48,30 +49,19 @@ export default function Capacity() {
   const slots = dataset.slots
     .filter(s => s.receiverId === receiverId)
     .sort((a, b) => a.date.localeCompare(b.date));
+  const nextOpenSlot = slots.find((slot) => slot.date >= new Date().toISOString().slice(0, 10));
+  const nextAvailable = nextOpenSlot ? slotLedger(dataset, nextOpenSlot.id)?.available ?? 0 : 0;
 
   return (
     <div className="relative min-h-screen pb-24">
-      <PageMeta title="Capacity | GreenLoop" description="Manage receiver capacity." />
-      <PageBreadcrumb pageTitle="Capacity" />
-
-      {/* Header */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="mb-8 border-b border-steel-200 pb-6 dark:border-steel-800"
-      >
-        <p className="eyebrow-label text-loop-600 dark:text-loop-400">Receiver Operations</p>
-        <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-4xl">
-          Site Capacity
-        </h1>
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <p className="max-w-2xl text-lg text-steel-600 dark:text-gray-400">
-            Manage your processing capacity limits per material to ensure you don't overbook incoming deliveries.
-          </p>
-          <Button size="md" onClick={() => setIsAdding((open) => !open)}>{isAdding ? "Close" : "Add Capacity"}</Button>
-        </div>
-      </motion.header>
+      <PageMeta title="Receiving Capacity | GreenLoop" description="Set the amount of each material your facility can receive by date." />
+      <PageBreadcrumb pageTitle="Receiving Capacity" />
+      <WorkflowPageHeader
+        title="Receiving Capacity"
+        description="How much can your facility accept? Set an amount for each material and date. Bookings use this capacity so loads are not double-booked."
+        status={nextOpenSlot ? `${nextAvailable.toFixed(1)} t free · ${formatDate(nextOpenSlot.date)}` : "No upcoming capacity slots"}
+        action={{ label: isAdding ? "Close form" : "Add capacity", onClick: () => setIsAdding((open) => !open) }}
+      />
 
       {isAdding && (
         <form onSubmit={handleAddCapacity} className="mb-6 grid gap-4 rounded-sm border border-steel-200 bg-white p-6 shadow-sm sm:grid-cols-4 dark:border-steel-800 dark:bg-white/[0.02]">
@@ -95,9 +85,9 @@ export default function Capacity() {
 
       {slots.length === 0 ? (
         <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-sm border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01]">
-          <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">No capacity registered</h2>
+          <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">How much can your facility accept?</h2>
           <p className="mt-2 max-w-md text-steel-600 dark:text-gray-400">
-            Define daily or weekly intake limits per material.
+            Add a date, material, and amount to make receiving capacity available to providers.
           </p>
         </div>
       ) : (
@@ -169,7 +159,7 @@ export default function Capacity() {
                       style={{ width: `${percent}%` }} 
                     />
                   </div>
-                  <p className="mt-4 text-xs text-steel-400">Slot ID: {s.id}</p>
+                  <details className="mt-3 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-2 block">Receiving slot ID: {s.id} · {reserved.toFixed(1)} t reserved · {percent.toFixed(0)}% used</span></details>
                   {editingSlotId === s.id ? (
                     <form className="mt-3 flex flex-wrap items-center gap-2" onSubmit={(event) => {
                       event.preventDefault();

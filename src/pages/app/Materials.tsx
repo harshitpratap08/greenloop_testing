@@ -165,7 +165,7 @@ export default function Materials() {
                     <span className="text-sm font-semibold text-ink-900 dark:text-gray-200">{existingAllocation ? "Matched with" : "Suggested receiver"}: {receiver.name}</span>
                     {!existingAllocation && candidate && <Badge color={capacityFits ? "success" : "warning"} size="sm">{capacityFits ? `${candidate.availableT.toFixed(1)} t free` : "Not enough capacity"}</Badge>}
                     {existingAllocation && <StatusBadge status={existingAllocation.status} />}
-                    {!existingAllocation && <Link to="/app/receivers" state={{ materialId: material.id }} className="ml-auto inline-flex bg-ink-900 px-4 py-2 text-sm font-semibold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">Find receiver</Link>}
+                    {!existingAllocation && <Link to="/app/receivers" state={{ materialId: material.id }} className="ml-auto inline-flex min-h-11 items-center bg-ink-900 px-4 py-2 text-sm font-semibold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">Find receiver</Link>}
                   </div>
                 )}
                 <details className="mt-3 border-t border-steel-100 pt-3 text-sm dark:border-steel-800/50">

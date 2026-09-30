@@ -26,10 +26,10 @@ export default function Allocations() {
   return (
     <div className="relative min-h-screen pb-24">
       <PageMeta
-        title="Allocations | GreenLoop"
-        description="Material-to-receiver allocations with scoring rationale and hold reasons."
+        title="Matches | GreenLoop"
+        description="See which receivers match each material and why a destination is suitable."
       />
-      <PageBreadCrumb pageTitle="Allocations" />
+      <PageBreadCrumb pageTitle="Matches" />
 
       {/* Hero Header */}
       <motion.header 
@@ -38,12 +38,12 @@ export default function Allocations() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="mb-10 border-b border-steel-300 pb-8 dark:border-steel-800"
       >
-        <p className="eyebrow-label text-loop-600 dark:text-loop-400">Match Logic & Scoring</p>
+        <p className="eyebrow-label text-loop-600 dark:text-loop-400">Provider operations</p>
         <h1 className="mt-4 font-archivo text-4xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-5xl">
-          Allocation Algorithms
+          Material matches
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-steel-600 dark:text-gray-400">
-          Review the detailed scoring matrix, candidate suitability, and intake capacity calculations used to determine material destinations.
+          GreenLoop compares receivers that can process each material. Open a match to review the capacity, distance, and scoring details.
         </p>
       </motion.header>
 
@@ -66,17 +66,16 @@ export default function Allocations() {
                   <span className="mx-2 text-steel-400 dark:text-steel-500">→</span> 
                   {receiverName(allocation.receiverId)}
                 </h3>
-                <p className="ledger-numeral mt-2 text-sm font-medium text-steel-600 dark:text-gray-400">
-                  <span className="font-bold text-ink-900 dark:text-gray-200">{allocation.requestedT.toFixed(1)} t</span> requested
-                  <span className="mx-2 text-steel-300 dark:text-steel-600">·</span>
-                  Slot {allocation.slotId}
-                  <span className="mx-2 text-steel-300 dark:text-steel-600">·</span>
-                  Capacity {allocation.capacityBeforeT.toFixed(1)} <span className="text-steel-400">→</span> {allocation.capacityAfterT.toFixed(1)} t free
+                <p className="mt-2 text-sm font-medium text-steel-600 dark:text-gray-400">
+                  <span className="font-bold text-ink-900 dark:text-gray-200">{allocation.requestedT.toFixed(1)} t</span> requested · {dataset.slots.find((slot) => slot.id === allocation.slotId)?.date ?? "Date not set"}
                 </p>
               </div>
               <StatusBadge status={allocation.status} size="md" />
             </div>
 
+            <details className="border-t border-steel-200 dark:border-steel-800">
+              <summary className="cursor-pointer px-6 py-4 text-sm font-semibold text-ink-800 dark:text-gray-200">View match details ▾</summary>
+              <div className="border-t border-steel-200 dark:border-steel-800">
             {allocation.holdReason && (
               <div className="border-b border-signal-200 bg-signal-50 px-6 py-4 dark:border-signal-500/30 dark:bg-signal-500/10">
                 <p className="text-sm text-signal-900 dark:text-signal-100">
@@ -144,14 +143,17 @@ export default function Allocations() {
               <p className="text-xs font-medium text-steel-500 dark:text-gray-500">
                 Composite score: suitability 40% · demand 25% · slot availability 20% · proximity 15%. Recommended = best score among receivers whose slot fits the load.
               </p>
+              <p className="mt-2 text-xs text-steel-500">Match ID: {allocation.id} · Receiving slot: {allocation.slotId} · Capacity {allocation.capacityBeforeT.toFixed(1)} → {allocation.capacityAfterT.toFixed(1)} t free</p>
             </div>
+              </div>
+            </details>
           </motion.section>
         ))}
 
         {dataset.allocations.length === 0 && (
           <EmptyState 
-            title="No allocations yet"
-            body="Request capacity from a receiver to create a new material allocation."
+            title="No matches yet"
+            body="Find a receiver for your material to create a match."
             action={{ label: "Find receivers", to: "/app/receivers" }}
           />
         )}

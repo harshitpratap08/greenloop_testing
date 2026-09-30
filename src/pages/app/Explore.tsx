@@ -25,6 +25,7 @@ import { cn } from "@/utils";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { slotLedger } from "@/domain/capacity";
 import { motion } from "motion/react";
+import type { Booking } from "@/domain/types";
 
 export default function Explore() {
   const { dataset } = useGreenLoopStore();
@@ -114,7 +115,7 @@ export default function Explore() {
         {attentionItems.length ? <ul className="mt-4 grid gap-3 lg:grid-cols-3">
           {attentionItems.slice(0, 6).map((item) => <li key={item.key} className="flex flex-col justify-between gap-4 rounded-sm border border-steel-200 p-4 dark:border-steel-800">
             <div><h3 className="font-semibold text-ink-900 dark:text-white">{item.title}</h3><p className="mt-1 text-sm text-steel-600 dark:text-gray-400">{item.status}</p><p className="mt-2 text-xs font-medium text-steel-500">Next step: {item.action}</p></div>
-            <Link to={item.to} state={item.state} className="inline-flex w-fit bg-ink-900 px-4 py-2 text-sm font-semibold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">{item.action}</Link>
+            <Link to={item.to} state={item.state} className="inline-flex min-h-11 w-fit items-center bg-ink-900 px-4 py-2 text-sm font-semibold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">{item.action}</Link>
           </li>)}
         </ul> : <p className="mt-4 text-sm text-steel-600 dark:text-gray-400">Nothing needs action right now. Your project information and progress are below.</p>}
       </section>
@@ -433,7 +434,7 @@ export function ReceiverSpotlight() {
   );
 }
 
-function LiveDeliveryRow({ booking, index }: { booking: any, index: number }) {
+function LiveDeliveryRow({ booking, index }: { booking: Booking; index: number }) {
   return (
     <motion.div 
       initial={{ opacity: 0, x: -20 }}

@@ -9,6 +9,7 @@ import StatusBadge from "@/components/greenloop/StatusBadge";
 import { cn } from "@/utils";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { materialMedia } from "@/components/greenloop/AppExploration";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -73,8 +74,8 @@ export default function Demand() {
         title="Material Requests"
         description="Tell providers what you need. Offers come to you. A material request describes the type, amount, and date your facility needs."
         status={`${receiverDemands.length} request${receiverDemands.length === 1 ? "" : "s"} from this facility`}
+        action={!isAdding ? { label: "Request material", onClick: () => { setIsAdding(true); setSentMessage(""); } } : undefined}
       />
-      {!isAdding && <Button size="md" onClick={() => { setIsAdding(true); setSentMessage(""); }}>Request material</Button>}
 
       {sentMessage && <p role="status" className="mb-5 border-l-4 border-loop-500 bg-loop-50 px-4 py-3 text-sm font-medium text-loop-800 dark:bg-loop-500/10 dark:text-loop-200">{sentMessage}</p>}
       {/* Add Demand Form */}
@@ -245,17 +246,22 @@ export default function Demand() {
                           .reduce((total, booking) => total + booking.tonnesT, 0);
                         const passportAvailableT = Math.max(0, (passport?.quantityT ?? 0) - committedT);
                         const hasCapacity = dataset.slots.some((slot) => slot.receiverId === demand.receiverId && slot.materialType === demand.materialType);
+                        const photo = passport ? materialMedia(passport)[0] : undefined;
+                        const receiverDistanceKm = dataset.receivers.find((item) => item.id === demand.receiverId)?.distanceKm;
                         return (
-                          <div key={offer.id} className="flex flex-col gap-3 bg-white p-3 shadow-sm rounded-sm dark:bg-gray-900 border border-steel-100 dark:border-steel-800 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="text-sm font-semibold text-ink-900 dark:text-gray-100">Provider: {offer.providerId}</p>
-                              <p className="text-xs text-steel-500">{TYPE_LABEL[passport?.type ?? ""] ?? passport?.type ?? demand.materialType} · {offer.offeredQuantityT} t · Passport {offer.passportId}</p>
-                              <p className="text-xs text-steel-500">{passport?.condition ?? "Details unavailable"} condition · Grade {passport?.grade ?? "—"} · {passport?.evidence.length ?? 0} evidence records</p>
-                              {passport?.evidence.map((item) => <span key={`${offer.id}-${item.label}`} className="me-2 text-xs text-loop-600 dark:text-loop-400">{item.label}</span>)}
+                          <div key={offer.id} className="flex flex-col gap-3 bg-white p-4 shadow-sm rounded-sm dark:bg-gray-900 border border-steel-100 dark:border-steel-800 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex min-w-0 gap-3">
+                              {photo && <img src={photo.src} alt={photo.caption} className="size-20 shrink-0 object-cover" />}
+                              <div>
+                                <p className="text-sm font-semibold text-ink-900 dark:text-gray-100">Provider offer · {receiverDistanceKm ?? "—"} km away</p>
+                                <p className="mt-1 font-archivo text-lg font-bold text-ink-900 dark:text-white">{offer.offeredQuantityT.toFixed(1)} t {TYPE_LABEL[passport?.type ?? ""] ?? passport?.type ?? demand.materialType}</p>
+                                <p className="text-sm text-steel-600 dark:text-gray-400">{passport?.condition ?? "Details unavailable"} condition · Grade {passport?.grade ?? "—"} · {passport?.evidence.length ?? 0} Evidence items</p>
+                                <details className="mt-2 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Provider: {offer.providerId} · Material Passport: {offer.passportId} · Offer: {offer.id}</span>{passport?.evidence.map((item) => <span key={`${offer.id}-${item.label}`} className="mt-1 block">Evidence: {item.label}</span>)}</details>
+                              </div>
                             </div>
-                            <div className="flex gap-2">
-                              <Button size="sm" disabled={!hasCapacity || offer.offeredQuantityT > passportAvailableT || offer.offeredQuantityT > remainingT} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
-                              <Button size="sm" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
+                            <div className="flex flex-wrap gap-2 sm:flex-col">
+                              <Button size="sm" className="min-h-11" disabled={!hasCapacity || offer.offeredQuantityT > passportAvailableT || offer.offeredQuantityT > remainingT} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
+                              <Button size="sm" className="min-h-11" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
                             </div>
                             {!hasCapacity && <p className="text-xs text-warning-600 sm:basis-full">Add a capacity slot before accepting this offer.</p>}
                             {hasCapacity && offer.offeredQuantityT > passportAvailableT && <p className="text-xs text-warning-600 sm:basis-full">Only {passportAvailableT.toFixed(1)} t remains on this passport.</p>}
