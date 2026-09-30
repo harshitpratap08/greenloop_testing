@@ -7,6 +7,12 @@ import SiteNav from "@/components/site/SiteNav";
 const providerSteps = ["Survey", "Material Passport", "Find Receiver", "Request Capacity", "Book", "Send Load", "Verify"];
 const receiverSteps = ["Material Request", "Receive Offers", "Review Passport", "Accept", "Capacity", "Receive", "Verify"];
 const workflowSteps = ["Survey", "Passport", "Match", "Capacity", "Book", "Send", "Receive", "Verify"];
+const networkStages = [
+  { title: "Capacity", detail: "Check available tonnes for the intake date." },
+  { title: "Booking", detail: "Reserve a receiving slot for the load." },
+  { title: "Delivery", detail: "Send the load to the receiving facility." },
+  { title: "Verified recovery", detail: "Record received and accepted quantities." },
+];
 
 export default function Landing() {
   const reduceMotion = useReducedMotion();
@@ -82,23 +88,65 @@ export default function Landing() {
 
         <section id="network" className="scroll-mt-24 overflow-hidden border-b border-white/10 bg-ink-950">
           <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 md:py-20">
-            <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+            <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
               <div>
                 <p className="eyebrow-label text-loop-300">The coordination layer</p>
                 <h2 className="mt-4 max-w-xl font-archivo text-4xl font-bold tracking-tight sm:text-5xl">Recovery is a chain. GreenLoop keeps it connected.</h2>
               </div>
               <p className="max-w-2xl text-base leading-7 text-white/65">Material supply and receiver demand meet through a capacity-aware match. From there, a dated booking connects the load to delivery and evidence of what was accepted.</p>
             </div>
-            <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-              {["MATERIAL", "DEMAND", "GREENLOOP MATCH", "CAPACITY", "BOOKING", "DELIVERY", "VERIFIED RECOVERY"].map((step, index) => (
-                <motion.div key={step} initial={reduceMotion ? false : { opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: reduceMotion ? 0 : index * 0.07, duration: 0.35 }} className={`relative flex min-h-24 items-center border p-4 ${step === "GREENLOOP MATCH" ? "border-loop-400/60 bg-loop-500/10 text-loop-300 sm:col-span-2 lg:col-span-1" : "border-white/15 bg-white/[0.03] text-white"}`}>
-                  <span className="ledger-numeral absolute right-3 top-3 text-[10px] text-white/35">{String(index + 1).padStart(2, "0")}</span>
-                  <span className="max-w-[10rem] font-archivo text-sm font-bold tracking-wide">{step}</span>
-                  {index < 6 && <span className="absolute -right-2 z-10 hidden text-loop-300 lg:block" aria-hidden="true">→</span>}
-                </motion.div>
-              ))}
+
+            <div className="mx-auto mt-10 max-w-5xl">
+              <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+                <FlowInput label="Provider supply" title="MATERIAL" detail="Recovered material, recorded and ready to place." />
+                <span className="justify-self-center font-archivo text-2xl text-loop-300" aria-label="and">+</span>
+                <FlowInput label="Receiver need" title="DEMAND" detail="Material needed, with a date and receiving location." />
+              </div>
+
+              <motion.div
+                className="mx-auto flex h-10 items-center justify-center text-loop-300"
+                animate={reduceMotion ? undefined : { y: [0, 4, 0] }}
+                transition={reduceMotion ? undefined : { duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                aria-hidden="true"
+              >↓</motion.div>
+
+              <div className="border border-loop-400/50 bg-loop-500/10 px-5 py-5 text-center sm:px-8">
+                <p className="eyebrow-label text-loop-300">The connection</p>
+                <h3 className="mt-2 font-archivo text-xl font-bold tracking-wide text-white sm:text-2xl">GREENLOOP MATCH</h3>
+                <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/65">Connect suitable material and demand, then check that a real receiving slot can fit the load.</p>
+              </div>
+
+              <motion.div
+                className="mx-auto flex h-10 items-center justify-center text-loop-300"
+                animate={reduceMotion ? undefined : { y: [0, 4, 0] }}
+                transition={reduceMotion ? undefined : { duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+                aria-hidden="true"
+              >↓</motion.div>
+
+              <ol className="grid gap-3 lg:grid-cols-4" aria-label="What happens after a match">
+                {networkStages.map((stage, index) => (
+                  <li key={stage.title} className="relative">
+                    <div className="min-h-28 border border-white/15 bg-white/[0.03] p-4 sm:p-5">
+                      <p className="ledger-numeral text-xs text-loop-300">0{index + 1}</p>
+                      <h4 className="mt-2 font-archivo text-base font-bold uppercase tracking-wide text-white">{stage.title}</h4>
+                      <p className="mt-1 text-sm leading-5 text-white/55">{stage.detail}</p>
+                    </div>
+                    {index < networkStages.length - 1 && (
+                      <>
+                        <motion.span
+                          className="mx-auto block py-2 text-center text-loop-300 lg:hidden"
+                          animate={reduceMotion ? undefined : { y: [0, 3, 0] }}
+                          transition={reduceMotion ? undefined : { duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: index * 0.2 }}
+                          aria-hidden="true"
+                        >↓</motion.span>
+                        <span className="absolute -right-2 top-1/2 z-10 hidden -translate-y-1/2 bg-ink-950 px-1 text-loop-300 lg:block" aria-hidden="true">→</span>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-5 text-center text-xs text-white/45">One connected process from supply and demand to verified recovery.</p>
             </div>
-            <div className="mt-5 flex items-center gap-3 text-xs text-white/45"><span className="size-2 bg-loop-400" />Material + demand → match → capacity → booking → delivery → verified recovery</div>
           </div>
         </section>
 
@@ -209,6 +257,16 @@ function WorkflowSide({ id, title, label, steps, action }: { id: string; title: 
       </ol>
       <Link to="/sign-up" className="mt-6 inline-flex min-h-11 items-center border border-white/25 px-4 text-sm font-semibold transition-colors hover:border-loop-300 hover:bg-loop-500/10">{action}<span className="ms-3 text-loop-300" aria-hidden="true">→</span></Link>
     </article>
+  );
+}
+
+function FlowInput({ label, title, detail }: { label: string; title: string; detail: string }) {
+  return (
+    <div className="min-h-28 border border-white/15 bg-white/[0.03] p-4 sm:p-5">
+      <p className="eyebrow-label text-white/45">{label}</p>
+      <h3 className="mt-2 font-archivo text-lg font-bold tracking-wide text-white">{title}</h3>
+      <p className="mt-1 text-sm leading-5 text-white/55">{detail}</p>
+    </div>
   );
 }
 
