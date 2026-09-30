@@ -18,7 +18,7 @@ import type {
 } from "@/domain/types";
 import { cn, formatDate } from "@/utils";
 import { Link } from "react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 /* ------------------------------------------------------------------ */
 /* Step engine — SURVEY → MATCH → RESERVE → DELIVER → VERIFY          */
@@ -541,11 +541,10 @@ export function EmptyState({
 /* ------------------------------------------------------------------ */
 
 export function useGreeting(): string {
-  const [greeting, setGreeting] = useState("Welcome back");
-  useEffect(() => {
+  const [greeting] = useState(() => {
     const hour = new Date().getHours();
-    setGreeting(hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening");
-  }, []);
+    return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  });
   return greeting;
 }
 

@@ -175,6 +175,7 @@ export default function Materials() {
                     <div><dt className="inline font-semibold">Estimate confidence:</dt> <dd className="inline">{Math.round(material.confidence * 100)}%</dd></div>
                     <div><dt className="inline font-semibold">Project:</dt> <dd className="inline">{projectName(material.projectId)}</dd></div>
                     <div><dt className="inline font-semibold">Evidence:</dt> <dd className="inline">{material.evidence.map((item) => item.label).join(", ") || "None"}</dd></div>
+                    {material.surveyNotes && <div className="sm:col-span-2"><dt className="font-semibold">Survey notes:</dt> <dd>{material.surveyNotes}</dd></div>}
                   </dl>
                   <ul className="mt-3 space-y-1 text-xs text-steel-500 dark:text-gray-400">{dataset.events.filter((event) => event.subjectIds.includes(material.id)).map((event) => <li key={event.id}>{new Date(event.at).toLocaleString()} · {event.summary}</li>)}</ul>
                 </details>

@@ -73,6 +73,7 @@ export interface MaterialPassport {
   status: MaterialStatus;
   /** Confidence in the estimate, 0–1. */
   confidence: number;
+  surveyNotes?: string;
   evidence: Evidence[];
 }
 

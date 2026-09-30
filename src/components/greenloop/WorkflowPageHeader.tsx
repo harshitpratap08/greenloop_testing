@@ -21,11 +21,11 @@ export default function WorkflowPageHeader({
           <p className="mt-3 text-sm font-medium text-ink-700 dark:text-gray-300"><span className="text-steel-500">Status:</span> {status}</p>
         </div>
         {action && (action.to ? (
-          <Link to={action.to} className="inline-flex shrink-0 items-center justify-center bg-ink-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-loop-700 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-400">
+          <Link to={action.to} className="inline-flex min-h-11 shrink-0 items-center justify-center bg-ink-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-loop-700 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-400">
             {action.label}
           </Link>
         ) : (
-          <button type="button" onClick={action.onClick} className="inline-flex shrink-0 items-center justify-center bg-ink-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-loop-700 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-400">
+          <button type="button" onClick={action.onClick} className="inline-flex min-h-11 shrink-0 items-center justify-center bg-ink-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-loop-700 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-400">
             {action.label}
           </button>
         ))}

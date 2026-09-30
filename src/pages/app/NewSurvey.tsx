@@ -28,6 +28,7 @@ export default function NewSurvey() {
   const [rangeMax, setRangeMax] = useState("12");
   const [condition, setCondition] = useState<MaterialCondition>("good");
   const [grade, setGrade] = useState<MaterialGrade>("A");
+  const [surveyNotes, setSurveyNotes] = useState("");
   const [confidence] = useState("0.85");
   const [showProjectForm, setShowProjectForm] = useState(dataset.projects.length === 0);
   const [projectName, setProjectName] = useState("");
@@ -95,6 +96,7 @@ export default function NewSurvey() {
       condition,
       grade,
       confidence: parseFloat(confidence) || 0,
+      surveyNotes: surveyNotes.trim() || undefined,
       evidence
     });
     setCreatedPassport(passport);
@@ -208,6 +210,10 @@ export default function NewSurvey() {
                     <option value="C">Grade C</option>
                   </select>
                 </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="survey-notes" className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Survey notes</label>
+                  <textarea id="survey-notes" value={surveyNotes} onChange={(event) => setSurveyNotes(event.target.value)} rows={3} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" />
+                </div>
                   </div>
                 </details>
               </div>
@@ -276,6 +282,7 @@ export default function NewSurvey() {
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Material</dt>
                   <dd className="font-bold text-ink-900 dark:text-white">{TYPE_LABEL[type]} (Grade {grade}, {condition})</dd>
+                  {surveyNotes.trim() && <><dt className="text-xs font-semibold uppercase text-steel-500">Survey notes</dt><dd className="text-sm text-steel-600 dark:text-gray-400">{surveyNotes.trim()}</dd></>}
                 </div>
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Quantity</dt>
