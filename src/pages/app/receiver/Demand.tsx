@@ -3,6 +3,7 @@ import PageMeta from "@/components/common/PageMeta";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { type MaterialTypeKey } from "@/domain/types";
+import { slotMatchesDemandPeriod } from "@/domain/capacity";
 import { motion } from "motion/react";
 import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
@@ -174,7 +175,9 @@ export default function Demand() {
         <div className="grid gap-6">
           {receiverDemands.map((demand, i) => {
             const coveredT = calculateCoveredT(demand.id);
-            const remainingT = Math.max(0, demand.requiredT - coveredT);
+            const heldT = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status === "hold")
+              .reduce((total, booking) => total + booking.tonnesT, 0);
+            const remainingT = Math.max(0, demand.requiredT - coveredT - heldT);
             const percentCovered = Math.min(100, (coveredT / demand.requiredT) * 100);
             
             return (
@@ -207,7 +210,7 @@ export default function Demand() {
                         <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-loop-600 dark:text-loop-400">
                           {remainingT.toFixed(1)} <span className="text-xl text-steel-400">t</span>
                         </p>
-                        <p className="mt-1 text-xs text-steel-500">{coveredT.toFixed(1)} t filled · {remainingT.toFixed(1)} t open</p>
+                        <p className="mt-1 text-xs text-steel-500">{coveredT.toFixed(1)} t filled{heldT > 0 ? ` · ${heldT.toFixed(1)} t waiting on capacity` : ""} · {remainingT.toFixed(1)} t open</p>
                       </div>
                     </div>
                   </div>
@@ -245,7 +248,11 @@ export default function Demand() {
                         const committedT = dataset.bookings.filter((booking) => booking.materialId === offer.passportId && booking.status !== "cancelled")
                           .reduce((total, booking) => total + booking.tonnesT, 0);
                         const passportAvailableT = Math.max(0, (passport?.quantityT ?? 0) - committedT);
-                        const hasCapacity = dataset.slots.some((slot) => slot.receiverId === demand.receiverId && slot.materialType === demand.materialType);
+                        const committedDemandT = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status !== "cancelled")
+                          .reduce((total, booking) => total + booking.tonnesT, 0);
+                        const offerRemainingT = Math.max(0, demand.requiredT - committedDemandT);
+                        const eligibleSlots = dataset.slots.filter((slot) => slot.receiverId === demand.receiverId && slot.materialType === demand.materialType && slotMatchesDemandPeriod(slot, demand.period));
+                        const hasCapacity = eligibleSlots.length > 0;
                         const photo = passport ? materialMedia(passport)[0] : undefined;
                         const receiverDistanceKm = dataset.receivers.find((item) => item.id === demand.receiverId)?.distanceKm;
                         return (
@@ -260,12 +267,12 @@ export default function Demand() {
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2 sm:flex-col">
-                              <Button size="sm" className="min-h-11" disabled={!hasCapacity || offer.offeredQuantityT > passportAvailableT || offer.offeredQuantityT > remainingT} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
+                              <Button size="sm" className="min-h-11" disabled={!hasCapacity || offer.offeredQuantityT > passportAvailableT || offer.offeredQuantityT > offerRemainingT} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
                               <Button size="sm" className="min-h-11" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
                             </div>
-                            {!hasCapacity && <p className="text-xs text-warning-600 sm:basis-full">Add a capacity slot before accepting this offer.</p>}
+                            {!hasCapacity && <p className="text-xs text-warning-600 sm:basis-full">Add receiving capacity by the requested date before accepting this offer.</p>}
                             {hasCapacity && offer.offeredQuantityT > passportAvailableT && <p className="text-xs text-warning-600 sm:basis-full">Only {passportAvailableT.toFixed(1)} t remains on this passport.</p>}
-                            {offer.offeredQuantityT > remainingT && <p className="text-xs text-warning-600 sm:basis-full">This offer exceeds the {remainingT.toFixed(1)} t remaining for this demand.</p>}
+                            {offer.offeredQuantityT > offerRemainingT && <p className="text-xs text-warning-600 sm:basis-full">Only {offerRemainingT.toFixed(1)} t remains available for an offer on this request.</p>}
                           </div>
                         );
                       })}

@@ -1,5 +1,6 @@
 import {
   availableT,
+  slotMatchesDemandPeriod,
   dispatchLoad,
   recordDelivery,
   releaseCapacity,
@@ -123,7 +124,7 @@ function eventFor(
 
 function updateDemandCoverage(dataset: GreenLoopDataset, demandId: string): GreenLoopDataset {
   const demand = dataset.demands.find((item) => item.id === demandId);
-  if (!demand) return dataset;
+  if (!demand || demand.status === "PAUSED") return dataset;
   const coveredT = dataset.bookings
     .filter((booking) => booking.demandId === demandId && booking.status === "confirmed")
     .reduce((total, booking) => total + booking.tonnesT, 0);
@@ -136,6 +137,10 @@ function updateDemandCoverage(dataset: GreenLoopDataset, demandId: string): Gree
     ...dataset,
     demands: dataset.demands.map((item) => item.id === demandId ? { ...item, status } : item),
   };
+}
+
+function syncDemandCoverage(dataset: GreenLoopDataset): GreenLoopDataset {
+  return dataset.demands.reduce((current, demand) => updateDemandCoverage(current, demand.id), dataset);
 }
 
 export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
@@ -176,23 +181,30 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const requestCapacityAction = useCallback<RequestCapacityAction>((input) => {
-    setDataset((prev) => requestCapacity(prev, {
-      ...input,
-      actor: ACTOR_A,
-      at: new Date().toISOString(),
-    }).dataset);
+    setDataset((prev) => {
+      const material = prev.materials.find((item) => item.id === input.materialId);
+      if (!material) return prev;
+      const committedT = prev.bookings
+        .filter((booking) => booking.materialId === input.materialId && booking.status !== "cancelled")
+        .reduce((total, booking) => total + booking.tonnesT, 0);
+      if (input.tonnesT > material.quantityT - committedT + 1e-9) return prev;
+      return requestCapacity(prev, {
+        ...input,
+        actor: ACTOR_A,
+        at: new Date().toISOString(),
+      }).dataset;
+    });
   }, []);
 
   const cancelBookingAction = useCallback<CancelBookingAction>((input) => {
     setDataset((prev) => {
-      const booking = prev.bookings.find((item) => item.id === input.bookingId);
       const released = releaseCapacity(prev, {
         bookingId: input.bookingId,
         ...(input.reason !== undefined ? { reason: input.reason } : {}),
         actor: ACTOR_A,
         at: new Date().toISOString(),
       }).dataset;
-      return booking?.demandId ? updateDemandCoverage(released, booking.demandId) : released;
+      return syncDemandCoverage(released);
     });
   }, []);
 
@@ -304,7 +316,7 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
           `${slot.materialType} capacity for ${slot.date} changed to ${capacityT.toFixed(1)} t`, [slot.id, slot.receiverId], undefined, at)],
       };
       return capacityT > current.capacityT
-        ? recheckHolds(updated, { slotId, actor: ACTOR_RECEIVER, at }).dataset
+        ? syncDemandCoverage(recheckHolds(updated, { slotId, actor: ACTOR_RECEIVER, at }).dataset)
         : updated;
     });
     return true;
@@ -355,8 +367,16 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
       const material = prev.materials.find((item) => item.id === booking.materialId);
       if (!slot || !material || slot.receiverId !== booking.receiverId || slot.materialType !== material.type) return prev;
       const before = availableT(slot, prev.bookings);
+      const committedMaterialT = prev.bookings.filter((item) => item.id !== bookingId && item.materialId === booking.materialId && item.status !== "cancelled")
+        .reduce((total, item) => total + item.tonnesT, 0);
+      const materialRemainingT = Math.max(0, material.quantityT - committedMaterialT);
+      const demand = booking.demandId ? prev.demands.find((item) => item.id === booking.demandId) : undefined;
+      const committedDemandT = booking.demandId ? prev.bookings.filter((item) => item.id !== bookingId && item.demandId === booking.demandId && item.status !== "cancelled")
+        .reduce((total, item) => total + item.tonnesT, 0) : 0;
+      const demandRemainingT = demand ? Math.max(0, demand.requiredT - committedDemandT) : Infinity;
+      const maximumAcceptableT = Math.min(before, materialRemainingT, demandRemainingT);
       const acceptedT = Math.min(booking.tonnesT, requestedAcceptedT ?? booking.tonnesT);
-      if (!Number.isFinite(acceptedT) || acceptedT <= 0 || acceptedT > before + 1e-9) return prev;
+      if (!Number.isFinite(acceptedT) || acceptedT <= 0 || acceptedT > maximumAcceptableT + 1e-9) return prev;
       if (acceptedT < booking.tonnesT) {
         const remainingT = Math.round((booking.tonnesT - acceptedT) * 10) / 10;
         const allocation = prev.allocations.find((item) => item.id === booking.allocationId);
@@ -409,7 +429,7 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
           actor: ACTOR_RECEIVER,
           at,
         }).dataset;
-        return booking.demandId ? updateDemandCoverage(released, booking.demandId) : released;
+        return syncDemandCoverage(released);
       }
       let next: GreenLoopDataset = {
         ...prev,
@@ -435,11 +455,19 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
       const booking = prev.bookings.find((item) => item.id === bookingId);
       const target = prev.slots.find((item) => item.id === slotId);
       const material = booking && prev.materials.find((item) => item.id === booking.materialId);
+      const demand = booking?.demandId ? prev.demands.find((item) => item.id === booking.demandId) : undefined;
       if (!booking || booking.status !== "hold" || !target || !material ||
-        target.receiverId !== booking.receiverId || target.materialType !== material.type) return prev;
+        target.receiverId !== booking.receiverId || target.materialType !== material.type ||
+        demand && !slotMatchesDemandPeriod(target, demand.period)) return prev;
       const before = availableT(target, prev.bookings);
+      const committedMaterialT = prev.bookings.filter((item) => item.id !== bookingId && item.materialId === booking.materialId && item.status !== "cancelled")
+        .reduce((total, item) => total + item.tonnesT, 0);
+      const materialRemainingT = Math.max(0, material.quantityT - committedMaterialT);
+      const committedDemandT = booking.demandId ? prev.bookings.filter((item) => item.id !== bookingId && item.demandId === booking.demandId && item.status !== "cancelled")
+        .reduce((total, item) => total + item.tonnesT, 0) : 0;
+      const demandRemainingT = demand ? Math.max(0, demand.requiredT - committedDemandT) : Infinity;
       const at = new Date().toISOString();
-      if (booking.tonnesT > before + 1e-9) {
+      if (booking.tonnesT > before + 1e-9 || booking.tonnesT > materialRemainingT + 1e-9 || booking.tonnesT > demandRemainingT + 1e-9) {
         const event = eventFor(prev, "allocation.reschedule.hold", ACTOR_RECEIVER,
           `Reschedule unavailable — ${booking.tonnesT.toFixed(1)} t does not fit in ${target.date}`,
           [booking.materialId, booking.receiverId, booking.id, target.id], undefined, at);
@@ -459,7 +487,7 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
           `${booking.tonnesT.toFixed(1)} t request rescheduled to ${target.date}`,
           [booking.materialId, booking.receiverId, booking.allocationId, booking.id, target.id], undefined, at)],
       };
-      return booking.demandId ? updateDemandCoverage(next, booking.demandId) : next;
+      return syncDemandCoverage(next);
     });
   }, []);
 
@@ -550,20 +578,21 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
       const demand = prev.demands.find((item) => item.id === offer.demandId);
       const material = prev.materials.find((item) => item.id === offer.passportId);
       if (!demand || !material || material.type !== demand.materialType || demand.status === "PAUSED") return prev;
-      const slot = prev.slots
-        .filter((item) => item.receiverId === demand.receiverId && item.materialType === demand.materialType)
-        .sort((a, b) => a.date.localeCompare(b.date))[0];
-      if (!slot) return prev;
+      const eligibleSlots = prev.slots
+        .filter((item) => item.receiverId === demand.receiverId && item.materialType === demand.materialType && slotMatchesDemandPeriod(item, demand.period))
+        .sort((a, b) => a.date.localeCompare(b.date));
+      if (!eligibleSlots.length) return prev;
 
       const at = new Date().toISOString();
       const committedMaterialT = prev.bookings.filter((booking) => booking.materialId === material.id && booking.status !== "cancelled")
         .reduce((total, booking) => total + booking.tonnesT, 0);
-      const coveredDemandT = prev.bookings.filter((booking) => booking.demandId === demand.id && booking.status === "confirmed")
+      const committedDemandT = prev.bookings.filter((booking) => booking.demandId === demand.id && booking.status !== "cancelled")
         .reduce((total, booking) => total + booking.tonnesT, 0);
       const materialAvailableT = Math.max(0, material.quantityT - committedMaterialT);
-      const demandRemainingT = Math.max(0, demand.requiredT - coveredDemandT);
+      const demandRemainingT = Math.max(0, demand.requiredT - committedDemandT);
       const requested = offer.offeredQuantityT;
       if (requested > materialAvailableT || requested > demandRemainingT) return prev;
+      const slot = eligibleSlots.find((item) => availableT(item, prev.bookings) >= requested) ?? eligibleSlots[0];
       const capacityResult = requestCapacity(prev, {
         materialId: material.id,
         receiverId: demand.receiverId,

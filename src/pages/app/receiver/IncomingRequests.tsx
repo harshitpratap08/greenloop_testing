@@ -4,7 +4,7 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion, AnimatePresence } from "motion/react";
 import Button from "@/components/ui/button/Button";
-import { slotLedger } from "@/domain/capacity";
+import { slotLedger, slotMatchesDemandPeriod } from "@/domain/capacity";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 
@@ -43,12 +43,20 @@ export default function IncomingRequests() {
               const material = dataset.materials.find(m => m.id === booking.materialId);
               const project = dataset.projects.find(p => p.id === material?.projectId);
               const slot = dataset.slots.find(s => s.id === booking.slotId);
+              const demand = booking.demandId ? dataset.demands.find((item) => item.id === booking.demandId) : undefined;
               const ledger = slot ? slotLedger(dataset, slot.id) : null;
-              
+              const committedMaterialT = dataset.bookings.filter((item) => item.id !== booking.id && item.materialId === booking.materialId && item.status !== "cancelled")
+                .reduce((total, item) => total + item.tonnesT, 0);
+              const materialRemainingT = Math.max(0, (material?.quantityT ?? 0) - committedMaterialT);
+              const committedDemandT = booking.demandId ? dataset.bookings.filter((item) => item.id !== booking.id && item.demandId === booking.demandId && item.status !== "cancelled")
+                .reduce((total, item) => total + item.tonnesT, 0) : 0;
+              const demandRemainingT = demand ? Math.max(0, demand.requiredT - committedDemandT) : Infinity;
+              const confirmableT = Math.max(0, Math.min(ledger?.available ?? 0, materialRemainingT, demandRemainingT));
+
               const isRescheduling = reschedulingId === booking.id;
               
               // Find alternative slots for this material
-              const alternativeSlots = dataset.slots.filter(s => s.receiverId === receiverId && s.materialType === material?.type && s.id !== slot?.id && (slotLedger(dataset, s.id)?.available ?? 0) >= booking.tonnesT);
+              const alternativeSlots = dataset.slots.filter(s => s.receiverId === receiverId && s.materialType === material?.type && s.id !== slot?.id && (!demand || slotMatchesDemandPeriod(s, demand.period)) && (slotLedger(dataset, s.id)?.available ?? 0) >= booking.tonnesT);
               
               return (
                 <motion.article
@@ -130,9 +138,13 @@ export default function IncomingRequests() {
                         </div>
                       ) : (
                         <>
-                          <Button size="sm" disabled={booking.status === "hold" && (ledger?.available ?? 0) <= 0} onClick={() => acceptRequestAction(booking.id, booking.status === "hold" && (ledger?.available ?? 0) < booking.tonnesT ? ledger?.available : undefined)}>
-                            {booking.status === "confirmed" ? "Confirm request" : booking.status === "hold" && (ledger?.available ?? 0) < booking.tonnesT ? `Confirm ${ledger?.available.toFixed(1)} t` : "Confirm request"}
-                          </Button>
+                          {booking.receiverAcceptedAt ? (
+                            <p className="text-sm font-medium text-steel-600 dark:text-gray-400">Offer accepted. Waiting on capacity.</p>
+                          ) : (
+                            <Button size="sm" disabled={booking.status === "hold" && confirmableT <= 0} onClick={() => acceptRequestAction(booking.id, booking.status === "hold" && confirmableT < booking.tonnesT ? confirmableT : undefined)}>
+                              {booking.status === "confirmed" ? "Confirm request" : booking.status === "hold" && confirmableT < booking.tonnesT ? `Confirm ${confirmableT.toFixed(1)} t` : "Confirm request"}
+                            </Button>
+                          )}
                           {booking.status === "hold" && <Button size="sm" variant="outline" disabled={alternativeSlots.length === 0} onClick={() => setReschedulingId(booking.id)}>
                             Propose another date
                           </Button>}

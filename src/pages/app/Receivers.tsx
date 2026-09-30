@@ -33,7 +33,7 @@ export default function Receivers() {
   
   const material = dataset.materials.find((item) => item.id === materialId);
   const allocatedT = material ? dataset.allocations
-    .filter((a) => a.materialId === material.id && a.status === "confirmed")
+    .filter((a) => a.materialId === material.id && a.status !== "cancelled")
     .reduce((sum, a) => sum + a.requestedT, 0) : 0;
   const remainingT = material ? Math.max(0, material.quantityT - allocatedT) : 0;
   const project = material && dataset.projects.find((item) => item.id === material.projectId);
@@ -94,7 +94,7 @@ export default function Receivers() {
               className="peer min-w-72 cursor-pointer appearance-none rounded-sm border-2 border-steel-300 bg-white px-5 py-3 pr-10 font-medium text-ink-900 outline-none transition-all focus:border-loop-500 focus:ring-4 focus:ring-loop-500/20 dark:border-steel-700 dark:bg-black dark:text-white dark:focus:border-loop-500"
             >
               {dataset.materials.map((item) => {
-                const itemAllocated = dataset.allocations.filter(a => a.materialId === item.id && a.status === "confirmed").reduce((s, a) => s + a.requestedT, 0);
+                const itemAllocated = dataset.allocations.filter(a => a.materialId === item.id && a.status !== "cancelled").reduce((s, a) => s + a.requestedT, 0);
                 const itemRemaining = Math.max(0, item.quantityT - itemAllocated);
                 return (
                   <option key={item.id} value={item.id}>{TYPE_LABEL[item.type] ?? item.type} · {itemRemaining.toFixed(1)} t available</option>
