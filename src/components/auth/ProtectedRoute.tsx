@@ -2,11 +2,15 @@ import { Navigate, Outlet } from "react-router";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ProtectedRoute() {
-  const { user } = useAuth();
-  
-  if (!user) {
-    return <Navigate to="/signin" replace />;
+  const { user, ready } = useAuth();
+
+  if (!ready) {
+    return <div role="status" className="flex min-h-screen items-center justify-center bg-white text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">Restoring your local demo session…</div>;
   }
-  
+
+  if (!user) {
+    return <Navigate to="/sign-in" replace />;
+  }
+
   return <Outlet />;
 }

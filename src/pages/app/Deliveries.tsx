@@ -7,6 +7,7 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import type { Booking } from "@/domain/types";
 import { cn, formatStamp, formatDate } from "@/utils";
 import { motion, AnimatePresence } from "motion/react";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -20,6 +21,8 @@ const TYPE_LABEL: Record<string, string> = {
 export default function Deliveries() {
   const { dataset } = useGreenLoopStore();
   const dispatchable = dataset.bookings.filter((booking) => booking.status === "confirmed");
+  const readyToSend = dispatchable.filter((booking) => booking.receiverAcceptedAt && !booking.loadRef);
+  const onTheRoad = dispatchable.filter((booking) => booking.loadRef && !dataset.verifications.some((item) => item.bookingId === booking.id));
 
   return (
     <div className="relative min-h-screen pb-24">
@@ -29,56 +32,12 @@ export default function Deliveries() {
       />
       <PageBreadCrumb pageTitle="Deliveries" />
 
-      {/* Cinematic Delivery Header */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="group relative mb-12 overflow-hidden rounded-sm border border-steel-200 bg-ink-950 p-8 shadow-lg sm:p-12 dark:border-steel-800 dark:bg-black"
-      >
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          {/* Animated Background */}
-          <img
-            src="/images/site/auth-yard.jpg"
-            alt="Logistics Operations"
-            className="h-full w-full animate-slow-mo object-cover opacity-40 dark:opacity-50"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-ink-950/95 via-ink-950/80 to-transparent dark:from-black/95 dark:via-black/70" />
-        </div>
-
-        <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
-            <p className="eyebrow-label text-loop-400">Recovery Network · Load Tracking</p>
-            <h1 className="mt-4 font-archivo text-4xl font-bold tracking-tight text-white drop-shadow-md sm:text-5xl">
-              Deliveries In Motion
-            </h1>
-            <p className="mt-4 text-lg text-white/80 drop-shadow-sm">
-              Follow each confirmed load from its project origin, through dispatch, to receiver intake and proof of recovery.
-            </p>
-          </div>
-          
-          <div className="flex flex-col items-start gap-1 border-l-2 border-loop-500 pl-6 md:items-end md:border-l-0 md:border-r-2 md:pl-0 md:pr-6 md:text-right">
-            <motion.span 
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5, type: "spring" }}
-              className="ledger-numeral text-5xl font-bold text-white"
-            >
-              {dispatchable.length}
-            </motion.span>
-            <span className="eyebrow-label text-white/60 uppercase tracking-widest">Active Loads</span>
-          </div>
-        </div>
-
-        {/* Global Track Progress Bar across Header */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: "100%" }}
-            className="h-full bg-loop-500"
-          />
-        </div>
-      </motion.div>
+      <WorkflowPageHeader
+        title="Where is my load?"
+        description="Track confirmed material bookings from your project to the receiver, then see what was received and accepted."
+        status={`${readyToSend.length} ready to send · ${onTheRoad.length} on the road · ${dispatchable.filter((booking) => dataset.verifications.some((item) => item.bookingId === booking.id)).length} delivered`}
+        action={readyToSend.length ? { label: "Send a load", to: "#delivery-loads" } : undefined}
+      />
 
       {dispatchable.length === 0 ? (
         <section className="flex flex-col items-center justify-center rounded-sm border-2 border-dashed border-steel-300 bg-white/50 p-16 text-center dark:border-steel-800 dark:bg-white/[0.02]">
@@ -91,7 +50,7 @@ export default function Deliveries() {
           <Link to="/app/bookings" className="mt-6 font-semibold text-ink-900 underline decoration-steel-300 underline-offset-4 hover:text-loop-600 dark:text-white dark:hover:text-loop-400">Review bookings →</Link>
         </section>
       ) : (
-        <div className="space-y-12">
+        <div id="delivery-loads" className="space-y-6">
           {dispatchable.map((booking, index) => (
             <motion.div
               key={booking.id}
@@ -130,7 +89,7 @@ function LoadCard({ booking }: { booking: Booking }) {
     { label: "Evidence", detail: verification?.evidence.length ? `${verification.evidence.length} records` : "Awaiting", complete: Boolean(verification?.evidence.length) },
   ];
   
-  const isEnRoute = Boolean(dispatchEvent) && !Boolean(verification);
+  const isEnRoute = Boolean(dispatchEvent) && !verification;
   const progressPercent = verification ? 100 : dispatchEvent ? 50 : 10;
 
   return (
@@ -138,7 +97,7 @@ function LoadCard({ booking }: { booking: Booking }) {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-steel-200 bg-gray-50 px-6 py-5 dark:border-steel-800 dark:bg-white/[0.02]">
         <div>
-          <p className="eyebrow-label text-steel-500 dark:text-steel-400">Shipment Record · {booking.id}</p>
+          <p className="eyebrow-label text-steel-500 dark:text-steel-400">{currentStatus === "confirmed" ? booking.receiverAcceptedAt ? "Ready to send" : "Waiting for receiver" : currentStatus === "dispatched" ? "On the road" : "Delivered"}</p>
           <div className="mt-1 flex items-baseline gap-4">
             <h2 className="ledger-numeral text-2xl font-bold tracking-tight text-ink-900 dark:text-white">{loadRef}</h2>
             <p className="font-archivo text-lg font-semibold uppercase text-loop-600 dark:text-loop-400">
@@ -150,6 +109,13 @@ function LoadCard({ booking }: { booking: Booking }) {
       </div>
 
       <div className="p-6 sm:p-8">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+          <p className="font-archivo text-xl font-bold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t {TYPE_LABEL[material?.type ?? ""] ?? material?.type} · {receiver?.name ?? "Receiver"}</p>
+          <p className="text-sm text-steel-600 dark:text-gray-400">{slot ? formatDate(slot.date) : "Intake date pending"}</p>
+        </div>
+        <details className="rounded-sm border border-steel-200 dark:border-steel-800">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink-800 dark:text-gray-200">View details ▾</summary>
+          <div className="border-t border-steel-200 p-4 dark:border-steel-800">
         {/* Animated Live Route Map */}
         <div className="relative mb-10 overflow-hidden rounded-sm border border-steel-200 bg-steel-50 p-6 dark:border-steel-800 dark:bg-black/40">
           <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -310,18 +276,22 @@ function LoadCard({ booking }: { booking: Booking }) {
           </section>
         </div>
 
+          </div>
+        </details>
         {/* Footer Actions */}
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-steel-200 pt-6 dark:border-steel-800">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-steel-200 pt-6 dark:border-steel-800">
           <p className="text-sm font-medium text-steel-500 dark:text-gray-400">Booking {booking.id} · receiver intake {slot ? formatDate(slot.date) : "date pending"}</p>
-          {!dispatchEvent && !verification ? (
+          {!dispatchEvent && !verification && !booking.receiverAcceptedAt ? (
+            <span className="text-sm font-semibold text-warning-600">Waiting for the receiver to approve this booking</span>
+          ) : !dispatchEvent && !verification ? (
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button size="md" className="bg-ink-900 uppercase tracking-widest hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500" onClick={() => dispatchAction({ bookingId: booking.id })}>
-                Dispatch Load
+                Send load
               </Button>
             </motion.div>
           ) : (
             <Link to="/app/verification" className="group flex items-center gap-2 text-sm font-bold text-ink-900 transition-colors hover:text-loop-600 dark:text-white dark:hover:text-loop-400">
-              Open Verification Record
+              View delivery record
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
           )}
@@ -354,5 +324,3 @@ function LoadMetric({ label, value, highlight = false }: { label: string; value:
     </div>
   );
 }
-
-

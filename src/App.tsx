@@ -22,6 +22,8 @@ import Deliveries from "./pages/app/Deliveries.tsx";
 import MarketDemand from "./pages/app/MarketDemand";
 import Profile from "./pages/app/Profile";
 import Support from "./pages/app/Support";
+import Settings from "./pages/app/Settings";
+import AuditTrail from "./pages/app/AuditTrail";
 import Landing from "./pages/site/Landing";
 import NotFound from "./pages/OtherPage/NotFound";
 
@@ -60,6 +62,7 @@ export default function App() {
                 {/* Provider Routes */}
                 <Route path="/app/explore" element={<Explore />} />
                 <Route path="/app/dashboard" element={<Operations />} />
+                <Route path="/app/operations" element={<Operations />} />
                 <Route path="/app/projects" element={<Projects />} />
                 <Route path="/app/materials/new" element={<NewSurvey />} />
                 <Route path="/app/materials" element={<Materials />} />
@@ -72,6 +75,9 @@ export default function App() {
                 <Route path="/app/market-demand" element={<MarketDemand />} />
                 <Route path="/app/profile" element={<Profile />} />
                 <Route path="/app/support" element={<Support />} />
+                <Route path="/app/settings" element={<Settings />} />
+                <Route path="/app/audit-trail" element={<AuditTrail />} />
+                <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
                 <Route path="/profile" element={<Navigate to="/app/profile" replace />} />
 
                 {/* Receiver Routes */}
@@ -79,6 +85,7 @@ export default function App() {
                 <Route path="/app/receiver/demand" element={<ReceiverDemand />} />
                 <Route path="/app/receiver/capacity" element={<ReceiverCapacity />} />
                 <Route path="/app/receiver/incoming-requests" element={<ReceiverIncomingRequests />} />
+                <Route path="/app/receiver/incoming" element={<Navigate to="/app/receiver/incoming-requests" replace />} />
                 <Route path="/app/receiver/deliveries" element={<ReceiverDeliveriesPage />} />
                 <Route path="/app/receiver/verification" element={<ReceiverVerificationPage />} />
               </Route>
@@ -88,6 +95,7 @@ export default function App() {
             <Route path="/sign-in" element={<SignIn />} />
             <Route path="/sign-up" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<Navigate to="/forgot-password" replace />} />
             <Route path="/onboarding" element={<Onboarding />} />
 
             {/* Fallback */}

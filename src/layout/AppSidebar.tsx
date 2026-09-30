@@ -65,8 +65,8 @@ const providerNavItems: NavItem[] = [
   },
   {
     icon: <ListIcon fontSize={24} />,
-    name: "Market Demand",
-    key: "market-demand",
+    name: "Who Needs Material",
+    key: "marketDemand",
     path: "/app/market-demand",
   },
   {
@@ -89,7 +89,7 @@ const providerNavItems: NavItem[] = [
   },
   {
     icon: <CheckCircleIcon fontSize={24} />,
-    name: "Verification",
+    name: "Proof of Recovery",
     key: "verification",
     path: "/app/verification",
   },
@@ -110,7 +110,7 @@ const providerOthersItems: NavItem[] = [
   },
   {
     icon: <LayoutIcon fontSize={24} />,
-    name: "Allocations (admin)",
+    name: "Matches (admin)",
     key: "allocations",
     path: "/app/allocations",
   },
@@ -130,12 +130,12 @@ const receiverNavItems: NavItem[] = [
   },
   {
     icon: <BoxMoving fontSize={24} />,
-    name: "Demand",
+    name: "Material Requests",
     path: "/app/receiver/demand",
   },
   {
     icon: <BoxIconLine fontSize={24} />,
-    name: "Capacity",
+    name: "Receiving Capacity",
     path: "/app/receiver/capacity",
   },
   {
@@ -150,7 +150,7 @@ const receiverNavItems: NavItem[] = [
   },
   {
     icon: <CheckCircleIcon fontSize={24} />,
-    name: "Verification",
+    name: "Check & Accept",
     path: "/app/receiver/verification",
   },
 ];

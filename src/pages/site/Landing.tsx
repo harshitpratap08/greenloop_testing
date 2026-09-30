@@ -1,562 +1,279 @@
-import { useRef } from "react";
-import { motion, useScroll, useTransform, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
+import { Link } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
 import SiteFooter from "@/components/site/SiteFooter";
 import SiteNav from "@/components/site/SiteNav";
-import AppWindow from "@/components/site/AppWindow";
-import CapacityShowpiece from "@/components/site/CapacityShowpiece";
-import EditorialHeading from "@/components/site/EditorialHeading";
-import Figure from "@/components/site/Figure";
-import Reveal from "@/components/site/Reveal";
-import Section from "@/components/site/Section";
-import WorkflowSticky from "@/components/site/WorkflowSticky";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import StoryFilm from "@/components/site/StoryFilm";
-import SystemDiagram from "@/components/site/SystemDiagram";
-import { Link } from "react-router";
-import { STORY } from "@/domain/demoData";
 
-export default function Landing() {
-  return (
-    <>
-      <PageMeta
-        title="GreenLoop — Circular Construction Material Recovery"
-        description="Plan where recoverable construction materials go before the truck leaves. Survey, match, reserve, verify."
-      />
-      <SiteNav />
-      <main className="dark bg-ink-950">
-        <StoryFilm />
-        <ProblemSection />
-        <SystemDiagram />
-        <WorkflowSticky />
-        <PassportSection />
-        <CapacityShowpiece />
-        <LogisticsSection />
-        <VerificationSection />
-        <OperationalRecordSection />
-        <PlatformShowcase />
-        <FinalCta />
-      </main>
-      <SiteFooter />
-    </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 02 · PROBLEM — fragmented recovery, editorial split with annotated photo
-// ---------------------------------------------------------------------------
-
-const FRICTIONS = [
-  {
-    num: "a",
-    text: "Quantities live in a surveyor's notebook — tonnage leaves the site uncertain, so nothing downstream can be promised.",
-  },
-  {
-    num: "b",
-    text: "Receivers publish static lists, not live capacity. Two projects can be promised the same tonnes on the same day.",
-  },
-  {
-    num: "c",
-    text: "Without weighbridge evidence, a recovered load is a claim — and claims get rejected at the gate.",
-  },
+const providerSteps = ["Survey", "Material Passport", "Find Receiver", "Request Capacity", "Book", "Send Load", "Verify"];
+const receiverSteps = ["Material Request", "Receive Offers", "Review Passport", "Accept", "Capacity", "Receive", "Verify"];
+const workflowSteps = ["Survey", "Passport", "Match", "Capacity", "Book", "Send", "Receive", "Verify"];
+const networkStages = [
+  { title: "Capacity", detail: "Check available tonnes for the intake date." },
+  { title: "Booking", detail: "Reserve a receiving slot for the load." },
+  { title: "Delivery", detail: "Send the load to the receiving facility." },
+  { title: "Verified recovery", detail: "Record received and accepted quantities." },
 ];
 
-function ProblemSection() {
-  return (
-    <Section id="problem" index="02" eyebrow="The problem" band innerClassName="lg:grid lg:grid-cols-[0.85fr_1.15fr] lg:gap-16 py-12 md:py-20">
-      <div>
-        <EditorialHeading
-          lines={[
-            <>Recovery fails</>,
-            <>between the sites,</>,
-            <>not on them.</>,
-          ]}
-        />
-        <Reveal delay={0.15}>
-          <p className="mt-6 max-w-md text-base leading-7 text-ink-700 dark:text-gray-300">
-            The materials exist. The receivers exist. What is missing is the
-            connected plan — quantity, destination, capacity, and proof, in one
-            loop.
-          </p>
-        </Reveal>
-      </div>
-
-      <div>
-        <Reveal>
-          <div className="relative">
-            <Figure
-              src="/images/site/sorting-facility.jpg"
-              alt="Recovered material stockpiles at a sorting and recovery facility"
-              caption="Recovery facility intake — capacity that downstream projects cannot currently see"
-              credit="demo dataset · Riverstone Aggregates"
-              imgClassName="aspect-[16/10]"
-            />
-            <ol className="mt-6 space-y-3">
-              {FRICTIONS.map((friction, index) => (
-                <li key={friction.num} className="flex gap-4">
-                  <span className="ledger-numeral shrink-0 border border-steel-300 px-2 py-1 text-theme-xs font-semibold text-steel-600 dark:border-steel-700 dark:text-steel-400">
-                    ({friction.num})
-                  </span>
-                  <p className="max-w-xl text-sm leading-6 text-ink-800 dark:text-gray-200">
-                    {friction.text}
-                    {index === 0 && (
-                      <span className="ms-2 hidden lg:inline" aria-hidden="true">
-                        — see (a) in the photo
-                      </span>
-                    )}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </Reveal>
-      </div>
-    </Section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 05 · MATERIAL PASSPORT — the document, asymmetric with full-height photo
-// ---------------------------------------------------------------------------
-
-function PassportSection() {
-  const containerRef = useRef<HTMLElement>(null);
+export default function Landing() {
   const reduceMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end start"],
-  });
-
-  const imgY = useTransform(scrollYProgress, [0, 1], ["-15%", "15%"]);
-  const cardY = useTransform(scrollYProgress, [0, 1], ["10%", "-10%"]);
 
   return (
-    <section ref={containerRef} className="relative isolate overflow-hidden bg-ink-950 py-16 md:py-24" id="passport">
-      <motion.div className="absolute inset-0 -z-10" style={reduceMotion ? {} : { y: imgY }}>
-        <img
-          src="/images/site/brick-pallets.jpg"
-          alt="Palletised reclaimed brick at a yard"
-          className="h-[130%] w-full object-cover opacity-25"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/60 to-ink-950" />
-      </motion.div>
-
-      <div className="mx-auto max-w-7xl px-5 sm:px-8">
-        <div className="lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 items-center">
-          <div className="order-2 lg:order-1 relative z-10">
-            <EditorialHeading
-              lines={[
-                <>Every tonne carries</>,
-                <>its own record.</>,
-              ]}
-            />
-            <Reveal delay={0.1}>
-              <p className="mt-6 max-w-md text-base leading-7 text-white/80">
-                Type, quantity range, condition, grade, source project, evidence,
-                confidence, status. The passport is what makes a recovered material
-                tradeable — and traceable from demolition to verified delivery.
-              </p>
-            </Reveal>
-            <motion.div 
-              className="mt-10 relative perspective-[1200px]"
-              style={reduceMotion ? {} : { y: cardY }}
-            >
-              <motion.div 
-                className="transform-gpu"
-                style={reduceMotion ? {} : { rotateY: 8, rotateX: 5 }}
-              >
-                <AppWindow
-                  route="/app/materials"
-                  title="Passport — MP-103 · reclaimed brick"
-                  className="shadow-2xl shadow-ink-950/80 border border-white/20 bg-ink-950/90 backdrop-blur-xl"
-                >
-                  <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
-                    <PassportField label="Type" value="Brick — reclaimed, palletised" />
-                    <PassportField label="Source project" value="Harrow Road Demolition" />
-                    <PassportField label="Quantity" value="14.5 t" highlight />
-                    <PassportField label="Range" value="12.0 – 17.0 t" />
-                    <PassportField label="Condition" value="Good" />
-                    <PassportField label="Grade" value="A" />
-                    <PassportField label="Evidence" value="Survey sheet · site photo" />
-                    <PassportField label="Confidence" value="90%" highlight />
-                  </dl>
-                  <p className="mt-4 border-t border-white/15 pt-3 text-theme-xs text-white/60">
-                    Status: <span className="font-medium text-loop-300">passport ready</span> —
-                    awaiting a receiver allocation.
-                  </p>
-                </AppWindow>
-              </motion.div>
-            </motion.div>
+    <div className="min-h-screen bg-ink-950 text-white">
+      <PageMeta
+        title="GreenLoop — The operating layer for construction material recovery"
+        description="Connect recovered construction materials with organizations that need them. Coordinate demand, receiving capacity, bookings, delivery, and verification in one network."
+      />
+      <SiteNav />
+      <main>
+        <section className="relative isolate overflow-hidden border-b border-white/10 bg-ink-950">
+          <div className="absolute inset-0 -z-10">
+            <img src="/images/site/hero-demolition.jpg" alt="Construction recovery work at an active demolition site" className="h-full min-h-[700px] w-full object-cover object-center opacity-45" />
+            <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/85 to-ink-950/45" />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-ink-950/30" />
           </div>
-          <div className="order-1 lg:order-2 hidden lg:block" aria-hidden="true" />
-        </div>
-      </div>
-    </section>
-  );
-}
+          <div className="mx-auto grid min-h-[680px] max-w-7xl items-center gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:py-24">
+            <div className="max-w-3xl">
+              <p className="eyebrow-label flex items-center gap-3 text-white/65"><span className="size-2 bg-loop-400" />Construction material recovery network</p>
+              <h1 className="mt-7 font-archivo text-6xl font-bold leading-[0.92] tracking-[-0.055em] sm:text-8xl">GREEN<span className="text-loop-400">LOOP</span></h1>
+              <p className="mt-6 max-w-2xl font-archivo text-3xl font-semibold leading-tight tracking-tight text-white sm:text-5xl">The operating layer for construction material recovery.</p>
+              <p className="mt-6 max-w-xl text-base leading-7 text-white/75 sm:text-lg">Connect recovered materials with the organizations that need them — while coordinating capacity, bookings, delivery and verification.</p>
+              <div className="mt-9 flex flex-wrap gap-3">
+                <a href="#network" className="inline-flex min-h-12 items-center justify-center bg-loop-500 px-6 text-sm font-bold text-ink-950 transition-colors hover:bg-loop-400">Explore GreenLoop</a>
+                <a href="#how-it-works" className="inline-flex min-h-12 items-center justify-center border border-white/35 px-6 text-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10">See how it works</a>
+              </div>
+            </div>
+            <div className="relative mx-auto w-full max-w-lg lg:ms-auto">
+              <div className="absolute -inset-3 border border-white/15" aria-hidden="true" />
+              <div className="relative border border-white/20 bg-ink-950/90 p-5 shadow-2xl backdrop-blur-sm sm:p-7">
+                <div className="flex items-center justify-between border-b border-white/15 pb-4">
+                  <p className="eyebrow-label text-white/55">One network · two sides</p>
+                  <span className="ledger-numeral text-xs text-loop-300">GREENLOOP</span>
+                </div>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-6 sm:gap-4">
+                  <div className="border border-white/15 bg-white/[0.04] p-3 sm:p-4">
+                    <p className="eyebrow-label text-white/45">Provider</p>
+                    <p className="mt-2 font-archivo text-base font-semibold sm:text-lg">Material</p>
+                    <p className="ledger-numeral mt-1 text-xs text-white/55">15 t concrete</p>
+                  </div>
+                  <span className="text-loop-400" aria-hidden="true">→</span>
+                  <div className="border border-white/15 bg-white/[0.04] p-3 sm:p-4">
+                    <p className="eyebrow-label text-white/45">Receiver</p>
+                    <p className="mt-2 font-archivo text-base font-semibold sm:text-lg">Demand</p>
+                    <p className="ledger-numeral mt-1 text-xs text-white/55">50 t requested</p>
+                  </div>
+                </div>
+                <div className="border-t border-white/15 pt-4">
+                  <div className="flex items-center justify-between gap-3 text-xs text-white/60"><span>DEMAND</span><span className="h-px flex-1 bg-white/20" /><span className="text-loop-300">CAPACITY-AWARE MATCH</span><span className="h-px flex-1 bg-white/20" /><span>DELIVERY</span></div>
+                  <p className="mt-3 text-sm leading-6 text-white/70">Material, receiving space and a real delivery plan — connected before the load moves.</p>
+                </div>
+              </div>
+              <p className="mt-4 text-right font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">Material → GreenLoop → Receiver</p>
+            </div>
+          </div>
+        </section>
 
-function PassportField({ label, value, highlight = false }: { label: string; value: string, highlight?: boolean }) {
-  return (
-    <div>
-      <dt className="eyebrow-label text-steel-600 dark:text-steel-400">{label}</dt>
-      <dd className={`ledger-numeral mt-1 text-theme-sm font-medium ${highlight ? "text-loop-300 drop-shadow-sm" : "text-ink-900 dark:text-white/90"}`}>
-        {value}
-      </dd>
+        <section id="product" className="scroll-mt-24 border-b border-white/10 bg-[#171a17]">
+          <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 md:py-20">
+            <div className="mb-10 max-w-3xl">
+              <p className="eyebrow-label text-loop-300">One network. Two sides.</p>
+              <h2 className="mt-4 font-archivo text-4xl font-bold tracking-tight sm:text-5xl">Different work. A shared recovery flow.</h2>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-white/65">Providers structure available material. Receivers describe what they need and when they can take it. GreenLoop coordinates the steps between them.</p>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <WorkflowSide id="providers" title="I have material." label="Provider workflow" steps={providerSteps} action="I have material" />
+              <WorkflowSide id="receivers" title="I need material." label="Receiver workflow" steps={receiverSteps} action="I need material" />
+            </div>
+          </div>
+        </section>
+
+        <section id="network" className="scroll-mt-24 overflow-hidden border-b border-white/10 bg-ink-950">
+          <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 md:py-20">
+            <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+              <div>
+                <p className="eyebrow-label text-loop-300">The coordination layer</p>
+                <h2 className="mt-4 max-w-xl font-archivo text-4xl font-bold tracking-tight sm:text-5xl">Recovery is a chain. GreenLoop keeps it connected.</h2>
+              </div>
+              <p className="max-w-2xl text-base leading-7 text-white/65">Material supply and receiver demand meet through a capacity-aware match. From there, a dated booking connects the load to delivery and evidence of what was accepted.</p>
+            </div>
+
+            <div className="mx-auto mt-10 max-w-5xl">
+              <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+                <FlowInput label="Provider supply" title="MATERIAL" detail="Recovered material, recorded and ready to place." />
+                <span className="justify-self-center font-archivo text-2xl text-loop-300" aria-label="and">+</span>
+                <FlowInput label="Receiver need" title="DEMAND" detail="Material needed, with a date and receiving location." />
+              </div>
+
+              <motion.div
+                className="mx-auto flex h-10 items-center justify-center text-loop-300"
+                animate={reduceMotion ? undefined : { y: [0, 4, 0] }}
+                transition={reduceMotion ? undefined : { duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                aria-hidden="true"
+              >↓</motion.div>
+
+              <div className="border border-loop-400/50 bg-loop-500/10 px-5 py-5 text-center sm:px-8">
+                <p className="eyebrow-label text-loop-300">The connection</p>
+                <h3 className="mt-2 font-archivo text-xl font-bold tracking-wide text-white sm:text-2xl">GREENLOOP MATCH</h3>
+                <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/65">Connect suitable material and demand, then check that a real receiving slot can fit the load.</p>
+              </div>
+
+              <motion.div
+                className="mx-auto flex h-10 items-center justify-center text-loop-300"
+                animate={reduceMotion ? undefined : { y: [0, 4, 0] }}
+                transition={reduceMotion ? undefined : { duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+                aria-hidden="true"
+              >↓</motion.div>
+
+              <ol className="grid gap-3 lg:grid-cols-4" aria-label="What happens after a match">
+                {networkStages.map((stage, index) => (
+                  <li key={stage.title} className="relative">
+                    <div className="min-h-28 border border-white/15 bg-white/[0.03] p-4 sm:p-5">
+                      <p className="ledger-numeral text-xs text-loop-300">0{index + 1}</p>
+                      <h4 className="mt-2 font-archivo text-base font-bold uppercase tracking-wide text-white">{stage.title}</h4>
+                      <p className="mt-1 text-sm leading-5 text-white/55">{stage.detail}</p>
+                    </div>
+                    {index < networkStages.length - 1 && (
+                      <>
+                        <motion.span
+                          className="mx-auto block py-2 text-center text-loop-300 lg:hidden"
+                          animate={reduceMotion ? undefined : { y: [0, 3, 0] }}
+                          transition={reduceMotion ? undefined : { duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: index * 0.2 }}
+                          aria-hidden="true"
+                        >↓</motion.span>
+                        <span className="absolute -right-2 top-1/2 z-10 hidden -translate-y-1/2 bg-ink-950 px-1 text-loop-300 lg:block" aria-hidden="true">→</span>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-5 text-center text-xs text-white/45">One connected process from supply and demand to verified recovery.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="scroll-mt-24 border-b border-white/10 bg-[#20231f]">
+          <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 md:py-20 lg:grid-cols-[0.9fr_1.1fr]">
+            <div>
+              <p className="eyebrow-label text-amber-300">The gap between sites</p>
+              <h2 className="mt-4 max-w-xl font-archivo text-4xl font-bold leading-tight tracking-tight sm:text-5xl">Recovery fails between the sites, not on them.</h2>
+              <p className="mt-5 max-w-xl text-base leading-7 text-white/70">Material may exist. Demand may exist. But moving one to the other takes coordination that a listing alone cannot provide.</p>
+              <p className="mt-7 border-l-2 border-loop-400 pl-4 font-archivo text-xl font-semibold text-white">GreenLoop coordinates the movement.</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-[1fr_0.8fr]">
+              <div className="relative min-h-72 overflow-hidden border border-white/10">
+                <img src="/images/site/sorting-facility.jpg" alt="Material stockpiles awaiting a planned receiving slot" className="absolute inset-0 size-full object-cover opacity-70" />
+                <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/20 to-transparent" />
+                <p className="absolute bottom-4 left-4 right-4 font-archivo text-lg font-semibold">Material and demand need a workable route between them.</p>
+              </div>
+              <ul className="flex flex-col justify-center divide-y divide-white/10 border-y border-white/10 text-sm text-white/75">
+                {["Quantities are uncertain", "Suitable receivers are unclear", "Capacity is limited by date", "Arrivals compete for space", "Delivery evidence can be incomplete", "Accepted quantities can differ"].map((item) => <li key={item} className="flex gap-3 py-3"><span className="text-amber-300" aria-hidden="true">—</span>{item}</li>)}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-white/10 bg-[#111411]">
+          <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 md:py-20 lg:grid-cols-2 lg:items-center">
+            <div className="relative min-h-80 overflow-hidden border border-white/10">
+              <img src="/images/site/brick-pallets.jpg" alt="Recovered construction materials sorted and ready for a new use" className="absolute inset-0 size-full object-cover opacity-75" />
+              <div className="absolute inset-0 bg-gradient-to-t from-ink-950/90 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4 flex items-center gap-2 text-xs text-white/80"><span className="size-2 bg-loop-400" />SITE EVIDENCE · HARROW ROAD</div>
+            </div>
+            <div>
+              <p className="eyebrow-label text-loop-300">Material Passport</p>
+              <h2 className="mt-4 font-archivo text-4xl font-bold tracking-tight sm:text-5xl">Your material’s digital record.</h2>
+              <p className="mt-4 max-w-lg text-base leading-7 text-white/65">A Material Passport brings the basic facts, condition and supporting evidence together so both sides can make a grounded decision.</p>
+              <div className="mt-8 border border-white/15 bg-[#1a1e1a]">
+                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 p-5">
+                  <div><p className="eyebrow-label text-white/45">Material Passport · MP-014</p><h3 className="mt-2 font-archivo text-2xl font-bold">Concrete</h3><p className="mt-1 text-sm text-white/55">Harrow Road · Site evidence attached</p></div>
+                  <p className="ledger-numeral text-3xl font-semibold text-loop-300">15 t</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4 p-5 text-sm"><Record label="Condition" value="Good" /><Record label="Evidence" value="Site photos · survey sheet" /><Record label="Location" value="Harrow Road" /><Record label="Status" value="Ready to match" /></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-white/10 bg-[#1c201c]">
+          <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 md:py-20 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+            <div>
+              <p className="eyebrow-label text-amber-300">Capacity-aware by design</p>
+              <h2 className="mt-4 font-archivo text-4xl font-bold tracking-tight sm:text-5xl">A match isn’t enough.</h2>
+              <p className="mt-5 max-w-lg text-base leading-7 text-white/70">A receiver may want the material but not have enough room that day. GreenLoop checks the dated capacity before the booking is confirmed.</p>
+              <p className="mt-5 text-sm leading-6 text-white/55">If the full amount will not fit, providers can book the available tonnes, try another receiver, or choose another date.</p>
+            </div>
+            <div className="border border-white/15 bg-ink-950 p-5 sm:p-7">
+              <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4"><div><p className="eyebrow-label text-white/45">Receiving slot · Tuesday</p><h3 className="mt-2 font-archivo text-xl font-bold">Riverstone Aggregates</h3></div><span className="border border-amber-300/40 bg-amber-300/10 px-2 py-1 text-xs font-bold text-amber-200">WAITING ON CAPACITY</span></div>
+              <div className="grid grid-cols-2 gap-4 py-6">
+                <div className="border-l-2 border-white/20 pl-4"><p className="eyebrow-label text-white/45">Requested</p><p className="ledger-numeral mt-2 text-3xl font-semibold">8 t</p></div>
+                <div className="border-l-2 border-loop-400 pl-4"><p className="eyebrow-label text-white/45">Available</p><p className="ledger-numeral mt-2 text-3xl font-semibold text-loop-300">5 t</p></div>
+              </div>
+              <div className="h-2 bg-white/10"><div className="h-full w-[62.5%] bg-loop-400" /></div>
+              <div className="mt-6 flex flex-wrap gap-2"><Link to="/sign-up" className="inline-flex min-h-11 items-center bg-loop-500 px-4 text-sm font-bold text-ink-950 hover:bg-loop-400">Book 5 t</Link><Link to="/sign-up" className="inline-flex min-h-11 items-center border border-white/25 px-4 text-sm font-semibold hover:bg-white/10">Another receiver</Link><Link to="/sign-up" className="inline-flex min-h-11 items-center border border-white/25 px-4 text-sm font-semibold hover:bg-white/10">Another date</Link></div>
+              <p className="mt-4 text-xs text-white/45">The remaining 3 t stays visible to book elsewhere.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-white/10 bg-ink-950">
+          <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 md:py-20">
+            <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr]">
+              <div>
+                <p className="eyebrow-label text-loop-300">One connected physical + digital workflow</p>
+                <h2 className="mt-4 font-archivo text-4xl font-bold tracking-tight sm:text-5xl">From request to verified recovery.</h2>
+                <p className="mt-5 max-w-md text-base leading-7 text-white/65">A request becomes an offer. An offer becomes a capacity-checked booking. A delivered load closes with the quantity the receiver actually accepts.</p>
+              </div>
+              <div className="border-y border-white/15">
+                <StoryRow number="01" title="A receiver asks" detail="Riverstone needs 50 t of concrete." state="MATERIAL REQUEST" />
+                <StoryRow number="02" title="A provider offers" detail="15 t from a Material Passport, with site evidence." state="OFFER SENT" />
+                <StoryRow number="03" title="The receiver accepts" detail="The offer is reviewed and receiving capacity is checked." state="CAPACITY CONFIRMED" />
+                <StoryRow number="04" title="The load moves" detail="A dated booking connects the material to delivery." state="BOOKING · ON THE ROAD" />
+                <StoryRow number="05" title="Recovery is verified" detail="The receiver records actual and accepted tonnes." state="EVIDENCE RECORDED" last />
+              </div>
+            </div>
+            <div className="mt-10 grid grid-cols-2 gap-px border border-white/10 bg-white/10 sm:grid-cols-4">
+              {workflowSteps.map((step, index) => <div key={step} className="bg-ink-950 p-4 sm:p-5"><p className="ledger-numeral text-xs text-loop-300">{String(index + 1).padStart(2, "0")}</p><p className="mt-2 font-archivo text-sm font-bold uppercase tracking-wide">{step}</p></div>)}
+            </div>
+          </div>
+        </section>
+
+        <section id="about" className="scroll-mt-24 border-b border-white/10 bg-[#20231f]">
+          <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-8 md:grid-cols-[1fr_auto] md:items-end md:py-16">
+            <div><p className="eyebrow-label text-loop-300">GreenLoop · construction recovery infrastructure</p><h2 className="mt-4 max-w-3xl font-archivo text-3xl font-bold leading-tight sm:text-4xl">Providers turn recovered material into structured supply. Receivers express demand and available capacity. GreenLoop connects the movement between them.</h2><p className="mt-4 text-sm text-white/55">Coordination for material, demand, capacity, booking, delivery and verification — not another standalone listing.</p></div>
+            <Link to="/sign-up" className="inline-flex min-h-12 items-center justify-center bg-loop-500 px-6 text-sm font-bold text-ink-950 hover:bg-loop-400">Create account</Link>
+          </div>
+        </section>
+      </main>
+      <SiteFooter />
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// 08 · LOGISTICS — the dispatch event tied to its verified load
-// ---------------------------------------------------------------------------
-
-function LogisticsSection() {
-  const { dataset } = useGreenLoopStore();
-  const dispatch = dataset.events.find((event) => event.kind === "load.dispatched");
-  const booking = dispatch && dataset.bookings.find((item) => dispatch.subjectIds.includes(item.id));
-  const material = booking && dataset.materials.find((item) => item.id === booking.materialId);
-  const receiver = booking && dataset.receivers.find((item) => item.id === booking.receiverId);
-  const slot = booking && dataset.slots.find((item) => item.id === booking.slotId);
-  const verification = booking && dataset.verifications.find((item) => item.bookingId === booking.id);
-
-  const containerRef = useRef<HTMLElement>(null);
-  const reduceMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end start"],
-  });
-
-  const truckX = useTransform(scrollYProgress, [0, 1], ["-10%", "10%"]);
-
-  if (!dispatch || !booking || !material || !receiver || !slot) return null;
-
+function WorkflowSide({ id, title, label, steps, action }: { id: string; title: string; label: string; steps: string[]; action: string }) {
   return (
-    <section ref={containerRef} className="relative isolate overflow-hidden bg-ink-950 py-16 md:py-32" id="logistics">
-      <motion.div className="absolute inset-0 -z-10" style={reduceMotion ? {} : { x: truckX }}>
-         <img
-            src="/images/site/auth-truck.jpg"
-            alt="A materials truck ready for a coordinated recovery delivery"
-            className="h-full w-[120%] max-w-none object-cover opacity-35"
-         />
-         <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/60 to-transparent" />
-         <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-ink-950" />
-      </motion.div>
-      
-      <div className="mx-auto max-w-7xl px-5 sm:px-8 relative z-10">
-        <div className="lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
-          <div className="max-w-xl">
-            <EditorialHeading
-              lines={[<>The load leaves</>, <>with a destination.</>]}
-            />
-            <Reveal delay={0.12}>
-              <p className="mt-6 text-base leading-7 text-white/80">
-                A confirmed slot connects the surveyed material to a real receiving yard. The load ID, planned tonnes and delivery evidence stay attached to that journey.
-              </p>
-            </Reveal>
-            <Reveal delay={0.2}>
-              <AppWindow route="/app/deliveries" title={`Dispatch record · ${verification?.loadRef ?? STORY.loadRef}`} className="mt-10 border border-white/20 bg-ink-950/90 backdrop-blur-xl shadow-2xl shadow-ink-950/80">
-                <dl className="grid grid-cols-2 gap-x-6 gap-y-5">
-                  <PassportField label="Material" value={`${material.type} · ${material.id}`} />
-                  <PassportField label="Load reference" value={verification?.loadRef ?? STORY.loadRef} highlight />
-                  <PassportField label="Dispatch tonnage" value={`${booking.tonnesT.toFixed(1)} t`} highlight />
-                  <PassportField label="Receiver" value={receiver.name} />
-                  <PassportField label="Reserved slot" value={slot.date} />
-                  <PassportField label="Route distance" value={`${receiver.distanceKm} km`} />
-                </dl>
-                <div className="mt-6 pt-5 border-t border-white/10 relative overflow-hidden">
-                   <div className="flex items-center justify-between text-theme-xs font-mono tracking-widest text-white/60">
-                      <span>ORIGIN</span>
-                      <div className="relative flex-1 mx-4 h-px bg-white/10">
-                         <motion.div 
-                            className="absolute inset-y-0 start-0 bg-loop-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]"
-                            style={{ width: useTransform(scrollYProgress, [0.3, 0.7], ["0%", "100%"]) }} 
-                         />
-                      </div>
-                      <span>RECEIVER</span>
-                   </div>
-                </div>
-                <Link
-                  to="/app/verification"
-                  className="mt-6 inline-flex border-b border-white/30 pb-0.5 text-theme-sm font-medium text-white transition-colors hover:border-loop-400 hover:text-loop-300"
-                >
-                  Follow through to verification
-                </Link>
-              </AppWindow>
-            </Reveal>
-          </div>
-          <div className="mt-12 lg:mt-auto">
-             <div className="backdrop-blur-md bg-ink-950/80 border border-white/20 p-5 rounded-lg flex items-center justify-between shadow-2xl">
-                <div>
-                  <p className="eyebrow-label text-white/50">Transit Tracking</p>
-                  <p className="ledger-numeral mt-1 font-medium text-white text-xl">{verification?.loadRef ?? STORY.loadRef}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-theme-xs text-white/50 uppercase tracking-wider">{receiver.name}</p>
-                  <p className="ledger-numeral mt-1 text-loop-300 font-medium text-lg">{booking.tonnesT.toFixed(1)} t payload</p>
-                </div>
-             </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <article id={id} className="scroll-mt-24 border border-white/15 bg-[#101310] p-5 sm:p-7">
+      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-white/10 pb-4"><h3 className="font-archivo text-2xl font-bold sm:text-3xl">{title}</h3><span className="eyebrow-label text-white/40">{label}</span></div>
+      <ol className="mt-5 grid gap-x-4 sm:grid-cols-2">
+        {steps.map((step, index) => <li key={step} className="flex min-h-12 items-center gap-3 border-b border-white/[0.07] py-2 text-sm text-white/75"><span className="ledger-numeral w-6 text-xs text-loop-300">{String(index + 1).padStart(2, "0")}</span><span>{step}</span>{index < steps.length - 1 && <span className="ms-auto text-white/25" aria-hidden="true">→</span>}</li>)}
+      </ol>
+      <Link to="/sign-up" className="mt-6 inline-flex min-h-11 items-center border border-white/25 px-4 text-sm font-semibold transition-colors hover:border-loop-300 hover:bg-loop-500/10">{action}<span className="ms-3 text-loop-300" aria-hidden="true">→</span></Link>
+    </article>
   );
 }
 
-// ---------------------------------------------------------------------------
-// 09 · VERIFICATION — charcoal band, planned vs actual reconciliation
-// ---------------------------------------------------------------------------
-
-function VerificationSection() {
-  const { dataset } = useGreenLoopStore();
-  const verification = dataset.verifications[0];
-  if (!verification) return null;
-  const acceptedPct = Math.round((verification.acceptedT / verification.actualT) * 100);
-  const rejectedPct = 100 - acceptedPct;
-
+function FlowInput({ label, title, detail }: { label: string; title: string; detail: string }) {
   return (
-    <Section id="verification" index="09" eyebrow="Verification" band innerClassName="py-12 md:py-20">
-      <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr]">
-        <div>
-          <EditorialHeading
-            band
-            lines={[
-              <>Planned is a claim.</>,
-              <>
-                <span className="text-loop-400">Accepted is a fact.</span>
-              </>,
-            ]}
-          />
-          <Reveal delay={0.15}>
-            <p className="mt-6 max-w-md text-base leading-7 text-white/70">
-              Every load closes at the weighbridge. What was planned, what
-              arrived, what the receiver accepted — and what was rejected, with
-              the reason on the record.
-            </p>
-          </Reveal>
-          <Reveal delay={0.25}>
-            <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-white/10 bg-white/10 sm:grid-cols-4">
-              <ReconCell label="Planned" value={verification.plannedT} delay={0.1} />
-              <ReconCell label="Actual" value={verification.actualT} delay={0.3} />
-              <ReconCell label="Accepted" value={verification.acceptedT} accent delay={0.5} />
-              <ReconCell label="Rejected" value={verification.rejectedT} warn delay={0.7} />
-            </div>
-            <p className="ledger-numeral mt-3 text-theme-xs text-white/40">
-              {verification.loadRef} · {receiverText(verification.receiverId, dataset)} ·{" "}
-              {verification.verifiedAt?.slice(0, 10)}
-            </p>
-          </Reveal>
-        </div>
-
-        <Reveal delay={0.2}>
-          <div className="rounded-sm border border-white/15 bg-white/[0.04] p-6 sm:p-8">
-            <p className="eyebrow-label text-white/50">Delivery reconciliation</p>
-            <div className="mt-5 flex h-4 w-full overflow-hidden rounded-sm bg-white/10">
-              <div className="bg-loop-500" style={{ width: `${acceptedPct}%` }} />
-              <div className="bg-error-400" style={{ width: `${rejectedPct}%` }} />
-            </div>
-            <div className="mt-3 flex justify-between text-theme-xs text-white/60">
-              <span className="ledger-numeral">
-                accepted {verification.acceptedT.toFixed(1)} t ({acceptedPct}%)
-              </span>
-              <span className="ledger-numeral">
-                rejected {verification.rejectedT.toFixed(1)} t
-              </span>
-            </div>
-            <p className="mt-4 text-sm text-white/70">{verification.rejectReason}</p>
-            <div className="mt-5 flex flex-wrap gap-1.5">
-              {verification.evidence.map((evidence) => (
-                <span
-                  key={evidence.ref ?? evidence.label}
-                  className="rounded-sm border border-white/20 bg-white/5 px-2 py-1 text-theme-xs text-white/80"
-                >
-                  {evidence.label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </Reveal>
-      </div>
-    </Section>
+    <div className="min-h-28 border border-white/15 bg-white/[0.03] p-4 sm:p-5">
+      <p className="eyebrow-label text-white/45">{label}</p>
+      <h3 className="mt-2 font-archivo text-lg font-bold tracking-wide text-white">{title}</h3>
+      <p className="mt-1 text-sm leading-5 text-white/55">{detail}</p>
+    </div>
   );
 }
 
-function ReconCell({
-  label,
-  value,
-  accent,
-  warn,
-  delay = 0,
-}: {
-  label: string;
-  value: number;
-  accent?: boolean;
-  warn?: boolean;
-  delay?: number;
-}) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0, y: 15 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.5, delay }}
-      className="bg-ink-900 p-4 dark:bg-black/60 backdrop-blur-sm"
-    >
-      <p className="eyebrow-label text-white/40">{label}</p>
-      <p
-        className={`ledger-numeral mt-1.5 text-xl font-bold ${
-          accent ? "text-loop-400" : warn ? "text-error-400" : "text-white"
-        }`}
-      >
-        {value.toFixed(1)} t
-      </p>
-    </motion.div>
-  );
+function Record({ label, value }: { label: string; value: string }) {
+  return <div className="border-l border-white/15 pl-3"><p className="eyebrow-label text-white/40">{label}</p><p className="mt-1 text-sm font-medium text-white/85">{value}</p></div>;
 }
 
-function receiverText(id: string, dataset: ReturnType<typeof useGreenLoopStore>["dataset"]) {
-  return dataset.receivers.find((r) => r.id === id)?.name ?? id;
-}
-
-// ---------------------------------------------------------------------------
-// 10 · OPERATIONAL RECORD — figures from the same seeded dataset
-// ---------------------------------------------------------------------------
-
-function OperationalRecordSection() {
-  const { dataset } = useGreenLoopStore();
-  const surveyedTonnes = dataset.materials.reduce((total, material) => total + material.quantityT, 0);
-  const acceptedTonnes = dataset.verifications.reduce((total, verification) => total + verification.acceptedT, 0);
-  const activeProjects = dataset.projects.filter((project) => project.status !== "complete").length;
-
-  const metrics = [
-    { label: "Material surveyed", value: `${surveyedTonnes.toFixed(1)} t` },
-    { label: "Accepted at receiver", value: `${acceptedTonnes.toFixed(1)} t` },
-    { label: "Active projects", value: activeProjects.toString() },
-    { label: "Receiving facilities", value: dataset.receivers.length.toString() },
-  ];
-
-  return (
-    <Section index="10" eyebrow="Operational record" band innerClassName="py-12 md:py-20">
-      <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
-        <div>
-          <EditorialHeading lines={[<>Measured in tonnes.</>, <>Proven at the gate.</>]} />
-          <p className="mt-5 max-w-md text-base leading-7 text-ink-700 dark:text-gray-300">
-            No projected impact claims. These figures come from the same material, booking and verification records shown in the GreenLoop platform.
-          </p>
-        </div>
-        <dl className="grid grid-cols-2 border-y border-steel-300 dark:border-steel-700 sm:grid-cols-4">
-          {metrics.map((metric, index) => (
-            <div key={metric.label} className={`py-5 ${index > 0 ? "border-s border-steel-300 ps-4 dark:border-steel-700 sm:ps-5" : "pe-4 sm:pe-5"}`}>
-              <dt className="eyebrow-label min-h-9 text-steel-600 dark:text-steel-400">{metric.label}</dt>
-              <dd className="ledger-numeral mt-2 text-2xl font-semibold tracking-tight text-ink-900 dark:text-white sm:text-3xl">{metric.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </Section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 11 · PLATFORM SHOWCASE — real routes in flat browser chrome
-// ---------------------------------------------------------------------------
-
-function PlatformShowcase() {
-  const screens = [
-    { route: "/app/dashboard", title: "Operations", text: "Live KPIs, recovery flow, receiver ledgers, holds with reasons." },
-    { route: "/app/materials", title: "Materials & passports", text: "Traceable passports with quantity ranges and evidence." },
-    { route: "/app/allocations", title: "Allocations", text: "Receiver scoring with the full rationale, holds included." },
-    { route: "/app/bookings", title: "Bookings", text: "Reservations with before/after capacity and cancellation." },
-  ];
-
-  return (
-    <Section id="platform" index="11" eyebrow="The platform" band className="scroll-mt-20" innerClassName="py-12 md:py-20">
-      <EditorialHeading
-        lines={[
-          <>One product, not</>,
-          <>a stack of spreadsheets.</>,
-        ]}
-      />
-      <Reveal delay={0.15}>
-        <p className="mt-6 max-w-lg text-base leading-7 text-ink-700 dark:text-gray-300">
-          Everything on this page is the shipped interface. Open it and manage
-          your operational recovery workflows directly.
-        </p>
-      </Reveal>
-
-      <Reveal delay={0.1}>
-        <AppWindow route="/app/dashboard" title="Live Operations · GreenLoop" className="mt-12" bodyClassName="p-0">
-          <iframe
-            src="/app/dashboard"
-            title="Interactive GreenLoop Operations interface"
-            loading="lazy"
-            className="h-[32rem] w-full border-0 bg-gray-50"
-          />
-        </AppWindow>
-      </Reveal>
-
-      <div className="mt-8 grid gap-6 md:grid-cols-2">
-        {screens.map((screen, index) => (
-          <Reveal key={screen.route} delay={index * 0.06}>
-            <AppWindow route={screen.route} title={screen.title}>
-              <p className="text-sm leading-6 text-ink-800 dark:text-gray-200">{screen.text}</p>
-              <Link
-                to={screen.route}
-                className="mt-4 inline-block border-b border-ink-900 pb-0.5 text-theme-sm font-medium text-ink-900 transition-colors hover:border-loop-600 hover:text-loop-700 dark:border-white dark:text-white dark:hover:border-loop-400 dark:hover:text-loop-300"
-              >
-                Open in the platform
-              </Link>
-            </AppWindow>
-          </Reveal>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 12 · FINAL CTA — full-bleed yard photograph, one line
-// ---------------------------------------------------------------------------
-
-function FinalCta() {
-  return (
-    <section className="relative overflow-hidden">
-      <img
-        src="/images/site/yard-wide.jpg"
-        alt="Wide view of a construction materials recovery yard"
-        className="absolute inset-0 h-full w-full object-cover"
-        loading="lazy"
-      />
-      <div className="absolute inset-0 bg-ink-950/85" aria-hidden="true" />
-      <div className="relative mx-auto max-w-7xl px-5 py-28 text-center sm:px-8 md:py-36">
-        <EditorialHeading
-          band
-          level={2}
-          className="[&_span.block]:text-balance"
-          lines={[
-            <>Know what you have.</>,
-            <>Know where it can go.</>,
-            <>
-              Know it <span className="text-loop-400">was received.</span>
-            </>,
-          ]}
-        />
-        <Reveal delay={0.2}>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              to="/sign-up"
-              className="inline-block rounded-sm bg-white px-7 py-4 text-theme-sm font-semibold text-ink-900 transition-colors hover:bg-gray-200"
-            >
-              Create account
-            </Link>
-            <Link
-              to="/sign-in"
-              className="inline-block rounded-sm border border-white/35 px-7 py-4 text-theme-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10"
-            >
-              Sign in
-            </Link>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
+function StoryRow({ number, title, detail, state, last = false }: { number: string; title: string; detail: string; state: string; last?: boolean }) {
+  return <div className={`grid gap-3 py-5 sm:grid-cols-[3rem_1fr_auto] sm:items-center ${last ? "" : "border-b border-white/10"}`}><span className="ledger-numeral text-xs text-loop-300">{number}</span><div><h3 className="font-archivo text-lg font-semibold">{title}</h3><p className="mt-1 text-sm leading-6 text-white/55">{detail}</p></div><span className="w-fit border border-white/15 px-2 py-1 font-mono text-[10px] tracking-wide text-white/55">{state}</span></div>;
 }

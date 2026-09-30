@@ -73,6 +73,7 @@ export interface MaterialPassport {
   status: MaterialStatus;
   /** Confidence in the estimate, 0–1. */
   confidence: number;
+  surveyNotes?: string;
   evidence: Evidence[];
 }
 
@@ -157,6 +158,11 @@ export interface Booking {
   capacityAfterT: number;
   createdAt: string;
   updatedAt: string;
+  /** Demand fulfilled by an accepted provider offer, when applicable. */
+  demandId?: string;
+  receiverAcceptedAt?: string;
+  /** Unique reference assigned when this booking is dispatched. */
+  loadRef?: string;
   /** Populated when a confirmed booking is released. */
   cancelledAt?: string;
   cancelledReason?: string;
@@ -202,7 +208,16 @@ export interface DemandRecord {
   notes?: string;
 }
 
+export interface SupportRequest {
+  id: string;
+  email: string;
+  subject: string;
+  message: string;
+  submittedAt: string;
+}
+
 export interface GreenLoopDataset {
+  supportRequests?: SupportRequest[];
   projects: Project[];
   materials: MaterialPassport[];
   receivers: ReceiverFacility[];

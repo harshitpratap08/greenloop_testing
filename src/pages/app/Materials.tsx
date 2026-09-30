@@ -53,15 +53,15 @@ export default function Materials() {
 
         <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <p className="eyebrow-label text-loop-400">Material Traceability Register</p>
+            <p className="eyebrow-label text-loop-400">Material Passports · Digital records for your material</p>
             <h1 className="mt-4 font-archivo text-4xl font-bold tracking-tight text-white drop-shadow-md sm:text-5xl">
               Physical material.<br />Digital record.
             </h1>
             <p className="mt-4 text-lg text-white/80 drop-shadow-sm">
-              Each passport connects surveyed tonnes and evidence to a project origin, a suitable receiver, and its recovery status.
+              A Material Passport is your material’s digital record, connecting its quantity, photos, and evidence to the project and recovery status.
             </p>
-            <Link to="/app/materials/new" className="mt-6 inline-flex bg-loop-600 px-6 py-3 font-archivo font-bold text-white uppercase tracking-wide hover:bg-loop-700">
-              New Survey
+            <Link to="/app/materials/new" className="mt-6 inline-flex bg-loop-600 px-6 py-3 font-archivo font-bold text-white hover:bg-loop-700">
+              Add Material
             </Link>
           </div>
           <div className="flex flex-col items-start gap-1 border-l-2 border-loop-500 pl-6 md:items-end md:border-l-0 md:border-r-2 md:pl-0 md:pr-6 md:text-right">
@@ -76,9 +76,9 @@ export default function Materials() {
       {dataset.materials.length === 0 ? (
         <div className="flex flex-col items-center justify-center border-2 border-dashed border-steel-300 py-24 text-center dark:border-steel-700">
           <h3 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">No material passports yet.</h3>
-          <p className="mt-2 text-steel-600 dark:text-gray-400">Start a survey to create your first material passport.</p>
+          <p className="mt-2 text-steel-600 dark:text-gray-400">Add your material, quantity, location, and photos to create its digital record.</p>
           <Link to="/app/materials/new" className="mt-6 inline-flex bg-ink-900 px-8 py-4 font-archivo font-bold text-white uppercase tracking-wide hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">
-            New Survey
+            Add Material
           </Link>
         </div>
       ) : (
@@ -150,35 +150,35 @@ export default function Materials() {
                       <span className="text-sm font-medium text-steel-500">t</span>
                     </div>
                     <p className="ledger-numeral mt-0.5 text-xs text-steel-500 dark:text-steel-400">
-                      est. {material.quantityRangeT[0].toFixed(1)}–{material.quantityRangeT[1].toFixed(1)} t
+                      Est. range {material.quantityRangeT[0].toFixed(1)}–{material.quantityRangeT[1].toFixed(1)} t
                     </p>
                   </div>
                 </div>
 
-                {/* Horizontal Metadata Group */}
-                <div className="mt-1 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-steel-600 dark:text-gray-400">
-                  <span className="capitalize"><span className="font-medium text-ink-900 dark:text-gray-300">Cond:</span> {material.condition}</span>
-                  <span><span className="font-medium text-ink-900 dark:text-gray-300">Grade:</span> {material.grade}</span>
-                  <span><span className="font-medium text-ink-900 dark:text-gray-300">Conf:</span> {Math.round(material.confidence * 100)}%</span>
-                  <span><span className="font-medium text-ink-900 dark:text-gray-300">Evidence:</span> {material.evidence.length}</span>
-                </div>
+                <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">
+                  {material.condition} condition · Grade {material.grade} · {material.evidence.length} evidence items
+                </p>
 
                 {/* Receiver Action / Context */}
                 {receiver && (
                   <div className="mt-2 flex flex-wrap items-center gap-3 border-t border-steel-100 pt-3 dark:border-steel-800/50">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-steel-500">
-                      {existingAllocation ? "Allocated" : "Match"}
-                    </span>
-                    <span className="text-sm font-semibold text-ink-900 dark:text-gray-200">{receiver.name}</span>
-                    
-                    {!existingAllocation && candidate && (
-                      <Badge color={capacityFits ? "success" : "warning"} size="sm">
-                        {capacityFits ? `${candidate.availableT.toFixed(1)}t free` : `Capacity short`}
-                      </Badge>
-                    )}
+                    <span className="text-sm font-semibold text-ink-900 dark:text-gray-200">{existingAllocation ? "Matched with" : "Suggested receiver"}: {receiver.name}</span>
+                    {!existingAllocation && candidate && <Badge color={capacityFits ? "success" : "warning"} size="sm">{capacityFits ? `${candidate.availableT.toFixed(1)} t free` : "Not enough capacity"}</Badge>}
                     {existingAllocation && <StatusBadge status={existingAllocation.status} />}
+                    {!existingAllocation && <Link to="/app/receivers" state={{ materialId: material.id }} className="ml-auto inline-flex min-h-11 items-center bg-ink-900 px-4 py-2 text-sm font-semibold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">Find receiver</Link>}
                   </div>
                 )}
+                <details className="mt-3 border-t border-steel-100 pt-3 text-sm dark:border-steel-800/50">
+                  <summary className="cursor-pointer font-medium text-ink-700 dark:text-gray-300">View details ▾</summary>
+                  <dl className="mt-3 grid gap-2 text-xs text-steel-600 dark:text-gray-400 sm:grid-cols-2">
+                    <div><dt className="inline font-semibold">Passport ID:</dt> <dd className="inline ledger-numeral">{material.id}</dd></div>
+                    <div><dt className="inline font-semibold">Estimate confidence:</dt> <dd className="inline">{Math.round(material.confidence * 100)}%</dd></div>
+                    <div><dt className="inline font-semibold">Project:</dt> <dd className="inline">{projectName(material.projectId)}</dd></div>
+                    <div><dt className="inline font-semibold">Evidence:</dt> <dd className="inline">{material.evidence.map((item) => item.label).join(", ") || "None"}</dd></div>
+                    {material.surveyNotes && <div className="sm:col-span-2"><dt className="font-semibold">Survey notes:</dt> <dd>{material.surveyNotes}</dd></div>}
+                  </dl>
+                  <ul className="mt-3 space-y-1 text-xs text-steel-500 dark:text-gray-400">{dataset.events.filter((event) => event.subjectIds.includes(material.id)).map((event) => <li key={event.id}>{new Date(event.at).toLocaleString()} · {event.summary}</li>)}</ul>
+                </details>
               </div>
             </motion.article>
           );
@@ -225,4 +225,3 @@ export default function Materials() {
     </div>
   );
 }
-

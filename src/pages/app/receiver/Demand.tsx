@@ -3,10 +3,14 @@ import PageMeta from "@/components/common/PageMeta";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { type MaterialTypeKey } from "@/domain/types";
+import { slotMatchesDemandPeriod } from "@/domain/capacity";
 import { motion } from "motion/react";
 import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { cn } from "@/utils";
+import { useAuth } from "@/context/AuthContext";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { materialMedia } from "@/components/greenloop/AppExploration";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -19,22 +23,29 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function Demand() {
   const { dataset, addDemandAction, acceptOfferAction, declineOfferAction } = useGreenLoopStore();
-  const receiverId = "R-001";
+  const { user } = useAuth();
+  const receiverId = user?.receiverId ?? "R-001";
   
   const [isAdding, setIsAdding] = useState(false);
   const [type, setType] = useState<MaterialTypeKey>("concrete");
   const [requiredT, setRequiredT] = useState("");
   const [period, setPeriod] = useState("");
+  const [error, setError] = useState("");
   const [location, setLocation] = useState("Riverstone Aggregates");
   const [notes, setNotes] = useState("");
+  const [sentMessage, setSentMessage] = useState("");
 
   const receiverDemands = dataset.demands?.filter((d) => d.receiverId === receiverId) ?? [];
 
   const handleAddDemand = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!requiredT || isNaN(Number(requiredT))) return;
-
+    if (!requiredT || !Number.isFinite(Number(requiredT)) || Number(requiredT) <= 0 || !period) {
+      setError("Enter a positive quantity and needed-by date.");
+      return;
+    }
+    setError("");
     addDemandAction({
+      receiverId,
       materialType: type,
       requiredT: Number(requiredT),
       period: period || "Q4 2026",
@@ -43,52 +54,31 @@ export default function Demand() {
     });
     
     setIsAdding(false);
+    setSentMessage("Request sent. Providers near you are notified.");
     setRequiredT("");
     setPeriod("");
     setNotes("");
   };
 
   // Helper to calculate how much of a material type is covered by confirmed bookings
-  const calculateCoveredT = (materialType: MaterialTypeKey) => {
+  const calculateCoveredT = (demandId: string) => {
     return dataset.bookings
-      .filter((b) => b.receiverId === receiverId && b.status === "confirmed")
-      .reduce((sum, booking) => {
-        const material = dataset.materials.find((m) => m.id === booking.materialId);
-        if (material?.type === materialType) {
-          return sum + booking.tonnesT;
-        }
-        return sum;
-      }, 0);
+      .filter((booking) => booking.demandId === demandId && booking.status === "confirmed")
+      .reduce((sum, booking) => sum + booking.tonnesT, 0);
   };
 
   return (
     <div className="relative min-h-screen pb-24">
-      <PageMeta title="Material Demand | GreenLoop" description="Manage material demand." />
-      <PageBreadcrumb pageTitle="Demand" />
+      <PageMeta title="Material Requests | GreenLoop" description="Tell providers what material your facility needs." />
+      <PageBreadcrumb pageTitle="Material Requests" />
+      <WorkflowPageHeader
+        title="Material Requests"
+        description="Tell providers what you need. Offers come to you. A material request describes the type, amount, and date your facility needs."
+        status={`${receiverDemands.length} request${receiverDemands.length === 1 ? "" : "s"} from this facility`}
+        action={!isAdding ? { label: "Request material", onClick: () => { setIsAdding(true); setSentMessage(""); } } : undefined}
+      />
 
-      {/* Header */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-steel-200 pb-6 dark:border-steel-800"
-      >
-        <div>
-          <p className="eyebrow-label text-loop-600 dark:text-loop-400">Receiver Operations</p>
-          <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-4xl">
-            Material Demand
-          </h1>
-          <p className="mt-3 max-w-2xl text-lg text-steel-600 dark:text-gray-400">
-            Define the required construction materials you are looking to source. GreenLoop uses this to match suitable recovery projects to your capacity.
-          </p>
-        </div>
-        {!isAdding && receiverDemands.length > 0 && (
-          <Button size="md" onClick={() => setIsAdding(true)}>
-            Request Material
-          </Button>
-        )}
-      </motion.header>
-
+      {sentMessage && <p role="status" className="mb-5 border-l-4 border-loop-500 bg-loop-50 px-4 py-3 text-sm font-medium text-loop-800 dark:bg-loop-500/10 dark:text-loop-200">{sentMessage}</p>}
       {/* Add Demand Form */}
       {isAdding && (
         <motion.div 
@@ -96,8 +86,8 @@ export default function Demand() {
           animate={{ opacity: 1, height: "auto" }}
           className="mb-10 overflow-hidden"
         >
-          <div className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
-            <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Add material requirement</h2>
+          <div id="request-form" className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
+            <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Tell providers what you need</h2>
             <form onSubmit={handleAddDemand} className="mt-6 grid gap-6 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Material Type</label>
@@ -127,9 +117,9 @@ export default function Demand() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Target Period</label>
-                <input 
-                  type="text" 
+                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Needed By</label>
+                <input
+                  type="date" 
                   value={period}
                   onChange={(e) => setPeriod(e.target.value)}
                   placeholder="e.g. Q4 2026, Oct 2026"
@@ -160,9 +150,10 @@ export default function Demand() {
                 />
               </div>
 
+              {error && <p role="alert" className="text-sm text-error-500 sm:col-span-2">{error}</p>}
               <div className="flex gap-4 sm:col-span-2">
-                <Button size="md" onClick={handleAddDemand as any}>Publish Request</Button>
-                <Button size="md" variant="outline" onClick={() => setIsAdding(false)}>Cancel</Button>
+                <Button size="md" type="submit">Send request</Button>
+                <Button size="md" variant="outline" type="button" onClick={() => setIsAdding(false)}>Cancel</Button>
               </div>
             </form>
           </div>
@@ -183,8 +174,10 @@ export default function Demand() {
       ) : (
         <div className="grid gap-6">
           {receiverDemands.map((demand, i) => {
-            const coveredT = calculateCoveredT(demand.materialType);
-            const remainingT = Math.max(0, demand.requiredT - coveredT);
+            const coveredT = calculateCoveredT(demand.id);
+            const heldT = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status === "hold")
+              .reduce((total, booking) => total + booking.tonnesT, 0);
+            const remainingT = Math.max(0, demand.requiredT - coveredT - heldT);
             const percentCovered = Math.min(100, (coveredT / demand.requiredT) * 100);
             
             return (
@@ -198,7 +191,7 @@ export default function Demand() {
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex flex-wrap items-start gap-x-12 gap-y-6">
                     <div>
-                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material Requirement</p>
+                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material Request</p>
                       <h3 className="mt-1 font-archivo text-2xl font-bold text-ink-900 dark:text-white">{TYPE_LABEL[demand.materialType] ?? demand.materialType}</h3>
                       <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">
                         <span className="font-semibold text-ink-900 dark:text-gray-200">{demand.period}</span> · {demand.location}
@@ -213,17 +206,18 @@ export default function Demand() {
                         </p>
                       </div>
                       <div>
-                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Remaining</p>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Open</p>
                         <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-loop-600 dark:text-loop-400">
                           {remainingT.toFixed(1)} <span className="text-xl text-steel-400">t</span>
                         </p>
+                        <p className="mt-1 text-xs text-steel-500">{coveredT.toFixed(1)} t filled{heldT > 0 ? ` · ${heldT.toFixed(1)} t waiting on capacity` : ""} · {remainingT.toFixed(1)} t open</p>
                       </div>
                     </div>
                   </div>
                   
                   <div className="text-left sm:text-right">
                     <StatusBadge status={demand.status} />
-                    <p className="mt-3 ledger-numeral text-xs text-steel-500">ID: {demand.id}</p>
+                    <details className="mt-3 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-2 block ledger-numeral">Request ID: {demand.id}</span>{demand.notes && <span className="mt-1 block">Notes: {demand.notes}</span>}</details>
                   </div>
                 </div>
 
@@ -247,20 +241,41 @@ export default function Demand() {
                 {/* Offers */}
                 {dataset.offers && dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").length > 0 && (
                   <div className="mt-6 rounded-sm border border-loop-200 bg-loop-50/50 p-4 dark:border-loop-900/30 dark:bg-loop-900/10">
-                    <h4 className="font-archivo text-sm font-bold text-ink-900 dark:text-white mb-3">Pending Provider Offers</h4>
+                    <h4 className="font-archivo text-sm font-bold text-ink-900 dark:text-white mb-3">Provider offers waiting for a decision</h4>
                     <div className="space-y-3">
-                      {dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").map(offer => (
-                        <div key={offer.id} className="flex items-center justify-between bg-white p-3 shadow-sm rounded-sm dark:bg-gray-900 border border-steel-100 dark:border-steel-800">
-                          <div>
-                            <p className="text-sm font-semibold text-ink-900 dark:text-gray-100">Passport: {offer.passportId}</p>
-                            <p className="text-xs text-steel-500">Offered: {offer.offeredQuantityT} t from {offer.providerId}</p>
+                      {dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").map(offer => {
+                        const passport = dataset.materials.find((material) => material.id === offer.passportId);
+                        const committedT = dataset.bookings.filter((booking) => booking.materialId === offer.passportId && booking.status !== "cancelled")
+                          .reduce((total, booking) => total + booking.tonnesT, 0);
+                        const passportAvailableT = Math.max(0, (passport?.quantityT ?? 0) - committedT);
+                        const committedDemandT = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status !== "cancelled")
+                          .reduce((total, booking) => total + booking.tonnesT, 0);
+                        const offerRemainingT = Math.max(0, demand.requiredT - committedDemandT);
+                        const eligibleSlots = dataset.slots.filter((slot) => slot.receiverId === demand.receiverId && slot.materialType === demand.materialType && slotMatchesDemandPeriod(slot, demand.period));
+                        const hasCapacity = eligibleSlots.length > 0;
+                        const photo = passport ? materialMedia(passport)[0] : undefined;
+                        const receiverDistanceKm = dataset.receivers.find((item) => item.id === demand.receiverId)?.distanceKm;
+                        return (
+                          <div key={offer.id} className="flex flex-col gap-3 bg-white p-4 shadow-sm rounded-sm dark:bg-gray-900 border border-steel-100 dark:border-steel-800 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex min-w-0 gap-3">
+                              {photo && <img src={photo.src} alt={photo.caption} className="size-20 shrink-0 object-cover" />}
+                              <div>
+                                <p className="text-sm font-semibold text-ink-900 dark:text-gray-100">Provider offer · {receiverDistanceKm ?? "—"} km away</p>
+                                <p className="mt-1 font-archivo text-lg font-bold text-ink-900 dark:text-white">{offer.offeredQuantityT.toFixed(1)} t {TYPE_LABEL[passport?.type ?? ""] ?? passport?.type ?? demand.materialType}</p>
+                                <p className="text-sm text-steel-600 dark:text-gray-400">{passport?.condition ?? "Details unavailable"} condition · Grade {passport?.grade ?? "—"} · {passport?.evidence.length ?? 0} Evidence items</p>
+                                <details className="mt-2 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Provider: {offer.providerId} · Material Passport: {offer.passportId} · Offer: {offer.id}</span>{passport?.evidence.map((item) => <span key={`${offer.id}-${item.label}`} className="mt-1 block">Evidence: {item.label}</span>)}</details>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 sm:flex-col">
+                              <Button size="sm" className="min-h-11" disabled={!hasCapacity || offer.offeredQuantityT > passportAvailableT || offer.offeredQuantityT > offerRemainingT} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
+                              <Button size="sm" className="min-h-11" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
+                            </div>
+                            {!hasCapacity && <p className="text-xs text-warning-600 sm:basis-full">Add receiving capacity by the requested date before accepting this offer.</p>}
+                            {hasCapacity && offer.offeredQuantityT > passportAvailableT && <p className="text-xs text-warning-600 sm:basis-full">Only {passportAvailableT.toFixed(1)} t remains on this passport.</p>}
+                            {offer.offeredQuantityT > offerRemainingT && <p className="text-xs text-warning-600 sm:basis-full">Only {offerRemainingT.toFixed(1)} t remains available for an offer on this request.</p>}
                           </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
-                            <Button size="sm" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}

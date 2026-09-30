@@ -12,7 +12,7 @@ export default function RoleSelection() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/signin');
+      navigate('/sign-in');
     } else if (user.workspaces && user.workspaces.length > 0) {
       navigate('/app');
     }

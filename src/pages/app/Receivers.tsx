@@ -9,6 +9,7 @@ import { STORY } from "@/domain/demoData";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { cn, formatDate } from "@/utils";
 import { motion, AnimatePresence } from "motion/react";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -24,11 +25,15 @@ export default function Receivers() {
   const location = useLocation();
   const [materialId, setMaterialId] = useState<string>(location.state?.materialId || STORY.materialAId);
   const [receiverId, setReceiverId] = useState<string>("");
+  const [selectedSlotId, setSelectedSlotId] = useState("");
+  const [requestQuantity, setRequestQuantity] = useState("");
   const [holdState, setHoldState] = useState<{ requested: number, available: number, slotId: string, receiverId: string } | null>(null);
+  const [chooseAnotherDate, setChooseAnotherDate] = useState(false);
+  const [alternateSlotId, setAlternateSlotId] = useState("");
   
   const material = dataset.materials.find((item) => item.id === materialId);
   const allocatedT = material ? dataset.allocations
-    .filter((a) => a.materialId === material.id && a.status === "confirmed")
+    .filter((a) => a.materialId === material.id && a.status !== "cancelled")
     .reduce((sum, a) => sum + a.requestedT, 0) : 0;
   const remainingT = material ? Math.max(0, material.quantityT - allocatedT) : 0;
   const project = material && dataset.projects.find((item) => item.id === material.projectId);
@@ -37,14 +42,17 @@ export default function Receivers() {
   const orderedMatches = [...matches].sort((a, b) => Number(b.recommended) - Number(a.recommended));
   const selectedMatch = orderedMatches.find((candidate) => candidate.receiverId === receiverId) ?? orderedMatches[0];
   const selectedReceiver = selectedMatch && dataset.receivers.find((receiver) => receiver.id === selectedMatch.receiverId);
-  const selectedSlot = selectedMatch && dataset.slots
-    .filter((slot) => slot.receiverId === selectedMatch.receiverId && slot.materialType === material?.type)
-    .sort((a, b) => a.date.localeCompare(b.date))[0];
+  const receiverSlots = selectedMatch && material ? dataset.slots
+    .filter((slot) => slot.receiverId === selectedMatch.receiverId && slot.materialType === material.type)
+    .sort((a, b) => a.date.localeCompare(b.date)) : [];
+  const selectedSlot = receiverSlots.find((slot) => slot.id === selectedSlotId) ?? receiverSlots[0];
+  const requestedT = requestQuantity ? Number(requestQuantity) : remainingT;
+  const requestValid = Number.isFinite(requestedT) && requestedT > 0 && requestedT <= remainingT;
   const existingAllocation = selectedMatch && material
     ? dataset.allocations.find((allocation) => allocation.materialId === material.id && allocation.receiverId === selectedMatch.receiverId && allocation.status !== "cancelled")
     : undefined;
   const selectedLedger = selectedSlot ? slotLedger(dataset, selectedSlot.id) : undefined;
-  const capacityFits = Boolean(material && selectedMatch && selectedMatch.availableT >= remainingT);
+  const capacityFits = Boolean(material && selectedMatch && selectedLedger && selectedLedger.available >= requestedT);
 
   return (
     <div className="relative min-h-screen pb-24">
@@ -54,39 +62,16 @@ export default function Receivers() {
       />
       <PageBreadCrumb pageTitle="Find a receiver" />
 
-      {/* Hero Section */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="mb-12 border-b border-steel-300 pb-8 dark:border-steel-800"
-      >
-        <p className="eyebrow-label text-loop-600 dark:text-loop-400">Material Destination Planning</p>
-        <h1 className="mt-4 font-archivo text-4xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-5xl">
-          Where can this material<br />realistically go?
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg text-steel-600 dark:text-gray-400">
-          Compare suitable local receivers against their live intake capacity, then choose where to request a reservation.
-        </p>
-
-        {/* Progress Tracker */}
-        <div className="mt-10 overflow-hidden rounded-lg border border-steel-200 bg-white shadow-sm dark:border-steel-800 dark:bg-black">
-          <ol className="grid grid-cols-2 divide-x divide-y divide-steel-200 sm:grid-cols-4 sm:divide-y-0 dark:divide-steel-800" aria-label="Receiver matching steps">
-            {["Material", "Suitable receivers", "Capacity", "Select receiver"].map((step, index) => (
-              <li key={step} className="relative flex flex-col justify-center gap-1 bg-white p-4 transition-colors hover:bg-gray-50 dark:bg-black dark:hover:bg-white/[0.02]">
-                <span className={cn(
-                  "ledger-numeral text-2xl font-bold transition-colors",
-                  index < (receiverId ? 4 : 2) ? "text-loop-600 dark:text-loop-400" : "text-steel-300 dark:text-steel-700"
-                )}>0{index + 1}</span>
-                <span className={cn(
-                  "text-xs font-semibold uppercase tracking-wider",
-                  index === 0 ? "text-ink-900 dark:text-white" : "text-steel-500 dark:text-gray-500"
-                )}>{step}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </motion.header>
+      <WorkflowPageHeader
+        title="Find a receiver"
+        description="Compare facilities that accept your material, check their free receiving capacity, and request an intake slot."
+        status={material ? `${remainingT.toFixed(1)} t ${TYPE_LABEL[material.type] ?? material.type} available to match` : "Choose a Material Passport to get started"}
+      />
+      <div className="mb-8 overflow-hidden rounded-sm border border-steel-200 bg-white dark:border-steel-800 dark:bg-black">
+        <ol className="grid grid-cols-2 divide-x divide-y divide-steel-200 sm:grid-cols-4 sm:divide-y-0 dark:divide-steel-800" aria-label="Receiver matching steps">
+          {["Choose material", "Compare receivers", "Check free capacity", "Request a slot"].map((step, index) => <li key={step} className="flex items-center gap-3 p-3 sm:p-4"><span className="ledger-numeral text-lg font-bold text-loop-600 dark:text-loop-400">0{index + 1}</span><span className="text-xs font-semibold text-ink-800 dark:text-gray-200">{step}</span></li>)}
+        </ol>
+      </div>
 
       {/* Step 1: Material Selection */}
       <section aria-labelledby="material-heading" className="mb-16">
@@ -102,15 +87,17 @@ export default function Receivers() {
               onChange={(event) => {
                 setMaterialId(event.target.value);
                 setReceiverId("");
+                setSelectedSlotId("");
+                setRequestQuantity("");
                 setHoldState(null);
               }}
               className="peer min-w-72 cursor-pointer appearance-none rounded-sm border-2 border-steel-300 bg-white px-5 py-3 pr-10 font-medium text-ink-900 outline-none transition-all focus:border-loop-500 focus:ring-4 focus:ring-loop-500/20 dark:border-steel-700 dark:bg-black dark:text-white dark:focus:border-loop-500"
             >
               {dataset.materials.map((item) => {
-                const itemAllocated = dataset.allocations.filter(a => a.materialId === item.id && a.status === "confirmed").reduce((s, a) => s + a.requestedT, 0);
+                const itemAllocated = dataset.allocations.filter(a => a.materialId === item.id && a.status !== "cancelled").reduce((s, a) => s + a.requestedT, 0);
                 const itemRemaining = Math.max(0, item.quantityT - itemAllocated);
                 return (
-                  <option key={item.id} value={item.id}>{item.id} · {TYPE_LABEL[item.type] ?? item.type} · {itemRemaining.toFixed(1)} t remaining</option>
+                  <option key={item.id} value={item.id}>{TYPE_LABEL[item.type] ?? item.type} · {itemRemaining.toFixed(1)} t available</option>
                 );
               })}
             </select>
@@ -147,7 +134,7 @@ export default function Receivers() {
               <div className="flex flex-col p-6 sm:p-8">
                 <div className="flex flex-wrap items-start justify-between gap-3 border-b border-steel-200 pb-5 dark:border-steel-800">
                   <div>
-                    <p className="eyebrow-label text-steel-500 dark:text-steel-400">Digital material passport</p>
+                    <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material Passport · your material’s digital record</p>
                     <p className="ledger-numeral mt-1 text-sm text-ink-600 dark:text-gray-400">
                       ID: <span className="font-semibold text-ink-900 dark:text-white">{material.id}</span> · surveyed {formatDate(material.surveyedAt)}
                     </p>
@@ -199,7 +186,7 @@ export default function Receivers() {
               const allocation = material && dataset.allocations.find((item) => item.materialId === material.id && item.receiverId === candidate.receiverId && item.status !== "cancelled");
               const fits = Boolean(material && candidate.availableT >= remainingT);
               const isSelected = selectedMatch?.receiverId === candidate.receiverId;
-              const availableStatus = allocation?.status === "confirmed" ? "Confirmed" : allocation?.status === "hold" ? "HOLD" : fits ? "Available" : candidate.availableT > 0 ? "Limited capacity" : "Full";
+              const availableStatus = allocation?.status === "confirmed" ? "Booked" : allocation?.status === "hold" ? "Waiting on Capacity" : fits ? "Available" : candidate.availableT > 0 ? "Limited capacity" : "Full";
               const statusClass = allocation?.status === "confirmed" || (!allocation && fits)
                 ? "border-loop-300 bg-loop-50 text-loop-700 dark:border-loop-500/40 dark:bg-loop-500/10 dark:text-loop-300"
                 : allocation?.status === "hold" || (!allocation && candidate.availableT > 0)
@@ -232,24 +219,25 @@ export default function Receivers() {
                       <div>
                         <div className="flex flex-wrap items-center gap-3">
                           <h3 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">{receiver?.name ?? candidate.receiverId}</h3>
-                          {candidate.recommended && <span className="animate-pulse bg-loop-500 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">Strongest Fit</span>}
+                          {candidate.recommended && <span className="bg-loop-700 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">Best fit</span>}
                         </div>
-                        <p className="mt-2 text-sm text-steel-600 dark:text-gray-400">{receiver?.location ?? "—"} · <span className="font-semibold text-ink-900 dark:text-gray-200">{candidate.distanceKm} km</span> from project cluster</p>
+                        <p className="mt-2 text-sm text-steel-600 dark:text-gray-400"><span className="font-semibold text-ink-900 dark:text-gray-200">{candidate.distanceKm} km</span> from your project · {receiver?.location ?? "—"}</p>
                       </div>
                       <span className={cn("rounded-sm border px-3 py-1.5 text-xs font-bold uppercase tracking-wider shadow-sm", statusClass)}>{availableStatus}</span>
                     </div>
 
                     <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-6 border-y border-steel-200 py-6 sm:grid-cols-4 dark:border-steel-800">
-                      <PassportMetric label="Suitability" value={`${Math.round(candidate.suitability * 100)}%`} highlight={candidate.recommended} />
-                      <PassportMetric label="Available capacity" value={`${candidate.availableT.toFixed(1)} / ${(ledger?.slot.capacityT ?? 0).toFixed(1)} t`} />
+                      <PassportMetric label="Free receiving capacity" value={`${candidate.availableT.toFixed(1)} t`} highlight={candidate.recommended} />
+                      <PassportMetric label="Total slot capacity" value={`${(ledger?.slot.capacityT ?? 0).toFixed(1)} t`} />
                       <PassportMetric label="Daily intake" value={`${receiver?.dailyIntakeT ?? 0} t`} />
                       <PassportMetric label="Potential recovery" value={`${potential.toFixed(1)} t`} />
                     </dl>
                     
                     <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                      <span className="font-semibold text-ink-900 dark:text-white">Accepts {TYPE_LABEL[material?.type ?? ""] ?? material?.type}</span>
-                      {slot && <span className="text-steel-600 dark:text-gray-400">Next listed intake · <span className="ledger-numeral font-medium text-ink-900 dark:text-gray-200">{formatDate(slot.date)}</span></span>}
-                      {material && candidate.availableT < remainingT && <span className="font-medium text-signal-600 dark:text-signal-400">{(remainingT - candidate.availableT).toFixed(1)} t short of the remaining requested quantity</span>}
+                      <span className="font-semibold text-ink-900 dark:text-white">{TYPE_LABEL[material?.type ?? ""] ?? material?.type} accepted</span>
+                      {slot ? <span className="text-steel-600 dark:text-gray-400">{candidate.availableT.toFixed(1)} t free · {formatDate(slot.date)}</span> : <span className="font-medium text-signal-600 dark:text-signal-400">No intake date is listed yet.</span>}
+                      {candidate.recommended && <span className="text-sm text-steel-600 dark:text-gray-400">Best fit for material suitability, free capacity, and distance.</span>}
+                      {material && candidate.availableT < remainingT && <span className="font-medium text-signal-600 dark:text-signal-400">Capacity is {Math.max(0, candidate.availableT).toFixed(1)} t, which is {(remainingT - candidate.availableT).toFixed(1)} t short of your {remainingT.toFixed(1)} t.</span>}
                     </div>
                   </div>
                   
@@ -259,6 +247,7 @@ export default function Receivers() {
                       aria-pressed={isSelected}
                       onClick={() => {
                         setReceiverId(candidate.receiverId);
+                        setSelectedSlotId("");
                         setHoldState(null);
                       }}
                       className={cn(
@@ -268,9 +257,9 @@ export default function Receivers() {
                           : "border-steel-300 bg-white text-ink-900 hover:border-ink-900 hover:shadow-md dark:border-steel-700 dark:bg-transparent dark:text-white dark:hover:border-white"
                       )}
                     >
-                      <span className="relative z-10">{isSelected ? "Selected" : "Select"}</span>
+                      <span className="relative z-10">{isSelected ? "Selected" : "Choose receiver"}</span>
                       {!isSelected && <div className="absolute inset-0 -z-10 translate-y-full bg-ink-900 transition-transform duration-300 group-hover/btn:translate-y-0 dark:bg-white" />}
-                      {!isSelected && <span className="absolute inset-0 z-10 flex items-center justify-center text-white opacity-0 transition-opacity duration-300 group-hover/btn:opacity-100 dark:text-ink-900">Select</span>}
+                      {!isSelected && <span className="absolute inset-0 z-10 flex items-center justify-center text-white opacity-0 transition-opacity duration-300 group-hover/btn:opacity-100 dark:text-ink-900">Choose receiver</span>}
                     </button>
                   </div>
                 </motion.article>
@@ -299,15 +288,29 @@ export default function Receivers() {
                   <p className="eyebrow-label text-loop-600 dark:text-loop-400">03 · Capacity → 04 · Action</p>
                   <h2 id="capacity-heading" className="mt-3 font-archivo text-4xl font-bold uppercase text-ink-900 dark:text-white">{selectedReceiver.name}</h2>
                   <p className="mt-2 text-lg text-steel-600 dark:text-gray-300">
-                    <span className="font-semibold text-ink-900 dark:text-white">{remainingT.toFixed(1)} t</span> of {TYPE_LABEL[material.type] ?? material.type} · {selectedMatch.distanceKm} km · {selectedSlot?.date ? formatDate(selectedSlot.date) : "No intake date"}
+                    <span className="font-semibold text-ink-900 dark:text-white">{requestedT.toFixed(1)} t</span> of {TYPE_LABEL[material.type] ?? material.type} · {selectedMatch.distanceKm} km · {selectedSlot?.date ? formatDate(selectedSlot.date) : "No intake date"}
                   </p>
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <label className="text-sm font-semibold text-ink-900 dark:text-white">Request quantity (t)
+                      <input type="number" min="0.1" max={remainingT} step="0.1" value={requestQuantity || remainingT.toString()} onChange={(event) => setRequestQuantity(event.target.value)} className="mt-1 block w-full rounded-sm border-steel-300 dark:border-steel-700 dark:bg-black dark:text-white" />
+                      {!requestValid && <span role="alert" className="mt-1 block text-xs text-error-500">Enter a quantity greater than zero and no more than {remainingT.toFixed(1)} t.</span>}
+                    </label>
+                    <label className="text-sm font-semibold text-ink-900 dark:text-white">Intake date / slot
+                      <select value={selectedSlot?.id ?? ""} onChange={(event) => setSelectedSlotId(event.target.value)} className="mt-1 block w-full rounded-sm border-steel-300 dark:border-steel-700 dark:bg-black dark:text-white">
+                        {receiverSlots.map((slot) => {
+                          const ledger = slotLedger(dataset, slot.id);
+                          return <option key={slot.id} value={slot.id}>{slot.date} · {ledger?.available.toFixed(1)} t free</option>;
+                        })}
+                      </select>
+                    </label>
+                  </div>
                   
                   {selectedLedger && (
                     <div className="mt-8 max-w-2xl rounded-sm border border-steel-200 bg-gray-50 p-6 dark:border-steel-800 dark:bg-white/[0.02]">
                       <div className="mb-4 flex items-end justify-between gap-3 text-sm">
                         <span className="font-medium text-steel-600 dark:text-gray-400">Live slot capacity</span>
                         <span className={cn("ledger-numeral text-lg font-bold", capacityFits ? "text-loop-600 dark:text-loop-400" : "text-signal-600 dark:text-signal-400")}>
-                          {selectedMatch.availableT.toFixed(1)} t free <span className="text-steel-400 text-sm">of {selectedLedger.slot.capacityT.toFixed(1)} t</span>
+                          {selectedLedger.available.toFixed(1)} t free <span className="text-steel-400 text-sm">of {selectedLedger.slot.capacityT.toFixed(1)} t</span>
                         </span>
                       </div>
                       
@@ -315,7 +318,7 @@ export default function Receivers() {
                       <div className="relative h-4 overflow-hidden rounded-full bg-steel-200 shadow-inner dark:bg-steel-900" role="img" aria-label="Capacity">
                         <motion.div 
                           initial={{ width: 0 }}
-                          whileInView={{ width: `${Math.min(100, (selectedMatch.availableT / Math.max(selectedLedger.slot.capacityT, 0.1)) * 100)}%` }}
+                          whileInView={{ width: `${Math.min(100, (selectedLedger.available / Math.max(selectedLedger.slot.capacityT, 0.1)) * 100)}%` }}
                           transition={{ duration: 1.5, ease: "easeOut" }}
                           viewport={{ once: true }}
                           className={cn("absolute inset-y-0 shadow-[0_0_10px_rgba(0,0,0,0.2)]", capacityFits ? "bg-loop-500" : "bg-signal-500")} 
@@ -339,7 +342,7 @@ export default function Receivers() {
                 {holdState && holdState.receiverId === selectedReceiver.id ? (
                   <div className="mt-8 rounded-sm border border-signal-300 bg-signal-50 p-6 shadow-sm dark:border-signal-500/40 dark:bg-signal-500/10 col-span-full">
                     <div className="flex items-center gap-3">
-                      <span className="rounded-sm bg-signal-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white dark:bg-signal-500">HOLD</span>
+                      <span className="rounded-sm bg-signal-700 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white dark:bg-signal-500">Waiting on Capacity</span>
                       <h3 className="font-archivo text-xl font-bold text-signal-900 dark:text-signal-100">
                         {holdState.available > 0 ? "Receiving Capacity — Partially Available" : "Receiving Capacity — Unavailable"}
                       </h3>
@@ -376,7 +379,7 @@ export default function Receivers() {
                           }}
                           className="bg-signal-600 px-6 py-3 font-bold text-white shadow-sm transition-colors hover:bg-signal-700 dark:bg-signal-500 dark:hover:bg-signal-600"
                         >
-                          Reserve available quantity
+                          Book {holdState.available.toFixed(1)} t
                         </button>
                       )}
                       <button
@@ -387,17 +390,36 @@ export default function Receivers() {
                         }}
                         className="border border-signal-300 bg-white px-6 py-3 font-bold text-signal-900 shadow-sm transition-colors hover:bg-signal-50 dark:border-signal-600 dark:bg-transparent dark:text-signal-100 dark:hover:bg-signal-900/30"
                       >
-                        Find another receiver for remaining quantity
+                        Another receiver
                       </button>
                       <button
                         type="button"
                         onClick={() => {
-                          alert("Date selection calendar opens here.");
+                          setChooseAnotherDate((open) => !open);
+                          setAlternateSlotId("");
                         }}
                         className="px-6 py-3 font-bold text-signal-700 transition-colors hover:text-signal-900 dark:text-signal-300 dark:hover:text-signal-100"
                       >
-                        Choose another date
+                        Another date
                       </button>
+                      {chooseAnotherDate && material && (
+                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                          <label className="text-sm font-semibold text-signal-900 dark:text-signal-100">Choose another date
+                            <select value={alternateSlotId} onChange={(event) => setAlternateSlotId(event.target.value)} className="ms-3 rounded-sm border-steel-300 dark:border-steel-700 dark:bg-black dark:text-white">
+                              <option value="">Select an intake slot</option>
+                              {dataset.slots.filter((slot) => slot.receiverId === holdState.receiverId && slot.materialType === material.type && slot.id !== holdState.slotId).map((slot) => {
+                                const ledger = slotLedger(dataset, slot.id);
+                                return <option key={slot.id} value={slot.id}>{slot.date} · {ledger?.available.toFixed(1)} t free</option>;
+                              })}
+                            </select>
+                          </label>
+                          <button type="button" disabled={!alternateSlotId} onClick={() => {
+                            requestCapacityAction({ materialId: material.id, receiverId: holdState.receiverId, slotId: alternateSlotId, tonnesT: holdState.requested });
+                            setHoldState(null);
+                            setChooseAnotherDate(false);
+                          }} className="bg-ink-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-ink-900">Request slot</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : !existingAllocation && selectedSlot && remainingT > 0 && (
@@ -406,20 +428,22 @@ export default function Receivers() {
                     whileTap={{ scale: 0.95 }}
                     type="button"
                     onClick={() => {
-                      if (remainingT > selectedMatch.availableT) {
+                      if (!requestValid) return;
+                      if (requestedT > (selectedLedger?.available ?? 0)) {
                         setHoldState({
-                          requested: remainingT,
-                          available: selectedMatch.availableT,
+                          requested: requestedT,
+                          available: selectedLedger?.available ?? 0,
                           slotId: selectedSlot.id,
                           receiverId: selectedReceiver.id
                         });
                       } else {
-                        requestCapacityAction({ materialId: material.id, receiverId: selectedReceiver.id, slotId: selectedSlot.id, tonnesT: remainingT });
+                        requestCapacityAction({ materialId: material.id, receiverId: selectedReceiver.id, slotId: selectedSlot.id, tonnesT: requestedT });
                       }
                     }}
-                    className="relative overflow-hidden bg-loop-600 px-8 py-5 font-archivo text-xl font-bold uppercase tracking-wide text-white shadow-lg transition-colors hover:bg-loop-700 dark:bg-loop-500 dark:hover:bg-loop-600"
+                    disabled={!requestValid}
+                    className="relative overflow-hidden bg-loop-600 px-8 py-5 font-archivo text-xl font-bold uppercase tracking-wide text-white shadow-lg transition-colors hover:bg-loop-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-loop-500 dark:hover:bg-loop-600"
                   >
-                    Request Capacity
+                    Request slot
                   </motion.button>
                 )}
               </div>
@@ -430,7 +454,7 @@ export default function Receivers() {
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-8 border-l-4 border-signal-500 bg-signal-50 p-6 dark:bg-signal-500/10"
                 >
-                  <p className="font-semibold text-signal-900 dark:text-signal-100">Hold Reason:</p>
+                  <p className="font-semibold text-signal-900 dark:text-signal-100">Waiting on Capacity:</p>
                   <p className="mt-1 text-signal-800 dark:text-signal-200">{existingAllocation.holdReason}</p>
                 </motion.div>
               )}
@@ -440,7 +464,7 @@ export default function Receivers() {
       </AnimatePresence>
 
       <div className="mt-12 text-center text-sm font-medium text-steel-500 dark:text-gray-500">
-        Receiver match logic: suitability, available intake, daily demand and distance.<br />Detailed optimization figures remain in <Link to="/app/allocations" className="text-ink-900 underline decoration-steel-300 underline-offset-4 hover:text-loop-600 dark:text-gray-300 dark:hover:text-white">Allocations</Link>.
+        Receiver match logic: suitability, available intake, daily demand and distance.<br />Detailed matching scores remain in <Link to="/app/allocations" className="text-ink-900 underline decoration-steel-300 underline-offset-4 hover:text-loop-600 dark:text-gray-300 dark:hover:text-white">Matches</Link>.
       </div>
     </div>
   );

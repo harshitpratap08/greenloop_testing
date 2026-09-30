@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
+import { useGreenLoopStore } from "@/store/GreenLoopStore";
+import { formatStamp } from "@/utils";
 
 interface ActivityItem {
   id: string;
@@ -27,52 +29,16 @@ const toneText: Record<ActivityItem["tone"], string> = {
   neutral: "text-steel-700 dark:text-steel-300",
 };
 
-const items: ActivityItem[] = [
-  {
-    id: "EV-011",
-    actor: "GreenLoop planning",
-    message:
-      "Recheck confirmed — Kings Cross Strip-out 8.0 t now booked at Riverstone Aggregates.",
-    label: "Allocation",
-    time: "Sep 22",
-    tone: "confirmed",
-  },
-  {
-    id: "EV-009",
-    actor: "GreenLoop planning",
-    message:
-      "Kings Cross Strip-out 8.0 t ON HOLD — insufficient available capacity (5.0 t free).",
-    label: "Allocation",
-    time: "Sep 22",
-    tone: "hold",
-  },
-  {
-    id: "EV-010",
-    actor: "Harrow Road Demolition",
-    message: "Cancelled 10.0 t — capacity released at Riverstone Aggregates.",
-    label: "Capacity",
-    time: "Sep 22",
-    tone: "rejected",
-  },
-  {
-    id: "EV-013",
-    actor: "Riverstone Aggregates",
-    message: "LOAD-1001 verified — 7.4 t of 8.0 t accepted, 0.2 t rejected.",
-    label: "Verification",
-    time: "Sep 26",
-    tone: "confirmed",
-  },
-  {
-    id: "EV-012",
-    actor: "Kings Cross Strip-out",
-    message: "LOAD-1001 dispatched — 8.0 t to Riverstone Aggregates.",
-    label: "Dispatch",
-    time: "Sep 26",
-    tone: "neutral",
-  },
-];
-
 export default function NotificationDropdown() {
+  const { dataset } = useGreenLoopStore();
+  const items: ActivityItem[] = [...dataset.events].reverse().slice(0, 5).map((event) => ({
+    id: event.id,
+    actor: event.actor.name,
+    message: event.summary,
+    label: event.kind.split(".").map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" · "),
+    time: formatStamp(event.at),
+    tone: event.kind.includes("hold") ? "hold" : event.kind.includes("reject") || event.kind.includes("cancel") ? "rejected" : event.kind.includes("confirm") || event.kind.includes("verified") ? "confirmed" : "neutral",
+  }));
   const [isOpen, setIsOpen] = useState(false);
   const [notifying, setNotifying] = useState(true);
 
@@ -152,6 +118,7 @@ export default function NotificationDropdown() {
         </div>
 
         <ul className="flex custom-scrollbar h-auto flex-col overflow-y-auto">
+          {items.length === 0 && <li className="p-4 text-sm text-gray-500 dark:text-gray-400">No activity has been recorded.</li>}
           {items.map((item) => (
             <li key={item.id}>
               <DropdownItem
@@ -187,7 +154,7 @@ export default function NotificationDropdown() {
           ))}
         </ul>
         <Link
-          to="/"
+          to="/app/audit-trail"
           className="mt-3 block rounded-lg border border-steel-300 bg-white px-4 py-2 text-center text-sm font-medium text-ink-800 hover:bg-steel-50 dark:border-steel-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
         >
           View full audit trail

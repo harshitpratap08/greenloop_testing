@@ -5,16 +5,19 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion, AnimatePresence } from "motion/react";
 import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
+import { useAuth } from "@/context/AuthContext";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { formatDate } from "@/utils";
 
 export default function ReceiverDeliveries() {
   const { dataset, receiveLoadAction } = useGreenLoopStore();
-  const receiverId = "R-001";
+  const { user } = useAuth();
+  const receiverId = user?.receiverId ?? "R-001";
   
   // Confirmed bookings that don't have a verification record yet
-  const expectedDeliveries = dataset.bookings.filter(b => 
-    b.receiverId === receiverId && 
-    b.status === "confirmed" && 
-    !dataset.verifications.some(v => v.bookingId === b.id)
+  const expectedDeliveries = dataset.bookings.filter((booking) =>
+    booking.receiverId === receiverId && booking.status === "confirmed" && Boolean(booking.loadRef) &&
+    !dataset.verifications.some((verification) => verification.bookingId === booking.id)
   );
 
   const [receivingId, setReceivingId] = useState<string | null>(null);
@@ -22,24 +25,13 @@ export default function ReceiverDeliveries() {
 
   return (
     <div className="relative min-h-screen pb-24">
-      <PageMeta title="Deliveries | GreenLoop" description="Incoming deliveries." />
-      <PageBreadcrumb pageTitle="Deliveries" />
-
-      {/* Header */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="mb-8 border-b border-steel-200 pb-6 dark:border-steel-800"
-      >
-        <p className="eyebrow-label text-loop-600 dark:text-loop-400">Receiver Operations</p>
-        <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-4xl">
-          Expected Deliveries
-        </h1>
-        <p className="mt-3 max-w-2xl text-lg text-steel-600 dark:text-gray-400">
-          Track expected material deliveries and record intake when trucks arrive at your site.
-        </p>
-      </motion.header>
+      <PageMeta title="Incoming Deliveries | GreenLoop" description="See expected loads and record their arrival." />
+      <PageBreadcrumb pageTitle="Incoming Deliveries" />
+      <WorkflowPageHeader
+        title="Incoming Deliveries"
+        description="See what providers are sending to your facility. When a truck arrives, record the amount shown on the Weighbridge Ticket."
+        status={`${expectedDeliveries.length} load${expectedDeliveries.length === 1 ? "" : "s"} expected`}
+      />
 
       {expectedDeliveries.length === 0 ? (
         <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-sm border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01]">
@@ -67,9 +59,9 @@ export default function ReceiverDeliveries() {
                 >
                   <div className="grid gap-6 md:grid-cols-[1fr_auto]">
                     <div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <StatusBadge status="confirmed" size="sm" />
-                        <p className="text-sm font-medium text-steel-500 dark:text-steel-400">Booking {booking.id}</p>
+                        <p className="font-semibold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t {material?.type} from {project?.name ?? "provider"}</p>
                       </div>
                       
                       <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -79,26 +71,27 @@ export default function ReceiverDeliveries() {
                         </div>
                         <div>
                           <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Source Project</p>
-                          <p className="mt-1 font-semibold text-ink-900 dark:text-white">{project?.name}</p>
+                          <p className="mt-1 font-semibold text-ink-900 dark:text-white">{project?.location ?? project?.name}</p>
                         </div>
                         <div>
                           <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Expected Date</p>
-                          <p className="mt-1 font-semibold text-ink-900 dark:text-white">{dataset.slots.find(s => s.id === booking.slotId)?.date}</p>
+                          <p className="mt-1 font-semibold text-ink-900 dark:text-white">{formatDate(dataset.slots.find(s => s.id === booking.slotId)?.date ?? "")}</p>
                         </div>
                         <div>
-                          <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Expected Quantity</p>
+                          <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Expected amount</p>
                           <p className="ledger-numeral mt-1 text-2xl font-bold text-ink-900 dark:text-white">
                             {booking.tonnesT.toFixed(1)} <span className="text-sm text-steel-500">t</span>
                           </p>
                         </div>
                       </div>
+                      <details className="mt-4 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-2 block">Booking ID: {booking.id} · Load reference: {booking.loadRef}</span></details>
                     </div>
-                    
+
                     <div className="flex flex-col gap-3 border-t border-steel-100 pt-6 md:w-56 md:border-l md:border-t-0 md:pl-6 md:pt-0 dark:border-steel-800">
                       {isReceiving ? (
                         <div className="flex flex-col gap-3">
                           <div>
-                            <label className="text-xs font-medium text-steel-500 dark:text-gray-400">Actual Received (t)</label>
+                            <label className="text-xs font-medium text-steel-500 dark:text-gray-400">Amount received (t)</label>
                             <input 
                               type="number" 
                               className="mt-1 block w-full rounded-sm border-steel-300 text-sm shadow-sm focus:border-loop-500 focus:ring-loop-500 dark:border-steel-700 dark:bg-black dark:text-white"
@@ -109,9 +102,9 @@ export default function ReceiverDeliveries() {
                               step="0.1"
                             />
                           </div>
-                          <Button 
-                            size="sm" 
-                            disabled={!actualT || isNaN(Number(actualT))} 
+                          <Button
+                            size="sm"
+                            disabled={!actualT || !Number.isFinite(Number(actualT)) || Number(actualT) < 0}
                             onClick={() => {
                               receiveLoadAction(booking.id, Number(actualT), [{
                                 kind: "weighbridge-ticket",
@@ -121,18 +114,18 @@ export default function ReceiverDeliveries() {
                               setReceivingId(null);
                             }}
                           >
-                            Confirm Intake
+                            Record arrival
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => setReceivingId(null)}>
                             Cancel
                           </Button>
                         </div>
                       ) : (
-                        <Button size="sm" onClick={() => {
+                        <Button size="md" className="min-h-11 w-full md:w-auto" onClick={() => {
                           setReceivingId(booking.id);
                           setActualT(booking.tonnesT.toString());
                         }}>
-                          Receive Load
+                          Receive load
                         </Button>
                       )}
                     </div>

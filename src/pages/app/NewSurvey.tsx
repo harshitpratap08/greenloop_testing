@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
@@ -17,7 +17,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function NewSurvey() {
-  const { dataset, addMaterialAction } = useGreenLoopStore();
+  const { dataset, addMaterialAction, addProjectAction } = useGreenLoopStore();
   const navigate = useNavigate();
   
   const [step, setStep] = useState(1);
@@ -28,60 +28,96 @@ export default function NewSurvey() {
   const [rangeMax, setRangeMax] = useState("12");
   const [condition, setCondition] = useState<MaterialCondition>("good");
   const [grade, setGrade] = useState<MaterialGrade>("A");
+  const [surveyNotes, setSurveyNotes] = useState("");
   const [confidence] = useState("0.85");
-  
-  const evidence = useMemo<Evidence[]>(() => {
-    const images: Record<string, string> = {
-      concrete: "/images/site/auth-concrete.jpg",
-      brick: "/images/site/brick-pallets.jpg",
-      steel: "/images/site/auth-truck.jpg",
-      timber: "/images/site/sorting-facility.jpg",
-      plasterboard: "/images/site/yard-wide.jpg",
-      glass: "/images/site/sorting-facility.jpg",
-    };
-    return [
-      {
-        kind: "site-photo",
-        label: `${TYPE_LABEL[type] ?? "Material"} stockpile overview`,
-        ref: images[type] || "/images/site/auth-concrete.jpg",
-        recordedAt: new Date().toISOString(),
-      },
-      {
-        kind: "survey-sheet",
-        label: "Auditor site notes",
-        ref: "notes-1.pdf",
-        recordedAt: new Date().toISOString(),
-      }
-    ];
-  }, [type]);
+  const [showProjectForm, setShowProjectForm] = useState(dataset.projects.length === 0);
+  const [projectName, setProjectName] = useState("");
+  const [projectLocation, setProjectLocation] = useState("");
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [uploadError, setUploadError] = useState("");
+  const [validationError, setValidationError] = useState("");
 
   const [createdPassport, setCreatedPassport] = useState<MaterialPassport | null>(null);
+  const rangeIsValid = Number.isFinite(Number(rangeMin)) && Number.isFinite(Number(rangeMax)) && Number(rangeMin) >= 0 && Number(rangeMax) >= Number(rangeMin) && Number(rangeMin) <= Number(quantity) && Number(rangeMax) >= Number(quantity);
+  const estimateRange: [number, number] = rangeIsValid ? [Number(rangeMin), Number(rangeMax)] : [Number(quantity) || 0, Number(quantity) || 0];
+
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return;
+    setUploadError("");
+    const selectedFiles = Array.from(files);
+    const storedBytes = evidence.reduce((total, item) => total + Math.round((item.ref?.length ?? 0) * 0.75), 0);
+    const addedBytes = selectedFiles.reduce((total, file) => total + file.size, 0);
+    if (selectedFiles.some((file) => file.size > 2 * 1024 * 1024) || storedBytes + addedBytes > 4 * 1024 * 1024) {
+      setUploadError("Each file must be no larger than 2 MB, with 4 MB total evidence per passport.");
+      return;
+    }
+    selectedFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const kind: Evidence["kind"] = file.type.startsWith("image/") ? "site-photo" : "survey-sheet";
+        setEvidence((current) => [...current, {
+          kind,
+          label: file.name,
+          ref: typeof reader.result === "string" ? reader.result : undefined,
+          recordedAt: new Date().toISOString(),
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleCreateProject = () => {
+    if (!projectName.trim() || !projectLocation.trim()) return;
+    const project = addProjectAction({ name: projectName.trim(), location: projectLocation.trim(), status: "active" });
+    setProjectId(project.id);
+    setProjectName("");
+    setProjectLocation("");
+    setShowProjectForm(false);
+  };
 
   const handleSubmit = () => {
+    const quantityValue = Number(quantity);
+    if (!Number.isFinite(quantityValue) || quantityValue <= 0) {
+      setValidationError("Enter a quantity greater than zero.");
+      setStep(2);
+      return;
+    }
+    if (!projectId) {
+      setValidationError("Choose or create the project location for this material.");
+      setStep(3);
+      return;
+    }
+    setValidationError("");
     const passport = addMaterialAction({
       projectId,
       type,
-      quantityT: parseFloat(quantity) || 0,
-      quantityRangeT: [parseFloat(rangeMin) || 0, parseFloat(rangeMax) || 0],
+      quantityT: quantityValue,
+      quantityRangeT: estimateRange,
       condition,
       grade,
       confidence: parseFloat(confidence) || 0,
+      surveyNotes: surveyNotes.trim() || undefined,
       evidence
     });
     setCreatedPassport(passport);
-    setStep(5);
+    setStep(6);
   };
 
   return (
     <div className="relative min-h-screen pb-24">
-      <PageMeta title="New Survey | GreenLoop" description="Create a new material survey." />
-      <PageBreadCrumb pageTitle="New Survey" />
+      <PageMeta title="Add Material | GreenLoop" description="Add construction material from a project and attach supporting photos." />
+      <PageBreadCrumb pageTitle="Add Material" />
 
       <div className="mx-auto max-w-4xl">
-        {step < 5 && (
+        <header className="mb-6 border-b border-steel-200 pb-5 dark:border-steel-800">
+          <h1 className="font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white">Add Material</h1>
+          <p className="mt-2 max-w-2xl text-base text-steel-600 dark:text-gray-400">Add what you have, how much there is, where it is, and a photo. GreenLoop creates a Material Passport—your material’s digital record.</p>
+          <p className="mt-2 text-sm font-medium text-steel-700 dark:text-gray-300">Step {step < 6 ? step : 5} of 5 · {step === 1 ? "Choose material" : step === 2 ? "Enter amount" : step === 3 ? "Choose location" : step === 4 ? "Add photos" : step === 5 ? "Review" : "Complete"}</p>
+        </header>
+        {step < 6 && (
           <div className="mb-8 overflow-hidden rounded-sm border border-steel-200 bg-white shadow-sm dark:border-steel-800 dark:bg-black">
             <div className="flex divide-x divide-steel-200 dark:divide-steel-800">
-              {['Project', 'Material', 'Evidence', 'Review'].map((label, idx) => (
+              {['What do you have?', 'How much?', 'Where is it?', 'Photos', 'Review'].map((label, idx) => (
                 <div key={label} className={cn("flex-1 p-4 text-center transition-colors", step === idx + 1 ? "bg-loop-50 text-loop-700 dark:bg-loop-500/10 dark:text-loop-400" : step > idx + 1 ? "bg-gray-50 text-ink-900 dark:bg-white/[0.02] dark:text-white" : "text-steel-400")}>
                   <p className="text-xs font-bold uppercase tracking-wider">{label}</p>
                 </div>
@@ -92,9 +128,21 @@ export default function NewSurvey() {
 
         <AnimatePresence mode="wait">
           {step === 1 && (
-            <motion.div key="step1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
-              <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Select Project Origin</h2>
-              <p className="mt-2 text-steel-600 dark:text-gray-400">Which demolition or recovery project is being surveyed?</p>
+            <motion.div key="choose-material" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
+              <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">What do you have?</h2>
+              <p className="mt-2 text-steel-600 dark:text-gray-400">Choose the main material type. You can add its amount, project location, photos, and detailed condition next.</p>
+              <label className="mt-8 block text-sm font-semibold text-steel-700 dark:text-gray-300">Material type
+                <select value={type} onChange={(event) => setType(event.target.value as MaterialTypeKey)} className="mt-2 w-full rounded-sm border-2 border-steel-300 p-3 dark:border-steel-700 dark:bg-black dark:text-white">
+                  {Object.entries(TYPE_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                </select>
+              </label>
+              <div className="mt-8 flex justify-end"><button onClick={() => setStep(2)} className="min-h-11 bg-ink-900 px-8 py-3 font-semibold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">Continue</button></div>
+            </motion.div>
+          )}
+          {step === 3 && (
+            <motion.div key="choose-location" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
+              <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Where is the material?</h2>
+              <p className="mt-2 text-steel-600 dark:text-gray-400">Choose the project where the material is located. This is saved with its Material Passport.</p>
               
               <div className="mt-8 space-y-4">
                 {dataset.projects.map(p => (
@@ -106,37 +154,44 @@ export default function NewSurvey() {
                     </div>
                   </label>
                 ))}
+                {showProjectForm ? (
+                  <div className="grid gap-3 rounded-sm border border-steel-200 p-4 dark:border-steel-800">
+                    <input value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Project name" aria-label="Project name" className="w-full rounded-sm border border-steel-300 p-3 dark:border-steel-700 dark:bg-black dark:text-white" />
+                    <input value={projectLocation} onChange={(event) => setProjectLocation(event.target.value)} placeholder="Project location" aria-label="Project location" className="w-full rounded-sm border border-steel-300 p-3 dark:border-steel-700 dark:bg-black dark:text-white" />
+                    <div className="flex gap-3">
+                      <button type="button" onClick={handleCreateProject} disabled={!projectName.trim() || !projectLocation.trim()} className="min-h-11 bg-loop-600 px-4 py-2 font-semibold text-white disabled:opacity-50">Create project</button>
+                      {dataset.projects.length > 0 && <button type="button" onClick={() => setShowProjectForm(false)} className="min-h-11 px-4 py-2 text-steel-600 dark:text-gray-300">Cancel</button>}
+                    </div>
+                  </div>
+                ) : <button type="button" onClick={() => setShowProjectForm(true)} className="inline-flex min-h-11 items-center text-sm font-semibold text-loop-600 underline dark:text-loop-400">Create a project</button>}
               </div>
 
               <div className="mt-8 flex justify-end">
-                <button onClick={() => setStep(2)} disabled={!projectId} className="bg-ink-900 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-600 disabled:opacity-50 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">Continue</button>
+                <button onClick={() => setStep(4)} disabled={!projectId} className="bg-ink-900 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-600 disabled:opacity-50 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">Continue</button>
               </div>
             </motion.div>
           )}
 
           {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
-              <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Material Details</h2>
+              <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">How much material is there?</h2>
+              <p className="mt-2 text-steel-600 dark:text-gray-400">Enter your best estimate in tonnes. You can add an estimate range, condition, and grade if you know them.</p>
               
               <div className="mt-8 grid gap-6 sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Material Type</label>
-                  <select value={type} onChange={e => setType(e.target.value as MaterialTypeKey)} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white">
-                    {Object.entries(TYPE_LABEL).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
+                <div className="sm:col-span-2 rounded-sm border border-steel-200 bg-steel-50 px-4 py-3 text-sm font-semibold text-ink-800 dark:border-steel-800 dark:bg-white/[0.03] dark:text-gray-200">{TYPE_LABEL[type]}</div>
+                <div className="sm:col-span-2">
                   <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Estimated Quantity (t)</label>
                   <input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" />
                 </div>
+                <details className="sm:col-span-2 rounded-sm border border-steel-200 px-4 py-3 dark:border-steel-800">
+                  <summary className="cursor-pointer text-sm font-semibold text-ink-800 dark:text-gray-200">Optional details: estimate range, condition, and grade</summary>
+                  <div className="mt-4 grid gap-6 sm:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Range Min (t)</label>
+                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Estimate range · minimum (t)</label>
                   <input type="number" value={rangeMin} onChange={e => setRangeMin(e.target.value)} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Range Max (t)</label>
+                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Estimate range · maximum (t)</label>
                   <input type="number" value={rangeMax} onChange={e => setRangeMax(e.target.value)} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" />
                 </div>
                 <div>
@@ -155,23 +210,31 @@ export default function NewSurvey() {
                     <option value="C">Grade C</option>
                   </select>
                 </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="survey-notes" className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Survey notes</label>
+                  <textarea id="survey-notes" value={surveyNotes} onChange={(event) => setSurveyNotes(event.target.value)} rows={3} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" />
+                </div>
+                  </div>
+                </details>
               </div>
 
               <div className="mt-10 flex justify-between">
-                <button onClick={() => setStep(1)} className="font-bold text-steel-500 hover:text-ink-900 dark:hover:text-white">Back</button>
+                <button onClick={() => setStep(1)} className="min-h-11 font-semibold text-steel-600 hover:text-ink-900 dark:text-gray-300 dark:hover:text-white">Back</button>
                 <button onClick={() => setStep(3)} className="bg-ink-900 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">Continue</button>
               </div>
             </motion.div>
           )}
 
-          {step === 3 && (
-            <motion.div key="step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
-              <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Attach Evidence</h2>
-              <p className="mt-2 text-steel-600 dark:text-gray-400">Add photos, notes, and lab reports to back up the survey estimate.</p>
+          {step === 4 && (
+            <motion.div key="add-photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
+              <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Add photos</h2>
+              <p className="mt-2 text-steel-600 dark:text-gray-400">Photos help providers and receivers understand what the material looks like. Evidence means the supporting photos or documents attached to its record.</p>
               
               <div className="mt-8 border-2 border-dashed border-steel-300 p-8 text-center dark:border-steel-700">
-                <p className="text-sm font-semibold uppercase text-steel-500">Drag & Drop media here</p>
-                <button className="mt-4 border border-steel-300 px-4 py-2 text-sm font-bold hover:bg-gray-50 dark:border-steel-700 dark:text-white dark:hover:bg-white/5">Browse Files</button>
+                <label className="text-sm font-semibold uppercase text-steel-500">Photos and survey evidence (up to 2 MB each; 4 MB total)</label>
+                <input type="file" multiple accept="image/*,.pdf" onChange={(event) => handleFiles(event.target.files)} className="mt-4 block w-full text-sm text-steel-600 file:me-4 file:border file:border-steel-300 file:bg-white file:px-4 file:py-2 file:font-semibold dark:text-gray-300 dark:file:border-steel-700 dark:file:bg-black" />
+                {uploadError && <p role="alert" className="mt-2 text-sm text-error-500">{uploadError}</p>}
+                {evidence.length === 0 && <p className="mt-3 text-xs text-steel-500">No evidence attached yet.</p>}
               </div>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -201,14 +264,14 @@ export default function NewSurvey() {
               </div>
 
               <div className="mt-10 flex justify-between">
-                <button onClick={() => setStep(2)} className="font-bold text-steel-500 hover:text-ink-900 dark:hover:text-white">Back</button>
-                <button onClick={() => setStep(4)} className="bg-ink-900 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">Continue</button>
+                <button onClick={() => setStep(3)} className="min-h-11 font-semibold text-steel-600 hover:text-ink-900 dark:text-gray-300 dark:hover:text-white">Back</button>
+                <button onClick={() => setStep(5)} disabled={evidence.length === 0} className="bg-ink-900 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">Continue</button>
               </div>
             </motion.div>
           )}
 
-          {step === 4 && (
-            <motion.div key="step4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
+          {step === 5 && (
+            <motion.div key="review-material" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
               <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Review & Create Passport</h2>
               
               <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 rounded-sm border border-steel-200 bg-gray-50 p-6 sm:grid-cols-3 dark:border-steel-800 dark:bg-white/[0.02]">
@@ -219,6 +282,7 @@ export default function NewSurvey() {
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Material</dt>
                   <dd className="font-bold text-ink-900 dark:text-white">{TYPE_LABEL[type]} (Grade {grade}, {condition})</dd>
+                  {surveyNotes.trim() && <><dt className="text-xs font-semibold uppercase text-steel-500">Survey notes</dt><dd className="text-sm text-steel-600 dark:text-gray-400">{surveyNotes.trim()}</dd></>}
                 </div>
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Quantity</dt>
@@ -226,7 +290,7 @@ export default function NewSurvey() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Range</dt>
-                  <dd className="font-bold text-ink-900 dark:text-white">{rangeMin} - {rangeMax} t</dd>
+                  <dd className="font-bold text-ink-900 dark:text-white">{estimateRange[0]}–{estimateRange[1]} t</dd>
                 </div>
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Evidence</dt>
@@ -234,14 +298,15 @@ export default function NewSurvey() {
                 </div>
               </dl>
 
+              {validationError && <p role="alert" className="mt-4 text-sm text-error-500">{validationError}</p>}
               <div className="mt-10 flex justify-between">
-                <button onClick={() => setStep(3)} className="font-bold text-steel-500 hover:text-ink-900 dark:hover:text-white">Back</button>
+                <button onClick={() => setStep(4)} className="min-h-11 font-semibold text-steel-600 hover:text-ink-900 dark:text-gray-300 dark:hover:text-white">Back</button>
                 <button onClick={handleSubmit} className="bg-loop-600 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-700">Create Material Passport</button>
               </div>
             </motion.div>
           )}
 
-          {step === 5 && createdPassport && (
+          {step === 6 && createdPassport && (
             <motion.div key="step5" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="border-t-4 border-loop-500 bg-white p-12 text-center shadow-lg dark:border-loop-400 dark:bg-black">
               <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-full bg-loop-100 text-loop-600 dark:bg-loop-500/20 dark:text-loop-400">
                 <svg className="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>

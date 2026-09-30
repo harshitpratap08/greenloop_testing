@@ -115,13 +115,13 @@ export default function StoryFilm() {
               See the recovery process
             </a>
             <Link
-              to="/signup"
+              to="/sign-up"
               className="border border-white bg-white px-5 py-3 text-theme-sm font-semibold text-ink-900 transition-colors hover:bg-gray-200"
             >
               Create account
             </Link>
             <Link
-              to="/signin"
+              to="/sign-in"
               className="px-5 py-3 text-theme-sm font-semibold text-white transition-colors hover:text-gray-300"
             >
               Sign in

@@ -6,10 +6,13 @@ import { motion, AnimatePresence } from "motion/react";
 import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { cn } from "@/utils";
+import { useAuth } from "@/context/AuthContext";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 
 export default function ReceiverVerification() {
   const { dataset, verifyLoadAction } = useGreenLoopStore();
-  const receiverId = "R-001";
+  const { user } = useAuth();
+  const receiverId = user?.receiverId ?? "R-001";
   
   const pendingVerifications = dataset.verifications.filter(v => 
     v.receiverId === receiverId && v.status === "pending"
@@ -18,27 +21,18 @@ export default function ReceiverVerification() {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [acceptedT, setAcceptedT] = useState<string>("");
   const [rejectReason, setRejectReason] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   return (
     <div className="relative min-h-screen pb-24">
-      <PageMeta title="Verification | GreenLoop" description="Verify received materials." />
-      <PageBreadcrumb pageTitle="Verification" />
-
-      {/* Header */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="mb-8 border-b border-steel-200 pb-6 dark:border-steel-800"
-      >
-        <p className="eyebrow-label text-loop-600 dark:text-loop-400">Receiver Operations</p>
-        <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-4xl">
-          Verify Materials
-        </h1>
-        <p className="mt-3 max-w-2xl text-lg text-steel-600 dark:text-gray-400">
-          Reconcile received loads, record final accepted quantities, and mark material as verified to complete the recovery loop.
-        </p>
-      </motion.header>
+      <PageMeta title="Check & Accept | GreenLoop" description="Compare expected and received quantities, then confirm accepted material." />
+      <PageBreadcrumb pageTitle="Check & Accept" />
+      <WorkflowPageHeader
+        title="Check & Accept"
+        description="Compare the expected amount with the Weighbridge Ticket. Enter how much you accept; the provider is notified when you confirm."
+        status={`${pendingVerifications.length} load${pendingVerifications.length === 1 ? "" : "s"} waiting for a check`}
+      />
+      {successMessage && <p role="status" className="mb-5 border-l-4 border-loop-500 bg-loop-50 px-4 py-3 text-sm font-medium text-loop-800 dark:bg-loop-500/10 dark:text-loop-200">{successMessage}</p>}
 
       {pendingVerifications.length === 0 ? (
         <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-sm border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01]">
@@ -77,33 +71,27 @@ export default function ReceiverVerification() {
                         <p className="text-sm font-medium text-steel-500 dark:text-steel-400">{vr.loadRef}</p>
                       </div>
                       
-                      <div className="mt-6 flex flex-wrap gap-8">
-                        <div>
-                          <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Material</p>
-                          <p className="mt-1 font-semibold text-ink-900 dark:text-white capitalize">{material?.type}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Booking Ref</p>
-                          <p className="mt-1 font-semibold text-ink-900 dark:text-white">{booking?.id}</p>
-                        </div>
+                      <div className="mt-6 flex flex-wrap items-baseline gap-x-8 gap-y-3">
+                        <p className="font-archivo text-xl font-bold text-ink-900 dark:text-white">{material?.type} · {vr.plannedT.toFixed(1)} t expected, {vr.actualT.toFixed(1)} t arrived</p>
+                        <details className="text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Load: {vr.loadRef} · Booking: {booking?.id} · Variance: {varianceNum > 0 ? "+" : ""}{varianceNum.toFixed(1)} t</span></details>
                       </div>
                       
                       <div className="mt-6 rounded border border-steel-100 bg-steel-50/50 p-4 dark:border-steel-800 dark:bg-white/5">
                         <div className="grid grid-cols-3 gap-4 divide-x divide-steel-200 dark:divide-steel-800">
                           <div>
-                            <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Expected (Planned)</p>
+                            <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Expected</p>
                             <p className="ledger-numeral mt-1 text-xl font-bold text-ink-900 dark:text-white">
                               {vr.plannedT.toFixed(1)} <span className="text-sm text-steel-500">t</span>
                             </p>
                           </div>
                           <div className="pl-4">
-                            <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Received (Actual)</p>
+                            <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Arrived</p>
                             <p className="ledger-numeral mt-1 text-xl font-bold text-ink-900 dark:text-white">
                               {vr.actualT.toFixed(1)} <span className="text-sm text-steel-500">t</span>
                             </p>
                           </div>
                           <div className="pl-4">
-                            <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Variance</p>
+                            <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Difference</p>
                             <p className={cn(
                               "ledger-numeral mt-1 text-xl font-bold",
                               varianceNum > 0 ? "text-loop-600 dark:text-loop-400" : varianceNum < 0 ? "text-signal-600 dark:text-signal-400" : "text-ink-900 dark:text-white"
@@ -119,7 +107,7 @@ export default function ReceiverVerification() {
                       {isVerifying ? (
                         <div className="flex flex-col gap-4">
                           <div>
-                            <label className="text-xs font-medium text-steel-500 dark:text-gray-400">Final Accepted Quantity (t)</label>
+                            <label className="text-sm font-medium text-steel-700 dark:text-gray-300">Accepted quantity (t)</label>
                             <input 
                               type="number" 
                               className="mt-1 block w-full rounded-sm border-steel-300 text-sm shadow-sm focus:border-loop-500 focus:ring-loop-500 dark:border-steel-700 dark:bg-black dark:text-white"
@@ -151,27 +139,30 @@ export default function ReceiverVerification() {
                             </div>
                           )}
 
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="md"
+                            className="min-h-11 w-full"
                             disabled={!acceptedT || isNaN(Number(acceptedT)) || Number(acceptedT) > vr.actualT || (rejectedNum > 0 && !rejectReason)} 
                             onClick={() => {
                               verifyLoadAction(vr.id, acceptedNum, rejectedNum, rejectReason);
+                              setSuccessMessage(`${acceptedNum.toFixed(1)} t accepted. The provider has been notified.`);
                               setVerifyingId(null);
                             }}
                           >
-                            Confirm Reconciliation
+                            Confirm accepted
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => setVerifyingId(null)}>
                             Cancel
                           </Button>
                         </div>
                       ) : (
-                        <Button size="sm" onClick={() => {
+                        <Button size="md" className="min-h-11 w-full" onClick={() => {
+                          setSuccessMessage("");
                           setVerifyingId(vr.id);
                           setAcceptedT(vr.actualT.toString());
                           setRejectReason("");
                         }}>
-                          Verify & Reconcile
+                          Check & accept
                         </Button>
                       )}
                     </div>

@@ -8,6 +8,7 @@ import type { ReceiverDaySlot } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { cn, formatDate } from "@/utils";
 import { motion } from "motion/react";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -31,6 +32,7 @@ export default function Bookings() {
   const totalReserved = dataset.slots.reduce((total, slot) => total + (slotLedger(dataset, slot.id)?.reserved ?? 0), 0);
   const totalHeld = dataset.slots.reduce((total, slot) => total + (slotLedger(dataset, slot.id)?.heldT ?? 0), 0);
   const totalAvailable = Math.max(0, totalCapacity - totalReserved);
+  const activeBookings = dataset.bookings.filter((booking) => booking.status === "confirmed" || booking.status === "hold");
 
   return (
     <div className="relative min-h-screen pb-24">
@@ -40,47 +42,42 @@ export default function Bookings() {
       />
       <PageBreadCrumb pageTitle="Bookings" />
 
-      {/* Hero Section */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="mb-8 border-b border-steel-300 pb-8 dark:border-steel-800"
-      >
-        <p className="eyebrow-label text-loop-600 dark:text-loop-400">Receiver Intake Ledger</p>
-        <h1 className="mt-4 font-archivo text-4xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-5xl">
-          Limited receiving capacity
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg text-steel-600 dark:text-gray-400">
-          Every dated intake slot is a finite operational resource. See what is committed, what is waiting, and what remains available.
-        </p>
-      </motion.header>
-
-      {/* 3D Capacity Rule Box */}
-      <motion.section 
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="group relative mb-12 grid overflow-hidden rounded-sm border border-transparent bg-ink-950 text-white shadow-lg sm:grid-cols-[1.4fr_1fr] dark:border-steel-800 dark:bg-black" 
-        aria-label="Capacity rule"
-      >
-        <div className="p-6 sm:p-8">
-          <p className="eyebrow-label text-white/50">Capacity Rule</p>
-          <h2 className="mt-2 font-archivo text-xl font-bold tracking-tight text-white sm:text-2xl">Reserved tonnes cannot be double-booked.</h2>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/70">
-            A confirmed booking consumes slot capacity. A HOLD is a request waiting for enough free tonnes; it is not a confirmed reservation. Cancelling a confirmed booking releases those tonnes and rechecks waiting requests.
-          </p>
-        </div>
-        <dl className="grid grid-cols-3 border-t border-white/10 bg-black/20 sm:border-l sm:border-t-0">
-          <CapacitySummary label="Available" value={`${totalAvailable.toFixed(1)} t`} tone="available" />
-          <CapacitySummary label="Reserved" value={`${totalReserved.toFixed(1)} t`} tone="reserved" />
-          <CapacitySummary label="Held" value={`${totalHeld.toFixed(1)} t`} tone="held" />
-        </dl>
-      </motion.section>
-      <p className="-mt-8 mb-12 text-right text-xs font-medium text-steel-500 dark:text-gray-500">Capacity totals across all dated slots.</p>
+      <WorkflowPageHeader
+        title="Bookings"
+        description="See which receiver slots are confirmed, waiting on capacity, or ready for a load. A booking reserves receiving space on a date."
+        status={`${activeBookings.length} active · ${totalAvailable.toFixed(1)} t free · ${totalReserved.toFixed(1)} t reserved`}
+        action={activeBookings.length ? { label: "View active bookings", to: "#active-bookings" } : { label: "Find receiving capacity", to: "/app/receivers" }}
+      />
+      <section id="active-bookings" className="mb-10 space-y-3" aria-label="Active bookings">
+        {activeBookings.length ? activeBookings.map((booking) => {
+          const slot = slotById(booking.slotId);
+          const receiver = receiverName(booking.receiverId);
+          const dispatched = Boolean(booking.loadRef);
+          const label = booking.status === "hold" ? "Waiting on Capacity" : dispatched ? "On the road" : booking.receiverAcceptedAt ? "Booking confirmed · ready to send" : "Waiting for receiver approval";
+          return <article key={booking.id} className="rounded-sm border border-steel-200 bg-white p-4 shadow-sm dark:border-steel-800 dark:bg-white/[0.02] sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div><p className="text-xs font-semibold uppercase tracking-wide text-steel-500">{label}</p><h2 className="mt-1 font-archivo text-xl font-bold text-ink-900 dark:text-white">{materialLabel(booking.materialId)} · {booking.tonnesT.toFixed(1)} t</h2><p className="mt-1 text-sm text-steel-600 dark:text-gray-400">{receiver} · {slot ? formatDate(slot.date) : "Date pending"}</p></div>
+              <div className="flex flex-wrap gap-2">
+                {booking.status === "confirmed" && booking.receiverAcceptedAt && !dispatched && <Link to="/app/deliveries" className="inline-flex min-h-11 items-center bg-ink-900 px-4 text-sm font-semibold text-white dark:bg-white dark:text-ink-900">Send load</Link>}
+                {booking.status === "hold" && <Link to="/app/receivers" className="inline-flex min-h-11 items-center bg-ink-900 px-4 text-sm font-semibold text-white dark:bg-white dark:text-ink-900">Find another slot</Link>}
+                {booking.status === "confirmed" && !booking.receiverAcceptedAt && !dispatched && <span className="inline-flex min-h-11 items-center text-sm font-medium text-steel-600 dark:text-gray-400">Next: receiver approval</span>}
+                {dispatched && <Link to="/app/deliveries" className="inline-flex min-h-11 items-center bg-ink-900 px-4 text-sm font-semibold text-white dark:bg-white dark:text-ink-900">View load</Link>}
+              </div>
+            </div>
+            <details className="mt-3 border-t border-steel-100 pt-3 text-xs text-steel-500 dark:border-steel-800"><summary className="cursor-pointer font-medium">View details ▾</summary><p className="mt-2">Booking ID: {booking.id} · Match ID: {booking.allocationId} · Receiving slot: {booking.slotId} · Capacity after booking: {booking.capacityAfterT.toFixed(1)} t free</p>{booking.holdReason && <p className="mt-1">{booking.holdReason}</p>}</details>
+          </article>;
+        }) : <p className="rounded-sm border border-steel-200 bg-white p-5 text-sm text-steel-600 dark:border-steel-800 dark:bg-white/[0.02] dark:text-gray-400">No active bookings. Find a receiver to request a slot for your material.</p>}
+      </section>
+      <section className="mb-8 grid gap-3 rounded-sm bg-ink-950 px-3 text-white sm:grid-cols-3 dark:bg-black" aria-label="Capacity totals">
+        <CapacitySummary label="Available across all dates" value={`${totalAvailable.toFixed(1)} t`} tone="available" />
+        <CapacitySummary label="Reserved" value={`${totalReserved.toFixed(1)} t`} tone="reserved" />
+        <CapacitySummary label="Waiting on Capacity" value={`${totalHeld.toFixed(1)} t`} tone="held" />
+      </section>
 
       {/* Slot Timeline */}
-      <section aria-labelledby="slots-heading" className="mb-16">
+      <details className="mb-10 rounded-sm border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02]">
+        <summary className="cursor-pointer px-5 py-4 font-semibold text-ink-900 dark:text-white">View receiving capacity by date ▾</summary>
+      <section aria-labelledby="slots-heading" className="mb-6 border-t border-steel-200 p-5 dark:border-steel-800">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="eyebrow-label text-loop-600 dark:text-loop-400">01 · Dated intake</p>
@@ -112,9 +109,11 @@ export default function Bookings() {
           ))}
         </div>
       </section>
+      </details>
 
-      {/* Booking History */}
-      <section aria-labelledby="bookings-heading" className="border-t border-steel-300 pt-10 dark:border-steel-700">
+      <details className="rounded-sm border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02]">
+      <summary className="cursor-pointer px-5 py-4 font-semibold text-ink-900 dark:text-white">View booking history and capacity records ▾</summary>
+      <section aria-labelledby="bookings-heading" className="border-t border-steel-300 p-5 pt-8 dark:border-steel-700">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="eyebrow-label text-loop-600 dark:text-loop-400">02 · Reservation records</p>
@@ -130,6 +129,7 @@ export default function Bookings() {
           {dataset.bookings.map((booking, i) => {
             const slot = slotById(booking.slotId);
             const cancelled = booking.status === "cancelled";
+            const dispatched = Boolean(booking.loadRef) || dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id));
             return (
               <motion.article 
                 initial={{ opacity: 0 }}
@@ -170,7 +170,7 @@ export default function Bookings() {
                     </div>
                   </div>
                   
-                  {booking.status === "confirmed" && (
+                  {booking.status === "confirmed" && !dispatched && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -209,6 +209,7 @@ export default function Bookings() {
           )}
         </div>
       </section>
+      </details>
     </div>
   );
 }
@@ -288,10 +289,10 @@ function SlotTimelineItem({
         {held.length > 0 && (
           <div className="mt-4 border-l-2 border-signal-400 bg-signal-50 px-4 py-2 dark:border-signal-500/50 dark:bg-signal-500/10">
             <p className="text-sm font-bold text-signal-900 dark:text-signal-100">
-              {held.length} request{held.length === 1 ? "" : "s"} on HOLD
+              {held.length} request{held.length === 1 ? "" : "s"} waiting on capacity
             </p>
             <p className="text-xs text-signal-800/90 dark:text-signal-200/90">
-              {held.reduce((total, booking) => total + booking.tonnesT, 0).toFixed(1)} t waiting for free intake.
+              {held.reduce((total, booking) => total + booking.tonnesT, 0).toFixed(1)} t waiting for free capacity.
             </p>
           </div>
         )}

@@ -52,6 +52,25 @@ export function findSlot(dataset: GreenLoopDataset, slotId: string): ReceiverDay
   return dataset.slots.find((s) => s.id === slotId);
 }
 
+export function slotMatchesDemandPeriod(slot: ReceiverDaySlot, period: string): boolean {
+  let deadline: string | undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(period)) {
+    deadline = period;
+  } else {
+    const quarter = period.match(/^Q([1-4])\s+(\d{4})$/i);
+    const namedMonth = period.match(/^([A-Za-z]+)\s+(\d{4})$/);
+    const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+    const month = namedMonth ? monthNames.indexOf(namedMonth[1].slice(0, 3).toLowerCase()) + 1 : 0;
+    const endMonth = quarter ? Number(quarter[1]) * 3 : month;
+    const year = quarter ? Number(quarter[2]) : namedMonth ? Number(namedMonth[2]) : 0;
+    if (endMonth > 0 && year > 0) {
+      const lastDay = new Date(Date.UTC(year, endMonth, 0)).getUTCDate();
+      deadline = `${year}-${String(endMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    }
+  }
+  return !deadline || slot.date <= deadline;
+}
+
 /** Ledger view for one slot: capacity split into confirmed / available / held. */
 export function slotLedger(
   dataset: GreenLoopDataset,
@@ -326,7 +345,7 @@ export function releaseCapacity(
 ): EngineOutput<ReleaseOutput> {
   const booking = dataset.bookings.find((b) => b.id === input.bookingId);
   if (!booking) throw new Error(`Unknown booking: ${input.bookingId}`);
-  if (booking.status !== "confirmed") {
+  if (booking.status !== "confirmed" || booking.loadRef || dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id))) {
     return { dataset, events: [], output: { cancelledBooking: booking, reconfirmed: [] } };
   }
 
@@ -407,7 +426,18 @@ export function recheckHolds(
 
   for (const hold of holds) {
     const avail = availableT(slot, bookings);
-    if (hold.tonnesT > avail + 1e-9) continue;
+    const material = dataset.materials.find((item) => item.id === hold.materialId);
+    const committedMaterialT = bookings
+      .filter((booking) => booking.materialId === hold.materialId && booking.status === "confirmed")
+      .reduce((total, booking) => total + booking.tonnesT, 0);
+    const materialRemainingT = Math.max(0, (material?.quantityT ?? 0) - committedMaterialT);
+    const demand = hold.demandId ? dataset.demands.find((item) => item.id === hold.demandId) : undefined;
+    const committedDemandT = hold.demandId
+      ? bookings.filter((booking) => booking.demandId === hold.demandId && booking.status === "confirmed")
+        .reduce((total, booking) => total + booking.tonnesT, 0)
+      : 0;
+    const demandRemainingT = demand ? Math.max(0, demand.requiredT - committedDemandT) : Infinity;
+    if (hold.tonnesT > avail + 1e-9 || hold.tonnesT > materialRemainingT + 1e-9 || hold.demandId && !demand || hold.tonnesT > demandRemainingT + 1e-9) continue;
 
     const after = round1(avail - hold.tonnesT);
     bookings = bookings.map((b) =>
@@ -463,7 +493,7 @@ export function recheckHolds(
 // ---------------------------------------------------------------------------
 
 export interface DispatchOutput {
-  loadRef: string;
+  loadRef?: string;
 }
 
 /** Mark a confirmed booking dispatched and stamp the load reference. */
@@ -473,7 +503,17 @@ export function dispatchLoad(
 ): EngineOutput<DispatchOutput> {
   const booking = dataset.bookings.find((b) => b.id === input.bookingId);
   if (!booking) throw new Error(`Unknown booking: ${input.bookingId}`);
-  const loadRef = `LOAD-${1000 + dataset.verifications.length + 1}`;
+  const alreadyDispatched = booking.status !== "confirmed" || !booking.receiverAcceptedAt || Boolean(booking.loadRef) ||
+    dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id));
+  if (alreadyDispatched) return { dataset, events: [], output: {} };
+
+  const usedLoadRefs = new Set([
+    ...dataset.bookings.map((item) => item.loadRef).filter((ref): ref is string => Boolean(ref)),
+    ...dataset.events.flatMap((event) => event.summary.match(/LOAD-\d+/g) ?? []),
+  ]);
+  let loadNumber = 1001;
+  while (usedLoadRefs.has(`LOAD-${loadNumber}`)) loadNumber += 1;
+  const loadRef = `LOAD-${loadNumber}`;
 
   const event = makeEvent(
     dataset.events,
@@ -489,6 +529,9 @@ export function dispatchLoad(
   return {
     dataset: {
       ...withEvents(dataset, [event]),
+      bookings: dataset.bookings.map((item) =>
+        item.id === booking.id ? { ...item, loadRef, updatedAt: input.at } : item,
+      ),
       materials: dataset.materials.map((m) =>
         m.id === booking.materialId ? { ...m, status: "dispatched" as const } : m,
       ),
@@ -521,10 +564,14 @@ export function recordDelivery(
 ): EngineOutput<DeliveryOutput> {
   const booking = dataset.bookings.find((b) => b.id === input.bookingId);
   if (!booking) throw new Error(`Unknown booking: ${input.bookingId}`);
+  if (booking.status !== "confirmed" || !booking.loadRef ||
+    dataset.verifications.some((record) => record.bookingId === booking.id)) {
+    return { dataset, events: [], output: { verificationId: "", loadRef: booking.loadRef ?? "", status: "verified" } };
+  }
 
   const rejectedT = round1(Math.max(0, input.actualT - input.acceptedT));
   const status = rejectedT > 0 && input.acceptedT === 0 ? "rejected" : "verified";
-  const loadRef = `LOAD-${1000 + dataset.verifications.length + 1}`;
+  const loadRef = booking.loadRef;
 
   const verification: VerificationRecord = {
     id: `VR-${dataset.verifications.length + 1}`,
