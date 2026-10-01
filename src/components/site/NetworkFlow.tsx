@@ -14,7 +14,7 @@ export default function NetworkFlow({ className }: { className?: string }) {
   const spine = ["MATCH", "DELIVERY", "VERIFICATION"];
 
   const rail =
-    "relative h-px flex-1 min-w-10 bg-white/15 overflow-visible";
+    "relative h-px flex-1 min-w-10 bg-steel-300 overflow-visible site-dark:bg-white/15";
   const draw = (delay: number) =>
     reduceMotion
       ? {}
@@ -42,10 +42,10 @@ export default function NetworkFlow({ className }: { className?: string }) {
         <ul className="space-y-3" aria-hidden="true">
           {providerStages.map((label, index) => (
             <li key={label} className="flex items-center gap-3">
-              <span className="w-full border border-white/12 bg-white/[0.03] px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-white/70">
+              <span className="w-full border border-steel-300 bg-white px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-steel-700 site-dark:border-white/12 site-dark:bg-white/[0.03] site-dark:text-white/70">
                 {label}
               </span>
-              <span className="relative hidden h-px w-14 bg-white/15 sm:block">
+              <span className="relative hidden h-px w-14 bg-steel-300 sm:block site-dark:bg-white/15">
                 <motion.span
                   className="absolute inset-0 origin-left bg-loop-400/80 rtl:origin-right"
                   {...draw(0.2 + index * 0.18)}
@@ -58,10 +58,10 @@ export default function NetworkFlow({ className }: { className?: string }) {
 
         {/* Coordination spine */}
         <div className="relative mx-auto flex flex-col items-center gap-1">
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">GREENLOOP</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-steel-500 site-dark:text-white/40">GREENLOOP</span>
           <div className="border border-loop-400/50 bg-loop-500/10 px-6 py-5 text-center">
-            <p className="eyebrow-label text-loop-300">The connection</p>
-            <p className="mt-2 font-archivo text-xl font-bold tracking-wide text-white sm:text-2xl">GREENLOOP MATCH</p>
+            <p className="eyebrow-label text-loop-700 site-dark:text-loop-300">The connection</p>
+            <p className="mt-2 font-archivo text-xl font-bold tracking-wide text-ink-900 site-dark:text-white sm:text-2xl">GREENLOOP MATCH</p>
           </div>
           <div className={rail}>
             <motion.span
@@ -74,7 +74,7 @@ export default function NetworkFlow({ className }: { className?: string }) {
             {spine.map((label, index) => (
               <motion.li
                 key={label}
-                className="border border-white/12 bg-ink-950/80 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white/70"
+                className="border border-steel-300 bg-white px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-steel-700 site-dark:border-white/12 site-dark:bg-ink-950/80 site-dark:text-white/70"
                 {...draw(index * 0.15)}
               >
                 {label}
@@ -87,14 +87,14 @@ export default function NetworkFlow({ className }: { className?: string }) {
         <ul className="space-y-3" aria-hidden="true">
           {receiverStages.map((label, index) => (
             <li key={label} className="flex items-center gap-3">
-              <span className="relative hidden h-px w-14 bg-white/15 sm:block">
+              <span className="relative hidden h-px w-14 bg-steel-300 sm:block site-dark:bg-white/15">
                 <motion.span
                   className="absolute inset-0 origin-right bg-loop-400/80 rtl:origin-left"
                   {...draw(0.2 + index * 0.18)}
                 />
                 {pulse(index * 0.9 + 0.45)}
               </span>
-              <span className="w-full border border-white/12 bg-white/[0.03] px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-white/70">
+              <span className="w-full border border-steel-300 bg-white px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-steel-700 site-dark:border-white/12 site-dark:bg-white/[0.03] site-dark:text-white/70">
                 {label}
               </span>
             </li>
@@ -104,7 +104,7 @@ export default function NetworkFlow({ className }: { className?: string }) {
 
       {/* Converged result */}
       <div className="mt-8 flex flex-col items-center gap-3">
-        <div className="relative h-10 w-px bg-white/15">
+        <div className="relative h-10 w-px bg-steel-300 site-dark:bg-white/15">
           <div className="absolute inset-0 bg-loop-400/80" />
           {reduceMotion ? (
             <span className="absolute -bottom-1 -start-[2.5px] size-1.5 bg-loop-300" />
@@ -118,7 +118,7 @@ export default function NetworkFlow({ className }: { className?: string }) {
           )}
         </div>
         <motion.p
-          className="border border-loop-400/60 bg-loop-500/15 px-5 py-3 text-center font-archivo text-lg font-bold text-loop-200 sm:text-xl"
+          className="border border-loop-600/50 bg-loop-100 px-5 py-3 text-center font-archivo text-lg font-bold text-loop-800 sm:text-xl site-dark:border-loop-400/60 site-dark:bg-loop-500/15 site-dark:text-loop-200"
           {...(reduceMotion
             ? {}
             : {

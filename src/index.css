@@ -5,6 +5,7 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant site-dark (&:where([data-site-theme="dark"] *));
 
 /* GreenLoop motion default: no smooth scrolling for reduced-motion users
    (main.tsx sets smooth scrolling only when motion is allowed). */
