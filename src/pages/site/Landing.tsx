@@ -88,7 +88,8 @@ export default function Landing() {
           <motion.div className="absolute inset-0" style={reduceMotion ? undefined : { y: videoY, scale: videoScale }}>
             <VideoBackground
               video={siteVideos.hero}
-              overlayClassName="bg-linear-to-r from-ink-950/75 via-ink-950/60 to-ink-950/45"
+              videoClassName="brightness-[0.72] contrast-[0.9] saturate-[0.85]"
+              overlayClassName="bg-linear-to-r from-ink-950/90 via-ink-950/75 to-ink-950/65"
             />
           </motion.div>
           <motion.div
@@ -132,8 +133,8 @@ export default function Landing() {
               className="relative mx-auto w-full max-w-lg lg:ms-auto"
               {...entrance(reduceMotion, 0.6)}
             >
-              <div className="absolute -inset-3 border border-white/15" aria-hidden="true" />
-              <div className="relative border border-white/20 bg-ink-950/90 p-5 shadow-2xl backdrop-blur-sm sm:p-7">
+              <div className="absolute -inset-3 border border-white/[0.08]" aria-hidden="true" />
+              <div className="relative border border-white/10 bg-ink-950/90 p-5 shadow-2xl backdrop-blur-sm sm:p-7">
                 <div className="flex items-center justify-between border-b border-white/15 pb-4">
                   <p className="eyebrow-label text-white/55">One network · two sides</p>
                   <span className="ledger-numeral text-xs text-loop-300">GREENLOOP</span>
