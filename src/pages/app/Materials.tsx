@@ -1,16 +1,19 @@
+/**
+ * Materials & Passports — manage surveyed material.
+ *
+ * Media-first cards (distinct imagery per material type), each showing
+ * quantity, project, condition/grade, status, evidence count and the
+ * passport action. The project site-media gallery stays below.
+ */
+
 import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
-import StatusBadge from "@/components/greenloop/StatusBadge";
-import {
-  ProjectSiteMedia,
-  materialMedia,
-} from "@/components/greenloop/AppExploration";
-import Badge from "@/components/ui/badge/Badge";
+import { ProjectSiteMedia } from "@/components/greenloop/AppExploration";
 import { computeMatch } from "@/domain/capacity";
-
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { Link } from "react-router";
-import { motion } from "motion/react";
+import { PageMotion, RevealItem, MediaPanel, StatusChip, EmptyState } from "@/components/greenloop/kit";
+import { materialMediaFor, ambientMedia } from "@/config/appMedia";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -24,204 +27,163 @@ const TYPE_LABEL: Record<string, string> = {
 export default function Materials() {
   const { dataset } = useGreenLoopStore();
   const projectName = (id: string) => dataset.projects.find((project) => project.id === id)?.name ?? id;
-
   const totalT = dataset.materials.reduce((total, material) => total + material.quantityT, 0);
 
   return (
-    <div className="relative min-h-screen pb-24">
-      <PageMeta
-        title="Materials & Passports | GreenLoop"
-        description="Traceable material passports from GreenLoop demolition surveys."
-      />
+    <PageMotion className="mx-auto max-w-[1200px] pb-24">
+      <PageMeta title="Material Passports | GreenLoop" description="Traceable material passports from GreenLoop demolition surveys." />
       <PageBreadCrumb pageTitle="Materials & Passports" />
 
-      {/* Cinematic Header Block */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="group relative mb-12 overflow-hidden border border-steel-200 bg-ink-950 p-8 shadow-lg sm:p-12 dark:border-steel-800 dark:bg-black"
-      >
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <img
-            src="/images/site/auth-concrete.jpg"
-            alt="Material Stockpile"
-            className="h-full w-full animate-slow-mo object-cover opacity-40 dark:opacity-50"
+      <RevealItem>
+        <header className="mb-10 grid border border-steel-200 bg-white shadow-sm dark:border-steel-800 dark:bg-white/[0.02] lg:grid-cols-[0.9fr_1.1fr]">
+          <MediaPanel
+            media={ambientMedia.brickPallets}
+            aspect="h-full min-h-[200px]"
+            scrim="bg-gradient-to-t from-ink-950/55 to-transparent"
+            className="border-0 border-b border-steel-200 lg:border-b-0 lg:border-e dark:border-steel-800"
+            caption="Recovered material, recorded and ready to place"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-ink-950/95 via-ink-950/80 to-transparent dark:from-black/95 dark:via-black/70" />
-        </div>
-
-        <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
-            <p className="eyebrow-label text-loop-400">Material Passports · Digital records for your material</p>
-            <h1 className="mt-4 font-archivo text-4xl font-bold tracking-tight text-white drop-shadow-md sm:text-5xl">
-              Physical material.<br />Digital record.
-            </h1>
-            <p className="mt-4 text-lg text-white/80 drop-shadow-sm">
-              A Material Passport is your material’s digital record, connecting its quantity, photos, and evidence to the project and recovery status.
-            </p>
-            <Link to="/app/materials/new" className="mt-6 inline-flex bg-loop-600 px-6 py-3 font-archivo font-bold text-white hover:bg-loop-700">
-              Add Material
-            </Link>
+          <div className="flex flex-col justify-center gap-4 p-6 sm:p-8">
+            <div>
+              <p className="eyebrow-label text-steel-500 dark:text-steel-400">GreenLoop operations</p>
+              <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-4xl">Materials &amp; Passports</h1>
+              <p className="mt-2 max-w-xl text-base text-gray-500 dark:text-gray-400">Digital records connecting physical material to projects and recovery status.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-6">
+              <div>
+                <span className="ledger-numeral text-2xl font-bold text-ink-900 dark:text-white">{dataset.materials.length}</span>
+                <p className="eyebrow-label text-steel-500 dark:text-steel-400">Active passports</p>
+              </div>
+              <div>
+                <span className="ledger-numeral text-2xl font-bold text-loop-600 dark:text-loop-400">{totalT.toFixed(1)} t</span>
+                <p className="eyebrow-label text-steel-500 dark:text-steel-400">Total volume</p>
+              </div>
+              <Link to="/app/materials/new" className="inline-flex min-h-11 items-center bg-ink-900 px-5 font-archivo text-sm font-bold uppercase tracking-wider text-white hover:bg-loop-600 dark:bg-white dark:text-ink-900">
+                Add material
+              </Link>
+            </div>
           </div>
-          <div className="flex flex-col items-start gap-1 border-l-2 border-loop-500 pl-6 md:items-end md:border-l-0 md:border-r-2 md:pl-0 md:pr-6 md:text-right">
-            <span className="ledger-numeral text-4xl font-bold text-white">{dataset.materials.length}</span>
-            <span className="eyebrow-label text-white/60">Active Passports</span>
-            <span className="ledger-numeral mt-2 text-2xl font-semibold text-loop-400">{totalT.toFixed(1)} t</span>
-            <span className="eyebrow-label text-white/60">Total Volume</span>
-          </div>
-        </div>
-      </motion.div>
+        </header>
+      </RevealItem>
 
       {dataset.materials.length === 0 ? (
-        <div className="flex flex-col items-center justify-center border-2 border-dashed border-steel-300 py-24 text-center dark:border-steel-700">
-          <h3 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">No material passports yet.</h3>
-          <p className="mt-2 text-steel-600 dark:text-gray-400">Add your material, quantity, location, and photos to create its digital record.</p>
-          <Link to="/app/materials/new" className="mt-6 inline-flex bg-ink-900 px-8 py-4 font-archivo font-bold text-white uppercase tracking-wide hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">
-            Add Material
-          </Link>
-        </div>
+        <RevealItem>
+          <EmptyState
+            title="No material passports yet"
+            body="Add your material, quantity, location, and photos to create its digital record."
+            action={
+              <Link to="/app/materials/new" className="inline-flex min-h-11 items-center bg-ink-900 px-6 font-archivo text-sm font-bold uppercase tracking-wide text-white hover:bg-loop-600 dark:bg-white dark:text-ink-900">
+                Add Material
+              </Link>
+            }
+          />
+        </RevealItem>
       ) : (
-        <section className="space-y-8" aria-label="Material passports">
-        {dataset.materials.map((material, i) => {
-          const media = materialMedia(material);
-          const existingAllocation = dataset.allocations.find(
-            (allocation) => allocation.materialId === material.id && allocation.status !== "cancelled",
-          );
-          const candidate = computeMatch(dataset, material.id)[0];
-          const receiverId = existingAllocation?.receiverId ?? candidate?.receiverId;
-          const receiver = receiverId
-            ? dataset.receivers.find((item) => item.id === receiverId)
-            : undefined;
-          const capacityFits = candidate ? candidate.availableT >= material.quantityT : false;
-
-          return (
-            <motion.article 
-              key={material.id} 
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.4, delay: Math.min(i * 0.05, 0.3), ease: "easeOut" }}
-              className="flex flex-col gap-5 rounded-sm border border-steel-200 bg-white p-4 shadow-sm transition-colors hover:border-steel-300 sm:flex-row sm:p-5 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-700"
-            >
-              {/* Compact Evidence Thumbnail */}
-              <div className="relative size-24 shrink-0 overflow-hidden rounded bg-steel-100 sm:size-28 dark:bg-steel-900">
-                {media[0] ? (
-                  <img
-                    src={media[0].src}
-                    alt={media[0].caption}
-                    className="size-full object-cover"
-                    loading="lazy"
+        <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-3" aria-label="Material passports">
+          {dataset.materials.map((material) => {
+            const allocation = dataset.allocations.find((a) => a.materialId === material.id && a.status !== "cancelled");
+            const candidate = computeMatch(dataset, material.id)[0];
+            const receiverId = allocation?.receiverId ?? candidate?.receiverId;
+            const matchedReceiver = receiverId ? dataset.receivers.find((item) => item.id === receiverId) : undefined;
+            const photoCount = material.evidence.filter((e) => e.kind === "site-photo").length;
+            const chip =
+              material.status === "verified" ? "verified" as const
+              : material.status === "dispatched" ? "active" as const
+              : material.status === "reserved" || material.status === "allocated" ? "confirmed" as const
+              : "attention" as const;
+            return (
+              <li key={material.id}>
+                <article className="group flex h-full flex-col border border-steel-200 bg-white transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
+                  <MediaPanel
+                    media={materialMediaFor(material.type)}
+                    aspect="aspect-[16/9]"
+                    className="border-0 border-b border-steel-200 dark:border-steel-800"
+                    caption={TYPE_LABEL[material.type] ?? material.type}
                   />
-                ) : (
-                  <div className="flex size-full items-center justify-center text-xs text-steel-400">No media</div>
-                )}
-                {media.length > 1 && (
-                  <div className="absolute bottom-1 right-1 rounded bg-ink-900/80 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
-                    +{media.length - 1}
-                  </div>
-                )}
-              </div>
-
-              {/* Data Section */}
-              <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-3">
+                  <div className="flex flex-1 flex-col p-5">
+                    <div className="flex items-start justify-between gap-2">
                       <h2 className="font-archivo text-xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">
                         {TYPE_LABEL[material.type] ?? material.type}
                       </h2>
-                      <StatusBadge status={material.status} />
+                      <StatusChip status={chip} label={material.status} />
                     </div>
-                    <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">
-                      <Link to="/app/explore" state={{ projectId: material.projectId }} className="font-semibold text-ink-800 hover:text-loop-600 dark:text-gray-200 dark:hover:text-loop-400">
+                    <p className="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
+                      <Link to="/app/explore" state={{ projectId: material.projectId }} className="font-semibold text-ink-900 hover:text-loop-600 dark:text-gray-200 dark:hover:text-loop-400">
                         {projectName(material.projectId)}
                       </Link>
                       {" · "}
-                      <span className="ledger-numeral text-xs">ID {material.id}</span>
+                      <span className="ledger-numeral">ID {material.id}</span>
                     </p>
-                  </div>
 
-                  <div className="text-left sm:text-right">
-                    <div className="flex items-baseline gap-1 sm:justify-end">
-                      <p className="ledger-numeral text-2xl font-bold text-ink-900 dark:text-white">
-                        {material.quantityT.toFixed(1)}
-                      </p>
-                      <span className="text-sm font-medium text-steel-500">t</span>
+                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+                      <div>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Volume</p>
+                        <p className="ledger-numeral text-lg font-bold text-ink-900 dark:text-white">
+                          {material.quantityT.toFixed(1)} <span className="text-xs font-medium text-steel-500">t</span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Condition</p>
+                        <p className="text-sm font-medium capitalize text-ink-900 dark:text-gray-300">{material.condition} · Grade {material.grade}</p>
+                      </div>
+                      <div>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Evidence</p>
+                        <p className="ledger-numeral text-sm font-medium text-ink-900 dark:text-gray-300">{photoCount} photos · {material.evidence.length} records</p>
+                      </div>
                     </div>
-                    <p className="ledger-numeral mt-0.5 text-xs text-steel-500 dark:text-steel-400">
-                      Est. range {material.quantityRangeT[0].toFixed(1)}–{material.quantityRangeT[1].toFixed(1)} t
-                    </p>
-                  </div>
-                </div>
 
-                <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">
-                  {material.condition} condition · Grade {material.grade} · {material.evidence.length} evidence items
-                </p>
+                    {matchedReceiver && (
+                      <p className="mt-3 border-s-2 border-loop-500 ps-2 text-theme-xs text-gray-600 dark:text-gray-400">
+                        {allocation ? "Matched with" : "Suggested"}: <span className="font-semibold text-ink-900 dark:text-gray-200">{matchedReceiver.name}</span>
+                      </p>
+                    )}
 
-                {/* Receiver Action / Context */}
-                {receiver && (
-                  <div className="mt-2 flex flex-wrap items-center gap-3 border-t border-steel-100 pt-3 dark:border-steel-800/50">
-                    <span className="text-sm font-semibold text-ink-900 dark:text-gray-200">{existingAllocation ? "Matched with" : "Suggested receiver"}: {receiver.name}</span>
-                    {!existingAllocation && candidate && <Badge color={capacityFits ? "success" : "warning"} size="sm">{capacityFits ? `${candidate.availableT.toFixed(1)} t free` : "Not enough capacity"}</Badge>}
-                    {existingAllocation && <StatusBadge status={existingAllocation.status} />}
-                    {!existingAllocation && <Link to="/app/receivers" state={{ materialId: material.id }} className="ml-auto inline-flex min-h-11 items-center bg-ink-900 px-4 py-2 text-sm font-semibold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">Find receiver</Link>}
+                    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-white/5 lg:mt-auto">
+                      <Link to={`/app/materials/${material.id}`} className="inline-flex min-h-11 flex-1 items-center justify-center border-2 border-ink-900 px-4 text-sm font-bold uppercase tracking-wider text-ink-900 transition-colors hover:bg-ink-900 hover:text-white dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-ink-900">
+                        View passport
+                      </Link>
+                      {!allocation && (
+                        <Link to="/app/receivers" state={{ materialId: material.id }} className="inline-flex min-h-11 items-center border border-steel-300 px-4 text-sm font-semibold text-ink-900 hover:bg-steel-50 dark:border-steel-700 dark:text-white dark:hover:bg-white/5">
+                          Find receiver
+                        </Link>
+                      )}
+                    </div>
                   </div>
-                )}
-                <details className="mt-3 border-t border-steel-100 pt-3 text-sm dark:border-steel-800/50">
-                  <summary className="cursor-pointer font-medium text-ink-700 dark:text-gray-300">View details ▾</summary>
-                  <dl className="mt-3 grid gap-2 text-xs text-steel-600 dark:text-gray-400 sm:grid-cols-2">
-                    <div><dt className="inline font-semibold">Passport ID:</dt> <dd className="inline ledger-numeral">{material.id}</dd></div>
-                    <div><dt className="inline font-semibold">Estimate confidence:</dt> <dd className="inline">{Math.round(material.confidence * 100)}%</dd></div>
-                    <div><dt className="inline font-semibold">Project:</dt> <dd className="inline">{projectName(material.projectId)}</dd></div>
-                    <div><dt className="inline font-semibold">Evidence:</dt> <dd className="inline">{material.evidence.map((item) => item.label).join(", ") || "None"}</dd></div>
-                    {material.surveyNotes && <div className="sm:col-span-2"><dt className="font-semibold">Survey notes:</dt> <dd>{material.surveyNotes}</dd></div>}
-                  </dl>
-                  <ul className="mt-3 space-y-1 text-xs text-steel-500 dark:text-gray-400">{dataset.events.filter((event) => event.subjectIds.includes(material.id)).map((event) => <li key={event.id}>{new Date(event.at).toLocaleString()} · {event.summary}</li>)}</ul>
-                </details>
-              </div>
-            </motion.article>
-          );
-        })}
-        </section>
+                </article>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
-      {/* Media Gallery Section */}
-      <section className="mt-16 border-t border-steel-300 pt-10 dark:border-steel-700">
+      {/* Project site-media gallery (preserved) */}
+      <section className="mt-16 border-t border-steel-300 pt-10 dark:border-steel-700" aria-label="Site media by project">
         <div className="mb-8 flex flex-wrap items-baseline justify-between gap-4">
           <div>
-            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Source Evidence</p>
+            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Source evidence</p>
             <h2 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white">Site media by project</h2>
           </div>
           <Link to="/app/projects" className="group flex items-center gap-2 text-sm font-semibold text-ink-800 transition-colors hover:text-loop-600 dark:text-gray-200 dark:hover:text-loop-400">
             All projects
-            <span className="transition-transform group-hover:translate-x-1">→</span>
+            <span className="transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
           </Link>
         </div>
-        
         <div className="grid gap-8 lg:grid-cols-2">
           {dataset.projects
-            .filter((project) => dataset.materials.some((material) => material.projectId === project.id && materialMedia(material).length > 0))
+            .filter((project) => dataset.materials.some((material) => material.projectId === project.id))
             .slice(0, 2)
-            .map((project, i) => (
-              <motion.div 
-                key={project.id} 
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.2, duration: 0.6 }}
-                className="group relative overflow-hidden border border-steel-200 bg-white shadow-sm dark:border-steel-800 dark:bg-white/[0.02]"
-              >
-                <div className="border-b border-steel-200 bg-gray-50 px-6 py-4 dark:border-steel-800 dark:bg-white/[0.02]">
+            .map((project) => (
+              <div key={project.id} className="overflow-hidden border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02]">
+                <div className="border-b border-steel-200 px-6 py-4 dark:border-steel-800">
                   <h3 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">{project.name}</h3>
                 </div>
-                <div className="p-6 transition-transform duration-700 group-hover:scale-[1.02]">
+                <div className="p-6">
                   <ProjectSiteMedia projectId={project.id} />
                 </div>
-              </motion.div>
+              </div>
             ))}
         </div>
       </section>
-    </div>
+    </PageMotion>
   );
 }

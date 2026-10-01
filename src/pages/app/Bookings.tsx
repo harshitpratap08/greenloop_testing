@@ -9,6 +9,7 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { cn, formatDate } from "@/utils";
 import { motion } from "motion/react";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { materialMediaFor } from "@/config/appMedia";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -48,36 +49,84 @@ export default function Bookings() {
         status={`${activeBookings.length} active · ${totalAvailable.toFixed(1)} t free · ${totalReserved.toFixed(1)} t reserved`}
         action={activeBookings.length ? { label: "View active bookings", to: "#active-bookings" } : { label: "Find receiving capacity", to: "/app/receivers" }}
       />
-      <section id="active-bookings" className="mb-10 space-y-3" aria-label="Active bookings">
+
+      <section className="mb-10 border border-steel-200 bg-white p-5 dark:border-steel-800 dark:bg-white/[0.02]" aria-label="Receiving capacity totals">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="eyebrow-label text-loop-600 dark:text-loop-400">Receiving capacity · all dated slots</p>
+            <h2 className="mt-1 font-archivo text-xl font-bold uppercase text-ink-900 dark:text-white">Capacity position</h2>
+          </div>
+          <p className="text-xs text-steel-600 dark:text-gray-400">Confirmed bookings consume capacity. Held requests are pending and do not reduce free tonnes.</p>
+        </div>
+        <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <CapacitySummary label="Total receiving capacity" value={`${totalCapacity.toFixed(1)} t`} tone="reserved" />
+          <CapacitySummary label="Available" value={`${totalAvailable.toFixed(1)} t`} tone="available" />
+          <CapacitySummary label="Reserved · confirmed" value={`${totalReserved.toFixed(1)} t`} tone="reserved" />
+          <CapacitySummary label="Held · awaiting capacity" value={`${totalHeld.toFixed(1)} t`} tone="held" />
+        </dl>
+        <div className="mt-5 h-3 overflow-hidden bg-steel-100 dark:bg-steel-800" role="img" aria-label={`${totalReserved.toFixed(1)} tonnes reserved of ${totalCapacity.toFixed(1)} tonnes total capacity`}>
+          <div className="h-full bg-loop-600 dark:bg-loop-500" style={{ width: `${totalCapacity > 0 ? Math.min(100, (totalReserved / totalCapacity) * 100) : 0}%` }} />
+        </div>
+        <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-steel-600 dark:text-gray-400">
+          <span>{totalReserved.toFixed(1)} t confirmed and reserved</span>
+          <span>{totalAvailable.toFixed(1)} t still available</span>
+        </div>
+      </section>
+
+      <section id="active-bookings" className="mb-10 space-y-4" aria-label="Active bookings">
+        <h2 className="font-archivo text-2xl font-bold uppercase text-ink-900 dark:text-white mb-6">Active Bookings</h2>
         {activeBookings.length ? activeBookings.map((booking) => {
           const slot = slotById(booking.slotId);
           const receiver = receiverName(booking.receiverId);
           const dispatched = Boolean(booking.loadRef);
-          const label = booking.status === "hold" ? "Waiting on Capacity" : dispatched ? "On the road" : booking.receiverAcceptedAt ? "Booking confirmed · ready to send" : "Waiting for receiver approval";
-          return <article key={booking.id} className="rounded-sm border border-steel-200 bg-white p-4 shadow-sm dark:border-steel-800 dark:bg-white/[0.02] sm:p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div><p className="text-xs font-semibold uppercase tracking-wide text-steel-500">{label}</p><h2 className="mt-1 font-archivo text-xl font-bold text-ink-900 dark:text-white">{materialLabel(booking.materialId)} · {booking.tonnesT.toFixed(1)} t</h2><p className="mt-1 text-sm text-steel-600 dark:text-gray-400">{receiver} · {slot ? formatDate(slot.date) : "Date pending"}</p></div>
-              <div className="flex flex-wrap gap-2">
-                {booking.status === "confirmed" && booking.receiverAcceptedAt && !dispatched && <Link to="/app/deliveries" className="inline-flex min-h-11 items-center bg-ink-900 px-4 text-sm font-semibold text-white dark:bg-white dark:text-ink-900">Send load</Link>}
-                {booking.status === "hold" && <Link to="/app/receivers" className="inline-flex min-h-11 items-center bg-ink-900 px-4 text-sm font-semibold text-white dark:bg-white dark:text-ink-900">Find another slot</Link>}
-                {booking.status === "confirmed" && !booking.receiverAcceptedAt && !dispatched && <span className="inline-flex min-h-11 items-center text-sm font-medium text-steel-600 dark:text-gray-400">Next: receiver approval</span>}
-                {dispatched && <Link to="/app/deliveries" className="inline-flex min-h-11 items-center bg-ink-900 px-4 text-sm font-semibold text-white dark:bg-white dark:text-ink-900">View load</Link>}
+          const label = booking.status === "hold" ? "Waiting on Capacity" : dispatched ? "On the road" : booking.receiverAcceptedAt ? "Confirmed · Ready to send" : "Waiting for receiver approval";
+          return (
+            <article key={booking.id} className="flex flex-col lg:flex-row gap-6 border border-steel-200 bg-white p-6 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
+              {/* Material thumbnail — the physical load this booking reserves space for */}
+              <img
+                src={materialMediaFor((dataset.materials.find((m) => m.id === booking.materialId)?.type) ?? "concrete").src}
+                alt=""
+                loading="lazy"
+                className="hidden h-24 w-40 shrink-0 border border-steel-200 object-cover lg:block dark:border-steel-800"
+              />
+              <div className="flex-1 flex flex-col justify-center">
+                <div className="mb-2 flex flex-wrap items-center gap-3">
+                  <StatusBadge status={booking.status} />
+                  <p className="eyebrow-label text-steel-500 dark:text-steel-400">{label}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 mb-2">
+                  <h2 className="font-archivo text-2xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">
+                    {materialLabel(booking.materialId)}
+                  </h2>
+                </div>
+                <p className="text-theme-sm text-steel-600 dark:text-gray-400 mb-4">
+                  {receiver} · {slot ? formatDate(slot.date) : "Date pending"}
+                </p>
+                <details className="text-xs text-steel-500 dark:text-steel-400">
+                  <summary className="cursor-pointer font-medium hover:text-ink-900 dark:hover:text-white">View booking details ▾</summary>
+                  <p className="mt-2">Booking ID: {booking.id} · Match ID: {booking.allocationId} · Receiving slot: {booking.slotId} · Capacity after booking: {booking.capacityAfterT.toFixed(1)} t free</p>
+                  {booking.holdReason && <p className="mt-1">{booking.holdReason}</p>}
+                </details>
               </div>
-            </div>
-            <details className="mt-3 border-t border-steel-100 pt-3 text-xs text-steel-500 dark:border-steel-800"><summary className="cursor-pointer font-medium">View details ▾</summary><p className="mt-2">Booking ID: {booking.id} · Match ID: {booking.allocationId} · Receiving slot: {booking.slotId} · Capacity after booking: {booking.capacityAfterT.toFixed(1)} t free</p>{booking.holdReason && <p className="mt-1">{booking.holdReason}</p>}</details>
-          </article>;
-        }) : <p className="rounded-sm border border-steel-200 bg-white p-5 text-sm text-steel-600 dark:border-steel-800 dark:bg-white/[0.02] dark:text-gray-400">No active bookings. Find a receiver to request a slot for your material.</p>}
-      </section>
-      <section className="mb-8 grid gap-3 rounded-sm bg-ink-950 px-3 text-white sm:grid-cols-3 dark:bg-black" aria-label="Capacity totals">
-        <CapacitySummary label="Available across all dates" value={`${totalAvailable.toFixed(1)} t`} tone="available" />
-        <CapacitySummary label="Reserved" value={`${totalReserved.toFixed(1)} t`} tone="reserved" />
-        <CapacitySummary label="Waiting on Capacity" value={`${totalHeld.toFixed(1)} t`} tone="held" />
+
+              <div className="flex flex-wrap lg:flex-col lg:items-end justify-center gap-4 lg:gap-2">
+                <div className="text-left lg:text-right w-full lg:w-auto">
+                  <p className="eyebrow-label text-steel-500 mb-1 lg:hidden">Quantity</p>
+                  <p className="ledger-numeral text-2xl font-bold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t</p>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2 lg:mt-6">
+                  {booking.status === "confirmed" && booking.receiverAcceptedAt && !dispatched && <Link to="/app/deliveries" className="inline-flex min-h-11 items-center bg-ink-900 px-6 text-sm font-bold text-white uppercase tracking-wider hover:bg-loop-600 dark:bg-white dark:text-ink-900">Send load</Link>}
+                  {booking.status === "hold" && <Link to="/app/receivers" className="inline-flex min-h-11 items-center bg-ink-900 px-6 text-sm font-bold text-white uppercase tracking-wider hover:bg-loop-600 dark:bg-white dark:text-ink-900">Find another slot</Link>}
+                  {booking.status === "confirmed" && !booking.receiverAcceptedAt && !dispatched && <span className="inline-flex min-h-11 items-center text-sm font-medium text-steel-600 dark:text-gray-400">Next: receiver approval</span>}
+                  {dispatched && <Link to="/app/deliveries" className="inline-flex min-h-11 items-center bg-ink-900 px-6 text-sm font-bold text-white uppercase tracking-wider hover:bg-loop-600 dark:bg-white dark:text-ink-900">View load</Link>}
+                </div>
+              </div>
+            </article>
+          );
+        }) : <p className="border border-steel-200 bg-white p-8 text-steel-600 dark:border-steel-800 dark:bg-white/[0.02] dark:text-gray-400">No active bookings. Find a receiver to request a slot for your material.</p>}
       </section>
 
-      {/* Slot Timeline */}
-      <details className="mb-10 rounded-sm border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02]">
-        <summary className="cursor-pointer px-5 py-4 font-semibold text-ink-900 dark:text-white">View receiving capacity by date ▾</summary>
-      <section aria-labelledby="slots-heading" className="mb-6 border-t border-steel-200 p-5 dark:border-steel-800">
+      <section aria-labelledby="slots-heading" className="mb-10 border border-steel-200 bg-white p-5 dark:border-steel-800 dark:bg-white/[0.02]">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="eyebrow-label text-loop-600 dark:text-loop-400">01 · Dated intake</p>
@@ -109,7 +158,6 @@ export default function Bookings() {
           ))}
         </div>
       </section>
-      </details>
 
       <details className="rounded-sm border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02]">
       <summary className="cursor-pointer px-5 py-4 font-semibold text-ink-900 dark:text-white">View booking history and capacity records ▾</summary>
@@ -258,32 +306,20 @@ function SlotTimelineItem({
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-6 border-t border-steel-100 pt-4 dark:border-steel-800/50">
-          <div className="flex items-center gap-3">
+        <div className="mt-5 border-t border-steel-100 pt-4 dark:border-steel-800/50">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <span className={cn(
-              "rounded-sm border px-2 py-1 text-xs font-bold uppercase tracking-wider", 
+              "rounded-sm border px-2 py-1 text-xs font-bold uppercase tracking-wider",
               availableT > 0 ? "border-steel-200 bg-steel-50 text-steel-700 dark:border-steel-700 dark:bg-white/5 dark:text-steel-300" : "border-signal-200 bg-signal-50 text-signal-700 dark:border-signal-800 dark:bg-signal-900/20 dark:text-signal-300"
             )}>
               {availableT > 0 ? `${availableT.toFixed(1)} t available` : "FULL · 0 t available"}
             </span>
+            <p className="text-sm font-semibold text-ink-900 dark:text-white">{reservedT.toFixed(1)} t reserved <span className="font-normal text-steel-500">of {slot.capacityT.toFixed(1)} t capacity</span></p>
           </div>
-          
-          {availableT > 0 && reservedT > 0 && (
-            <div className="flex items-center gap-3">
-               <div className="h-1.5 w-16 overflow-hidden rounded-full bg-steel-100 dark:bg-steel-800 sm:w-24">
-                  <div className="h-full bg-loop-500" style={{ width: `${reservedPercent}%` }} />
-               </div>
-               <span className="text-xs font-medium text-steel-600 dark:text-gray-400">
-                 {reservedT.toFixed(1)} t reserved
-               </span>
-            </div>
-          )}
-          
-          {availableT === slot.capacityT && (
-            <span className="text-xs font-medium text-steel-600 dark:text-gray-400">
-              Completely free
-            </span>
-          )}
+          <div className="mt-3 h-2.5 overflow-hidden bg-steel-100 dark:bg-steel-800" role="img" aria-label={`${reservedT.toFixed(1)} tonnes reserved, ${availableT.toFixed(1)} tonnes available, ${held.reduce((total, booking) => total + booking.tonnesT, 0).toFixed(1)} tonnes held`}>
+            <div className="h-full bg-loop-600 dark:bg-loop-500" style={{ width: `${reservedPercent}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-steel-600 dark:text-gray-400">{availableT === slot.capacityT ? "No confirmed bookings" : `${reservedT.toFixed(1)} t confirmed`} · {availableT.toFixed(1)} t available</p>
         </div>
 
         {held.length > 0 && (
@@ -313,11 +349,11 @@ function SlotTimelineItem({
 }
 
 function CapacitySummary({ label, value, tone }: { label: string; value: string; tone: "available" | "reserved" | "held" }) {
-  const toneClass = tone === "held" ? "text-signal-400" : "text-loop-500 dark:text-loop-400";
+  const toneClass = tone === "held" ? "text-signal-700 dark:text-signal-400" : tone === "available" ? "text-loop-700 dark:text-loop-400" : "text-ink-900 dark:text-white";
   return (
-    <div className="flex flex-col justify-center border-l border-white/10 px-4 py-6 sm:px-6 sm:py-8 first:border-l-0">
-      <dt className="eyebrow-label text-white/50">{label}</dt>
-      <dd className={cn("ledger-numeral mt-2 text-2xl font-bold tracking-tight sm:text-3xl", toneClass)}>{value}</dd>
+    <div className="border-s-2 border-steel-200 bg-steel-50 px-4 py-3 dark:border-steel-700 dark:bg-white/[0.03]">
+      <dt className="eyebrow-label text-steel-600 dark:text-steel-400">{label}</dt>
+      <dd className={cn("ledger-numeral mt-1 text-xl font-bold", toneClass)}>{value}</dd>
     </div>
   );
 }

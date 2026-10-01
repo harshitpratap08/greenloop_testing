@@ -1,14 +1,15 @@
 import { Link } from "react-router";
 import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
-import StatusBadge from "@/components/greenloop/StatusBadge";
 import EventLog from "@/components/greenloop/EventLog";
+import StatusBadge from "@/components/greenloop/StatusBadge";
 import { eventsForSubjects } from "@/domain/events";
 import type { VerificationRecord } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { cn, formatStamp } from "@/utils";
 import { motion, AnimatePresence } from "motion/react";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { materialMediaFor } from "@/config/appMedia";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -110,167 +111,105 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
   ];
 
   return (
-    <article className="group overflow-hidden rounded-sm border border-steel-200 bg-white shadow-md transition-shadow hover:shadow-xl dark:border-steel-800 dark:bg-[#0f141a]">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-steel-200 bg-gray-50 px-6 py-5 dark:border-steel-800 dark:bg-white/[0.02]">
-        <div>
-          <p className="eyebrow-label text-steel-500 dark:text-steel-400">Proof of Recovery</p>
-          <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <h2 className="font-archivo text-xl font-bold tracking-tight text-ink-900 dark:text-white">{verification.acceptedT.toFixed(1)} t accepted of {verification.plannedT.toFixed(1)} t planned</h2>
-            <p className="text-sm font-medium text-ink-700 dark:text-gray-300">{TYPE_LABEL[material?.type ?? ""] ?? material?.type ?? "Material"} · {receiver?.name ?? verification.receiverId}</p>
-          </div>
-          <p className="mt-2 ledger-numeral text-xs text-steel-500">Load reference: {verification.loadRef}</p>
-        </div>
-        <StatusBadge status={verification.status} size="md" />
-      </div>
-
-      <div className="p-6 sm:p-8">
-        <details className="rounded-sm border border-steel-200 dark:border-steel-800">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink-800 dark:text-gray-200">View details ▾</summary>
-          <div className="border-t border-steel-200 p-4 dark:border-steel-800">
-        <p className="mb-4 text-xs text-steel-500">Verification ID: {verification.id} · Booking ID: {booking?.id}</p>
-        {/* Animated Map Context */}
-        <div className="relative mb-10 overflow-hidden rounded-sm border border-steel-200 bg-steel-50 p-6 dark:border-steel-800 dark:bg-black/40">
-          <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Origin · Project</p>
-              <p className="mt-2 font-archivo text-xl font-bold text-ink-900 dark:text-white">{project?.name ?? "Unavailable"}</p>
-              <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">{project?.location ?? "—"}</p>
+    <article className="flex flex-col lg:flex-row gap-6 border border-steel-200 bg-white p-6 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
+      {/* Verified material — the physical load this record closes out */}
+      <img
+        src={materialMediaFor(material?.type ?? "concrete").src}
+        alt=""
+        loading="lazy"
+        className="hidden h-32 w-44 shrink-0 border border-steel-200 object-cover lg:block dark:border-steel-800"
+      />
+      <div className="flex-1 flex flex-col justify-center">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="eyebrow-label text-steel-500 dark:text-steel-400 mb-2">Proof of Recovery</p>
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <h2 className="font-archivo text-2xl font-bold tracking-tight text-ink-900 dark:text-white uppercase">{TYPE_LABEL[material?.type ?? ""] ?? material?.type ?? "Material"}</h2>
             </div>
-            
-            <div className="flex flex-1 items-center justify-center px-4 md:flex-col">
-              <div className="h-px w-full border-t border-dashed border-steel-400 md:h-8 md:w-px md:border-l md:border-t-0 dark:border-steel-600" aria-hidden="true" />
-              <div className="shrink-0 px-4 py-2">
-                <span className="ledger-numeral rounded-full border border-steel-300 bg-white px-3 py-1 text-sm font-bold text-ink-900 shadow-sm dark:border-steel-700 dark:bg-ink-950 dark:text-white">
+            <p className="mt-2 text-theme-sm text-steel-600 dark:text-gray-400">
+              {receiver?.name ?? verification.receiverId} · <span className="ledger-numeral">Ref: {verification.loadRef}</span>
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusBadge status={verification.status} size="md" />
+            <span className="text-xs font-semibold text-steel-600 dark:text-steel-400">{verification.evidence.length} evidence record{verification.evidence.length === 1 ? "" : "s"}</span>
+          </div>
+        </div>
+
+        <dl className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+          <ReconciliationMetric label="Expected" value={`${verification.plannedT.toFixed(1)} t`} detail="Dispatch plan" />
+          <ReconciliationMetric label="Received" value={`${verification.actualT.toFixed(1)} t`} detail="Weighbridge" />
+          <ReconciliationMetric label="Accepted" value={`${verification.acceptedT.toFixed(1)} t`} detail={`${acceptedVsPlan.toFixed(1)}% of expected`} tone="accepted" />
+          <ReconciliationMetric label="Variance" value={`${variance > 0 ? "+" : ""}${variance.toFixed(1)} t`} detail="Received vs expected" tone={variance !== 0 ? "alert" : "normal"} />
+          <ReconciliationMetric label="Rejected" value={`${verification.rejectedT.toFixed(1)} t`} detail="Not accepted" tone={verification.rejectedT > 0 ? "alert" : "normal"} />
+        </dl>
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between gap-3 text-xs text-steel-600 dark:text-gray-400">
+            <span>Accepted against expected</span>
+            <span className="ledger-numeral font-semibold">{acceptedVsPlan.toFixed(1)}%</span>
+          </div>
+          <div className="h-2.5 overflow-hidden bg-steel-100 dark:bg-steel-800" role="img" aria-label={`${acceptedVsPlan.toFixed(1)} percent of expected quantity accepted`}>
+            <div className="h-full bg-loop-600 dark:bg-loop-500" style={{ width: `${acceptedVsPlan}%` }} />
+          </div>
+        </div>
+
+        <details className="mt-4 text-xs text-steel-500 dark:text-steel-400">
+          <summary className="cursor-pointer font-medium hover:text-ink-900 dark:hover:text-white">View recovery details ▾</summary>
+          <div className="mt-4 border-t border-steel-100 pt-4 dark:border-steel-800">
+            {/* Animated Map Context */}
+            <div className="relative mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between text-sm">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-ink-900 dark:text-white">{project?.name ?? "Unavailable"}</p>
+                <p className="mt-1 text-steel-600 dark:text-gray-400">{project?.location ?? "—"}</p>
+              </div>
+              <div className="flex flex-1 items-center justify-center px-4">
+                <span className="ledger-numeral rounded-sm border border-steel-200 px-3 py-1 font-bold text-ink-900 dark:border-steel-700 dark:text-white">
                   {receiver?.distanceKm ?? 0} km Route
                 </span>
               </div>
-              <div className="h-px w-full border-t border-dashed border-steel-400 md:h-8 md:w-px md:border-l md:border-t-0 dark:border-steel-600" aria-hidden="true" />
-            </div>
-            
-            <div className="min-w-0 flex-1 md:text-right">
-              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Destination · Receiver</p>
-              <p className="mt-2 font-archivo text-xl font-bold text-ink-900 dark:text-white">{receiver?.name ?? verification.receiverId}</p>
-              <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">{receiver?.location ?? "—"}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Load Reconciliation Milestones */}
-        <section className="mb-10">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Load progress</p>
-            {verification.verifiedAt && <p className="ledger-numeral text-sm font-semibold text-loop-600 dark:text-loop-400">Verified {formatStamp(verification.verifiedAt)}</p>}
-          </div>
-          
-          <div className="relative">
-            <div className="absolute left-3 top-0 h-full w-[2px] bg-steel-200 dark:bg-steel-800 sm:left-0 sm:top-[22px] sm:h-[2px] sm:w-full" />
-            <motion.div 
-              initial={{ height: 0, width: 0 }}
-              whileInView={{ height: "100%", width: "100%" }}
-              transition={{ duration: 1.5, ease: "easeInOut" }}
-              className="absolute left-3 top-0 w-[2px] bg-loop-500 sm:left-0 sm:top-[22px] sm:h-[2px]" 
-            />
-            
-            <ol className="relative z-10 grid gap-6 sm:grid-cols-4">
-              {milestones.map((milestone, index) => (
-                <li key={milestone.label} className="relative flex items-start gap-4 pl-8 sm:flex-col sm:items-start sm:gap-4 sm:pl-0">
-                  <motion.div 
-                    initial={{ scale: 0 }}
-                    whileInView={{ scale: 1 }}
-                    transition={{ delay: index * 0.2, type: "spring" }}
-                    viewport={{ once: true }}
-                    className={cn(
-                      "absolute left-0 top-0 flex h-6 w-6 items-center justify-center rounded-full border-[3px] bg-white transition-colors duration-500 sm:relative dark:bg-ink-950",
-                      milestone.complete ? "border-loop-500" : "border-steel-300 dark:border-steel-700"
-                    )}
-                  >
-                    {milestone.complete && <div className="h-2.5 w-2.5 rounded-full bg-loop-500" />}
-                  </motion.div>
-                  <div className="sm:pr-4">
-                    <p className="text-xs font-bold uppercase tracking-wider text-steel-500 dark:text-gray-500">{milestone.label}</p>
-                    <p className={cn("ledger-numeral mt-1 text-2xl font-bold tracking-tight", index === 3 ? "text-loop-600 dark:text-loop-400" : "text-ink-900 dark:text-white")}>{milestone.value}</p>
-                    <p className="mt-1 text-xs text-steel-500 dark:text-gray-500">{milestone.detail}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        {/* Accepted Quantity & Discrepancies */}
-        <section className="mt-10 grid gap-8 border-t border-steel-200 pt-10 lg:grid-cols-[1fr_auto] dark:border-steel-800">
-          <div>
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="eyebrow-label text-steel-500 dark:text-steel-400">Final Accepted Recovery</p>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <p className="ledger-numeral text-4xl font-bold tracking-tight text-loop-600 dark:text-loop-400">{verification.acceptedT.toFixed(1)}</p>
-                  <span className="text-3xl font-medium text-steel-400">t</span>
-                </div>
+              <div className="min-w-0 flex-1 md:text-right">
+                <p className="font-semibold text-ink-900 dark:text-white">{receiver?.name ?? verification.receiverId}</p>
+                <p className="mt-1 text-steel-600 dark:text-gray-400">{receiver?.location ?? "—"}</p>
               </div>
-              <p className="ledger-numeral rounded-full border border-steel-200 bg-gray-50 px-3 py-1.5 text-sm font-bold text-ink-900 shadow-sm dark:border-steel-700 dark:bg-white/5 dark:text-white">
-                {acceptedVsPlan.toFixed(1)}% of planned load
-              </p>
             </div>
-            
-            <div className="relative mt-6 h-5 overflow-hidden rounded-full bg-steel-100 shadow-inner dark:bg-steel-900" role="img" aria-label="Accepted vs planned">
-              <motion.div 
-                initial={{ width: 0 }}
-                whileInView={{ width: `${acceptedVsPlan}%` }}
-                transition={{ duration: 1.5, ease: "easeOut" }}
-                viewport={{ once: true }}
-                className="absolute inset-y-0 bg-loop-500" 
-              />
+
+            {/* Load Reconciliation Milestones */}
+            <div className="mb-8 overflow-x-auto pb-4">
+              <ol className="flex min-w-max gap-8">
+                {milestones.map((milestone) => (
+                  <li key={milestone.label} className="relative flex flex-col items-start gap-2">
+                    <div className={cn("flex h-6 w-6 items-center justify-center rounded-full border-2", milestone.complete ? "border-loop-500 bg-loop-50 text-loop-600" : "border-steel-300 bg-white")}>
+                      {milestone.complete && <div className="h-2 w-2 rounded-full bg-loop-500" />}
+                    </div>
+                    <div>
+                      <p className="font-bold uppercase tracking-wider text-steel-900 dark:text-gray-300">{milestone.label}</p>
+                      <p className="ledger-numeral mt-1 text-lg font-bold text-ink-900 dark:text-white">{milestone.value}</p>
+                      <p className="mt-1 text-steel-500">{milestone.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </div>
-            <p className="mt-3 text-xs font-medium uppercase tracking-wider text-steel-500 dark:text-gray-500">Accepted tonnes are the final verified recovery figure.</p>
-          </div>
 
-          <div className="flex flex-col gap-4 sm:flex-row lg:flex-col lg:w-64">
-            <Difference label="Weighbridge Variance" value={`${variance > 0 ? "+" : ""}${variance.toFixed(1)} t`} detail="Received vs planned" isAlert={variance !== 0} />
-            <Difference label="Rejected Intake" value={`${verification.rejectedT.toFixed(1)} t`} detail="Received vs accepted" isAlert={verification.rejectedT > 0} />
-          </div>
-        </section>
-
-        {(verification.rejectReason || variance !== 0 || verification.rejectedT > 0) && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-6 border-l-4 border-signal-500 bg-signal-50 p-5 dark:bg-signal-500/10"
-          >
-            <p className="text-sm font-bold text-signal-900 dark:text-signal-100">Reconciliation Note</p>
-            <p className="mt-2 text-sm leading-relaxed text-signal-800 dark:text-signal-200">
-              {verification.rejectReason ?? "A difference is recorded between planned, received, and accepted quantities."}
-              {variance !== 0 && <> Received quantity differs from plan by <span className="ledger-numeral font-bold">{variance > 0 ? "+" : ""}{variance.toFixed(1)} t</span>.</>}
-            </p>
-          </motion.div>
-        )}
-
-        {/* Evidence & Logs */}
-        <div className="mt-12 grid gap-8 border-t border-steel-200 pt-8 lg:grid-cols-[1.1fr_0.9fr] dark:border-steel-800">
-          <section>
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="eyebrow-label text-steel-500 dark:text-steel-400">Proof of Recovery</p>
-                <h3 className="mt-1 font-archivo text-2xl font-bold text-ink-900 dark:text-white">Attached Evidence</h3>
+            {/* Discrepancies */}
+            {(verification.rejectReason || variance !== 0 || verification.rejectedT > 0) && (
+              <div className="mb-8 border-l-2 border-signal-500 bg-signal-50 p-4 dark:bg-signal-500/10">
+                <p className="font-bold text-signal-900 dark:text-signal-100">Reconciliation Note</p>
+                <p className="mt-2 leading-relaxed text-signal-800 dark:text-signal-200">
+                  {verification.rejectReason ?? "A difference is recorded between planned, received, and accepted quantities."}
+                  {variance !== 0 && <> Received quantity differs from plan by <span className="ledger-numeral font-bold">{variance > 0 ? "+" : ""}{variance.toFixed(1)} t</span>.</>}
+                </p>
               </div>
-              <span className="ledger-numeral rounded bg-steel-100 px-3 py-1 text-xs font-bold text-steel-600 dark:bg-white/10 dark:text-gray-300">{verification.evidence.length} records</span>
-            </div>
-            
-            {verification.evidence.length > 0 ? (
-              <ul className="mt-6 grid gap-4">
-                {verification.evidence.map((evidence, i) => (
-                  <motion.li 
-                    key={evidence.ref ?? evidence.label}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    viewport={{ once: true }}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-sm border border-steel-200 bg-gray-50 p-4 transition-colors hover:border-loop-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-loop-500"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded bg-white shadow-sm dark:bg-black">
+            )}
+
+            {/* Evidence */}
+            <div>
+              <p className="font-bold text-ink-900 dark:text-white mb-3">Attached Evidence ({verification.evidence.length})</p>
+              {verification.evidence.length > 0 ? (
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {verification.evidence.map((evidence) => (
+                    <li key={evidence.ref ?? evidence.label} className="flex items-center gap-4 rounded-sm border border-steel-200 p-3 dark:border-steel-800">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden bg-steel-100 dark:bg-steel-900">
                         {evidence.kind === "site-photo" && evidence.ref?.startsWith("/images/") ? (
                           <img src={evidence.ref} alt={evidence.label} className="size-full object-cover" />
                         ) : (
@@ -278,32 +217,25 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
                         )}
                       </div>
                       <div>
-                        <p className="font-archivo text-lg font-bold text-ink-900 dark:text-white">{evidence.label}</p>
-                        <p className="mt-0.5 text-xs font-medium uppercase tracking-wider text-steel-500 dark:text-gray-400">{evidence.kind.replaceAll("-", " ")}</p>
+                        <p className="font-bold text-ink-900 dark:text-white">{evidence.label}</p>
+                        <p className="mt-0.5 text-xs uppercase text-steel-500 dark:text-gray-400">{evidence.kind.replaceAll("-", " ")}</p>
+                        <time className="ledger-numeral block text-steel-500" dateTime={evidence.recordedAt}>{formatStamp(evidence.recordedAt)}</time>
+                        {evidence.ref && !evidence.ref.startsWith("/images/") && <span className="ledger-numeral mt-1 block text-xs text-steel-500 dark:text-gray-400">Ref: {evidence.ref}</span>}
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <time className="ledger-numeral block text-sm font-semibold text-ink-800 dark:text-gray-200" dateTime={evidence.recordedAt}>{formatStamp(evidence.recordedAt)}</time>
-                      {evidence.ref && !evidence.ref.startsWith("/images/") && <span className="ledger-numeral mt-1 block text-xs text-steel-500 dark:text-gray-400">Ref: {evidence.ref}</span>}
-                    </div>
-                  </motion.li>
-                ))}
-              </ul>
-            ) : (
-              <div className="mt-6 rounded-sm border-2 border-dashed border-steel-300 bg-white/50 p-8 text-center dark:border-steel-700 dark:bg-white/[0.01]">
-                <p className="text-sm font-medium text-steel-500 dark:text-gray-400">No evidence attached to this verification record.</p>
-              </div>
-            )}
-          </section>
-
-          <section>
-            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Record History</p>
-            <h3 className="mt-1 font-archivo text-2xl font-bold text-ink-900 dark:text-white">Load Event Trail</h3>
-            <div className="mt-6 rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
-              <EventLog events={events} limit={6} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-steel-500">No evidence attached to this verification record.</p>
+              )}
             </div>
-          </section>
-        </div>
+
+            <section className="mt-8 border-t border-steel-200 pt-6 dark:border-steel-800">
+              <h3 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Load event trail</h3>
+              <div className="mt-4 border border-steel-200 bg-white p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+                <EventLog events={events} limit={6} />
+              </div>
+            </section>
           </div>
         </details>
       </div>
@@ -311,15 +243,28 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
   );
 }
 
-function Difference({ label, value, detail, isAlert = false }: { label: string; value: string; detail: string; isAlert?: boolean }) {
+function ReconciliationMetric({
+  label,
+  value,
+  detail,
+  tone = "normal",
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone?: "normal" | "accepted" | "alert";
+}) {
+  const valueClass = tone === "accepted"
+    ? "text-loop-700 dark:text-loop-400"
+    : tone === "alert"
+      ? "text-signal-700 dark:text-signal-400"
+      : "text-ink-900 dark:text-white";
+
   return (
-    <div className={cn(
-      "rounded-sm border p-4 shadow-sm",
-      isAlert ? "border-signal-200 bg-signal-50 dark:border-signal-500/30 dark:bg-signal-500/10" : "border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02]"
-    )}>
-      <p className="eyebrow-label text-steel-500 dark:text-steel-400">{label}</p>
-      <p className={cn("ledger-numeral mt-2 text-2xl font-bold", isAlert ? "text-signal-700 dark:text-signal-400" : "text-ink-900 dark:text-white")}>{value}</p>
-      <p className="mt-1 text-xs text-steel-500 dark:text-gray-500">{detail}</p>
+    <div className="min-w-0 border-s-2 border-steel-200 bg-steel-50 px-3 py-3 dark:border-steel-700 dark:bg-white/[0.03]">
+      <dt className="eyebrow-label text-steel-600 dark:text-steel-400">{label}</dt>
+      <dd className={cn("ledger-numeral mt-1 text-xl font-bold", valueClass)}>{value}</dd>
+      <p className="mt-1 text-xs text-steel-600 dark:text-gray-400">{detail}</p>
     </div>
   );
 }

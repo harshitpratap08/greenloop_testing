@@ -1,0 +1,29 @@
+*   [33ma90ab37[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m Merge pull request #2 from somyagupta1122/ai_main_021f72daa12b4bdbbb64
+[31m|[m[32m\[m  
+[31m|[m * [33mee1ec97[m Clarify the recovery network flow from match to verification
+[31m|[m * [33mf798b13[m Respect demand timelines and reservations in capacity checks
+[31m|[m * [33mfd8173d[m Redesign the public GreenLoop site around recovery coordination
+[31m|[m * [33me249638[m Add survey notes to material passports and improve usability
+[31m|[m * [33m8359e53[m Polish authenticated workflows with clearer operational language
+[31m|[m * [33mfc21ba2[m Simplify authenticated workflows with clear actions and language
+[31m|[m * [33m8ffc691[m Fix offer availability and receiver-approved load dispatch
+[31m|[m * [33mc520a04[m Connect app workflows and route legacy links to live features
+[31m|[m * [33m2ba23f6[m Implement local demo authentication and protected session flows
+[31m|[m[31m/[m  
+* [33m5abd67d[m chore: checkpoint before UX redesign
+* [33m1b75cdb[m Update visual assets with CSS slow motion effects and fix landing page media
+*   [33mf3349d2[m Merge pull request #1 from somyagupta1122/ai_main_96039ff1b0674345a38f
+[33m|[m[34m\[m  
+[33m|[m * [33mb41a711[m Apply GreenLoop styling across forms and UI components
+[33m|[m * [33m88109c1[m Redesign verification around evidence-backed recovery reconciliation
+[33m|[m * [33m3bf17b3[m Redesign deliveries around physical shipment tracking
+[33m|[m * [33m31176a5[m Redesign bookings around limited receiving capacity
+[33m|[m * [33m490932c[m Redesign receiver matching around practical capacity decisions
+[33m|[m * [33m70d9ac5[m Redesign materials as evidence-led digital passports
+[33m|[m * [33m83bba2d[m Redesign Projects page as an industrial recovery dashboard
+[33m|[m * [33me105fb3[m Redesign Explore around project workflow and next actions
+[33m|[m * [33m10aefbe[m Align interface styling with GreenLoop's visual identity
+[33m|[m * [33m729575a[m Replace scroll-driven story with accessible recovery homepage
+[33m|[m * [33m17adec5[m Refine industrial visual hierarchy across reports and operations
+[33m|[m[33m/[m  
+* [33md714cad[m Initial GreenLoop project

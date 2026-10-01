@@ -3,16 +3,21 @@
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
+import GlobalSearch from "@/components/header/GlobalSearch";
 import { useSidebar } from "@/context/SidebarContext";
+import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/utils";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 const AppHeader: React.FC = () => {
   const { t } = useTranslation("common", { keyPrefix: "header" });
   const inputRef = useRef<HTMLInputElement>(null);
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const { user, setActiveWorkspace } = useAuth();
+  const navigate = useNavigate();
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
 
@@ -32,7 +37,7 @@ const AppHeader: React.FC = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === "k") {
         event.preventDefault();
-        inputRef.current?.focus();
+        setSearchOpen(true);
       }
     };
 
@@ -123,7 +128,12 @@ const AppHeader: React.FC = () => {
           </button>
 
           <div className="hidden xl:block">
-            <form>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSearchOpen(true);
+              }}
+            >
               <div className="relative">
                 <span className="pointer-events-none absolute inset-s-4 top-1/2 -translate-y-1/2">
                   <svg
@@ -145,10 +155,13 @@ const AppHeader: React.FC = () => {
                 <input
                   ref={inputRef}
                   type="text"
+                  readOnly
+                  onFocus={() => setSearchOpen(true)}
+                  onClick={() => setSearchOpen(true)}
                   placeholder={t("searchPlaceholder")}
-                  className="h-11 w-full rounded-sm border border-steel-200 bg-gray-25 py-2.5 ps-12 pe-14 text-sm text-ink-900 placeholder:text-gray-400 transition-colors focus:border-steel-400 focus:ring-3 focus:ring-ink-900/10 focus:outline-hidden xl:w-107.5 dark:border-steel-800 dark:bg-gray-dark dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-steel-500"
+                  className="h-11 w-full cursor-pointer rounded-sm border border-steel-200 bg-gray-25 py-2.5 ps-12 pe-14 text-sm text-ink-900 placeholder:text-gray-400 transition-colors focus:border-steel-400 focus:ring-3 focus:ring-ink-900/10 focus:outline-hidden xl:w-107.5 dark:border-steel-800 dark:bg-gray-dark dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-steel-500"
                 />
-                <button className="absolute inset-e-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-sm border border-steel-200 bg-steel-50 px-1.75 py-[4.5px] text-xs tracking-[-0.2px] text-steel-600 dark:border-steel-800 dark:bg-white/5 dark:text-steel-400">
+                <button type="button" onClick={() => setSearchOpen(true)} className="absolute inset-e-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-sm border border-steel-200 bg-steel-50 px-1.75 py-[4.5px] text-xs tracking-[-0.2px] text-steel-600 dark:border-steel-800 dark:bg-white/5 dark:text-steel-400">
                   <span> ⌘ </span>
                   <span> K </span>
                 </button>
@@ -163,6 +176,25 @@ const AppHeader: React.FC = () => {
           )}
         >
           <div className="flex items-center gap-2 2xsm:gap-3">
+            {/* Workspace quick-switch — one click between provider/receiver */}
+            {user && user.workspaces.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const target = user.activeWorkspace === "receiver" ? "provider" : "receiver";
+                  setActiveWorkspace(target);
+                  navigate(target === "receiver" ? "/app/receiver/overview" : "/app/explore");
+                }}
+                className="hidden items-center gap-2 border border-steel-200 bg-white px-3 py-2 text-theme-xs font-semibold text-ink-900 transition-colors hover:border-ink-900 sm:inline-flex dark:border-steel-800 dark:bg-gray-dark dark:text-white dark:hover:border-white"
+                aria-label={`Switch to ${user.activeWorkspace === "receiver" ? "Provider" : "Receiver"} workspace`}
+              >
+                <span aria-hidden="true" className="size-2 rounded-full bg-loop-500" />
+                {user.activeWorkspace === "receiver" ? "Receiver" : "Provider"}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M8 7H16M16 7L13 4M16 7L13 10M16 17H8M8 17L11 14M8 17L11 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
             {/* <!-- Dark Mode Toggler --> */}
@@ -175,6 +207,7 @@ const AppHeader: React.FC = () => {
           <UserDropdown />
         </div>
       </div>
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </header>
   );
 };

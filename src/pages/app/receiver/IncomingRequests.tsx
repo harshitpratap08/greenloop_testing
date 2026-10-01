@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { slotLedger, slotMatchesDemandPeriod } from "@/domain/capacity";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { materialMediaFor } from "@/config/appMedia";
 
 export default function IncomingRequests() {
   const { dataset, acceptRequestAction, rejectRequestAction, rescheduleRequestAction } = useGreenLoopStore();
@@ -65,10 +66,17 @@ export default function IncomingRequests() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   key={booking.id}
-                  className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]"
+                  className="border border-steel-200 bg-white p-6 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
                 >
                   <div className="grid gap-6 md:grid-cols-[1fr_auto]">
-                    <div>
+                    <div className="md:grid md:grid-cols-[9rem_1fr] md:gap-5">
+                      <img
+                        src={materialMediaFor(material?.type ?? "concrete").src}
+                        alt=""
+                        loading="lazy"
+                        className="hidden h-28 w-full border border-steel-200 object-cover md:block dark:border-steel-800"
+                      />
+                      <div>
                       <div className="flex items-center gap-3">
                         <span className="rounded-sm border border-signal-200 bg-signal-50 px-2 py-0.5 text-xs font-bold tracking-wider text-signal-700 dark:border-signal-500/30 dark:bg-signal-500/10 dark:text-signal-400">
                           {booking.status === "hold" ? "Waiting on Capacity" : "Needs your approval"}
@@ -154,6 +162,7 @@ export default function IncomingRequests() {
                         </>
                       )}
                     </div>
+                      </div>
                   </div>
                 </motion.article>
               );

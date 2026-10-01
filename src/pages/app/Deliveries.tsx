@@ -8,6 +8,7 @@ import type { Booking } from "@/domain/types";
 import { cn, formatStamp, formatDate } from "@/utils";
 import { motion, AnimatePresence } from "motion/react";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { materialMediaFor, ambientVideo } from "@/config/appMedia";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -39,6 +40,26 @@ export default function Deliveries() {
         action={readyToSend.length ? { label: "Send a load", to: "#delivery-loads" } : undefined}
       />
 
+      {/* Ambient logistics banner — muted loading footage above the load list */}
+      <div className="group mb-8 overflow-hidden border border-steel-200 dark:border-steel-800">
+        <div className="relative h-32 w-full sm:h-40">
+          <video
+            className="size-full object-cover"
+            src={ambientVideo.dispatch.src}
+            poster={ambientVideo.dispatch.poster}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            tabIndex={-1}
+          />
+          <div className="absolute inset-0 bg-ink-950/55" aria-hidden="true" />
+          <p className="absolute bottom-4 left-5 font-archivo text-xl font-bold uppercase tracking-wide text-white">Booked → Dispatched → In transit → Received → Verified</p>
+          <p className="absolute bottom-4 right-5 hidden font-mono text-[10px] uppercase tracking-[0.14em] text-white/70 sm:block">Load operations</p>
+        </div>
+      </div>
+
       {dispatchable.length === 0 ? (
         <section className="flex flex-col items-center justify-center rounded-sm border-2 border-dashed border-steel-300 bg-white/50 p-16 text-center dark:border-steel-800 dark:bg-white/[0.02]">
           <div className="mb-4 rounded-full bg-steel-100 p-4 dark:bg-steel-900">
@@ -51,13 +72,13 @@ export default function Deliveries() {
         </section>
       ) : (
         <div id="delivery-loads" className="space-y-6">
-          {dispatchable.map((booking, index) => (
+          {dispatchable.map((booking) => (
             <motion.div
               key={booking.id}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
-              transition={{ delay: index * 0.15, duration: 0.6 }}
+              transition={{ delay: 0.15, duration: 0.6 }}
             >
               <LoadCard booking={booking} />
             </motion.div>
@@ -93,234 +114,171 @@ function LoadCard({ booking }: { booking: Booking }) {
   const progressPercent = verification ? 100 : dispatchEvent ? 50 : 10;
 
   return (
-    <article className="group overflow-hidden rounded-sm border border-steel-200 bg-white shadow-md transition-shadow hover:shadow-xl dark:border-steel-800 dark:bg-[#0f141a]">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-steel-200 bg-gray-50 px-6 py-5 dark:border-steel-800 dark:bg-white/[0.02]">
-        <div>
-          <p className="eyebrow-label text-steel-500 dark:text-steel-400">{currentStatus === "confirmed" ? booking.receiverAcceptedAt ? "Ready to send" : "Waiting for receiver" : currentStatus === "dispatched" ? "On the road" : "Delivered"}</p>
-          <div className="mt-1 flex items-baseline gap-4">
-            <h2 className="ledger-numeral text-2xl font-bold tracking-tight text-ink-900 dark:text-white">{loadRef}</h2>
-            <p className="font-archivo text-lg font-semibold uppercase text-loop-600 dark:text-loop-400">
-              {booking.tonnesT.toFixed(1)} t {TYPE_LABEL[material?.type ?? ""] ?? material?.type}
+    <article className="flex flex-col lg:flex-row gap-6 border border-steel-200 bg-white p-6 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
+      {/* Load thumbnail — the physical material on the road */}
+      <img
+        src={materialMediaFor(material?.type ?? "concrete").src}
+        alt=""
+        loading="lazy"
+        className="hidden h-32 w-44 shrink-0 border border-steel-200 object-cover lg:block dark:border-steel-800"
+      />
+      <div className="flex-1 flex flex-col justify-center">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-2">
+          <div>
+            <p className="eyebrow-label text-steel-500 dark:text-steel-400 mb-2">
+              {currentStatus === "confirmed" ? booking.receiverAcceptedAt ? "Ready to send" : "Waiting for receiver" : currentStatus === "dispatched" ? "On the road" : "Delivered"}
             </p>
-          </div>
-        </div>
-        <StatusBadge status={currentStatus} size="md" />
-      </div>
-
-      <div className="p-6 sm:p-8">
-        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
-          <p className="font-archivo text-xl font-bold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t {TYPE_LABEL[material?.type ?? ""] ?? material?.type} · {receiver?.name ?? "Receiver"}</p>
-          <p className="text-sm text-steel-600 dark:text-gray-400">{slot ? formatDate(slot.date) : "Intake date pending"}</p>
-        </div>
-        <details className="rounded-sm border border-steel-200 dark:border-steel-800">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink-800 dark:text-gray-200">View details ▾</summary>
-          <div className="border-t border-steel-200 p-4 dark:border-steel-800">
-        {/* Animated Live Route Map */}
-        <div className="relative mb-10 overflow-hidden rounded-sm border border-steel-200 bg-steel-50 p-6 dark:border-steel-800 dark:bg-black/40">
-          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <RouteStop label="Origin · Project" title={project?.name ?? "Unavailable"} detail={project?.location ?? "—"} />
-            
-            <div className="relative flex flex-1 items-center px-8 text-center sm:flex-col">
-              {/* Distance label */}
-              <div className="absolute top-0 -translate-y-full pb-2">
-                <span className="ledger-numeral rounded-full border border-steel-300 bg-white px-3 py-1 text-sm font-bold text-ink-900 shadow-sm dark:border-steel-700 dark:bg-ink-950 dark:text-white">
-                  {receiver?.distanceKm ?? 0} km
-                </span>
-              </div>
-              
-              {/* Route Track */}
-              <div className="relative h-2 w-full overflow-hidden rounded-full bg-steel-200 dark:bg-steel-800">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  whileInView={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 2, ease: "easeOut" }}
-                  className={cn("h-full", isEnRoute ? "bg-loop-500" : verification ? "bg-ink-900 dark:bg-white" : "bg-steel-400 dark:bg-steel-600")}
-                />
-              </div>
-              
-              {/* Animated Truck Icon if En Route */}
-              <AnimatePresence>
-                {isEnRoute && (
-                  <motion.div 
-                    initial={{ x: "-100%" }}
-                    animate={{ x: "10%" }} // Parked in middle
-                    transition={{ duration: 2, ease: "easeOut" }}
-                    className="absolute inset-x-8 top-1/2 -translate-y-1/2"
-                  >
-                    <div className="flex h-8 w-8 -translate-y-1 items-center justify-center rounded-full border-4 border-white bg-loop-500 text-lg dark:border-ink-950">
-                      🚛
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="font-archivo text-2xl font-bold tracking-tight text-ink-900 dark:text-white uppercase">{TYPE_LABEL[material?.type ?? ""] ?? material?.type}</h2>
+              <StatusBadge status={currentStatus} size="sm" />
             </div>
-            
-            <RouteStop label="Destination · Receiver" title={receiver?.name ?? "Unavailable"} detail={receiver?.location ?? "—"} align="end" />
           </div>
         </div>
 
-        {/* Shipment Details Grid */}
-        <dl className="grid grid-cols-2 gap-x-8 gap-y-6 border-y border-steel-200 py-6 sm:grid-cols-4 dark:border-steel-800">
-          <LoadMetric label="Material" value={TYPE_LABEL[material?.type ?? ""] ?? material?.type ?? "—"} />
-          <LoadMetric label="Planned quantity" value={`${booking.tonnesT.toFixed(1)} t`} />
-          <LoadMetric label="Intake slot" value={slot ? formatDate(slot.date) : "—"} />
-          <LoadMetric label="Received / accepted" value={verification ? `${verification.actualT.toFixed(1)} / ${verification.acceptedT.toFixed(1)} t` : "Awaiting arrival"} highlight={Boolean(verification)} />
-        </dl>
+        <p className="text-theme-sm text-steel-600 dark:text-gray-400 mb-4">
+          <span className="font-semibold text-ink-900 dark:text-gray-200">{receiver?.name ?? "Receiver"}</span> · <span className="ledger-numeral">Ref: {loadRef}</span>
+        </p>
 
-        {/* Animated Stages Tracker */}
-        <section className="mt-8">
-          <p className="eyebrow-label mb-4 text-steel-500 dark:text-steel-400">Shipment Progress</p>
-          <div className="relative">
-            <div className="absolute left-3 top-0 h-full w-[2px] bg-steel-200 dark:bg-steel-800 sm:left-0 sm:top-3 sm:h-[2px] sm:w-full" />
-            <motion.div 
-              initial={{ height: 0, width: 0 }}
-              whileInView={{ height: "100%", width: "100%" }}
-              transition={{ duration: 1.5 }}
-              className="absolute left-3 top-0 w-[2px] bg-loop-500 sm:left-0 sm:top-3 sm:h-[2px]" 
-              style={{ clipPath: `inset(0 ${100 - progressPercent}% 0 0)` }}
-            />
-            
-            <ol className="relative z-10 grid gap-6 sm:grid-cols-5">
-              {stages.map((stage, index) => (
-                <li key={stage.label} className="relative flex items-start gap-4 pl-8 sm:flex-col sm:items-center sm:gap-3 sm:pl-0">
+        <details className="text-xs text-steel-500 dark:text-steel-400">
+          <summary className="cursor-pointer font-medium hover:text-ink-900 dark:hover:text-white">View shipment details ▾</summary>
+          <div className="mt-4 border-t border-steel-100 pt-4 dark:border-steel-800">
+            {/* Animated Live Route Map */}
+            <div className="relative mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-sm">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-ink-900 dark:text-white">{project?.name ?? "Origin"}</p>
+                <p className="mt-1 text-steel-600 dark:text-gray-400">{project?.location ?? "—"}</p>
+              </div>
+              
+              <div className="relative flex flex-1 items-center px-8 text-center sm:flex-col">
+                <div className="absolute top-0 -translate-y-full pb-2">
+                  <span className="ledger-numeral rounded-sm border border-steel-300 bg-white px-3 py-1 font-bold text-ink-900 dark:border-steel-700 dark:bg-ink-950 dark:text-white">
+                    {receiver?.distanceKm ?? 0} km
+                  </span>
+                </div>
+                <div className="relative h-2 w-full overflow-hidden rounded-full bg-steel-200 dark:bg-steel-800">
                   <motion.div 
-                    initial={{ scale: 0 }}
-                    whileInView={{ scale: 1 }}
-                    transition={{ delay: index * 0.2, type: "spring" }}
-                    viewport={{ once: true }}
-                    className={cn(
-                      "absolute left-0 top-0 flex h-6 w-6 items-center justify-center rounded-full border-[3px] bg-white transition-colors duration-500 sm:relative dark:bg-ink-950",
-                      stage.complete ? "border-loop-500" : "border-steel-300 dark:border-steel-700"
-                    )}
-                  >
-                    {stage.complete && <div className="h-2.5 w-2.5 rounded-full bg-loop-500" />}
-                  </motion.div>
-                  <div className="sm:text-center">
-                    <p className={cn("text-xs font-bold uppercase tracking-wider", stage.complete ? "text-ink-900 dark:text-white" : "text-steel-400 dark:text-gray-600")}>{stage.label}</p>
-                    <p className="mt-1 text-xs text-steel-500 dark:text-gray-500">{stage.detail}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        {/* Detailed Sections with 3D Card Hover */}
-        <div className="mt-10 grid gap-8 border-t border-steel-200 pt-8 lg:grid-cols-2 dark:border-steel-800">
-          <motion.section 
-            whileHover={{ y: -5 }}
-            className="rounded-sm border border-steel-200 bg-gray-50 p-6 shadow-sm transition-shadow hover:shadow-md dark:border-steel-800 dark:bg-white/[0.02]"
-          >
-            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Delivery Evidence</p>
-            <h3 className="mt-1 font-archivo text-lg font-bold text-ink-900 dark:text-white">Receiver Record</h3>
-            {verification?.evidence.length ? (
-              <ul className="mt-4 divide-y divide-steel-200 dark:divide-steel-800">
-                {verification.evidence.map((evidence) => (
-                  <li key={evidence.ref ?? evidence.label} className="flex flex-wrap items-center justify-between gap-3 py-3 hover:bg-white dark:hover:bg-white/5">
-                    <div className="flex items-center gap-3">
-                      {evidence.kind === "site-photo" && evidence.ref?.startsWith("/images/") && (
-                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-steel-100 dark:bg-steel-900">
-                           <img src={evidence.ref} alt={evidence.label} className="size-full object-cover" />
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-sm font-semibold text-ink-800 dark:text-gray-200">{evidence.label}</p>
-                        <p className="ledger-numeral mt-0.5 text-xs text-steel-500 dark:text-gray-400">
-                          {evidence.ref?.startsWith("/images/") ? evidence.kind : (evidence.ref ?? evidence.kind)}
-                        </p>
+                    initial={{ width: 0 }}
+                    whileInView={{ width: `${progressPercent}%` }}
+                    transition={{ duration: 2, ease: "easeOut" }}
+                    className={cn("h-full", isEnRoute ? "bg-loop-500" : verification ? "bg-ink-900 dark:bg-white" : "bg-steel-400 dark:bg-steel-600")}
+                  />
+                </div>
+                <AnimatePresence>
+                  {isEnRoute && (
+                    <motion.div 
+                      initial={{ x: "-100%" }}
+                      animate={{ x: "10%" }}
+                      transition={{ duration: 2, ease: "easeOut" }}
+                      className="absolute inset-x-8 top-1/2 -translate-y-1/2"
+                    >
+                      <div className="flex h-6 w-6 -translate-y-1 items-center justify-center rounded-full border-2 border-white bg-loop-500 text-xs dark:border-ink-950">
+                        🚛
                       </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              
+              <div className="min-w-0 flex-1 sm:text-right">
+                <p className="font-semibold text-ink-900 dark:text-white">{receiver?.name ?? "Destination"}</p>
+                <p className="mt-1 text-steel-600 dark:text-gray-400">{receiver?.location ?? "—"}</p>
+              </div>
+            </div>
+
+            {/* Shipment Stages Tracker */}
+            <div className="mb-8 overflow-x-auto pb-4">
+              <ol className="flex min-w-max gap-8">
+                {stages.map((stage) => (
+                  <li key={stage.label} className="relative flex flex-col items-start gap-2">
+                    <div className={cn("flex h-6 w-6 items-center justify-center rounded-full border-2", stage.complete ? "border-loop-500 bg-loop-50 text-loop-600" : "border-steel-300 bg-white dark:border-steel-700 dark:bg-black")}>
+                      {stage.complete && <div className="h-2 w-2 rounded-full bg-loop-500" />}
                     </div>
-                    <time className="ledger-numeral rounded bg-steel-200/50 px-2 py-1 text-xs font-medium text-steel-700 dark:bg-white/10 dark:text-gray-300" dateTime={evidence.recordedAt}>{formatStamp(evidence.recordedAt)}</time>
+                    <div>
+                      <p className="font-bold uppercase tracking-wider text-steel-900 dark:text-gray-300">{stage.label}</p>
+                      <p className="mt-1 text-steel-500">{stage.detail}</p>
+                    </div>
                   </li>
                 ))}
-              </ul>
-            ) : (
-              <div className="mt-4 flex flex-col items-center justify-center rounded border border-dashed border-steel-300 py-8 text-center dark:border-steel-700">
-                <span className="text-2xl opacity-50">🧾</span>
-                <p className="mt-2 max-w-[200px] text-xs text-steel-500 dark:text-gray-500">Weighbridge tickets appear here upon verification.</p>
-              </div>
-            )}
-            {verification?.rejectReason && (
-              <div className="mt-4 border-l-4 border-signal-500 bg-signal-50 p-3 dark:bg-signal-500/10">
-                <p className="text-xs font-bold text-signal-900 dark:text-signal-100">Receiving Note</p>
-                <p className="mt-1 text-xs text-signal-800 dark:text-signal-200">{verification.rejectReason}</p>
-              </div>
-            )}
-          </motion.section>
-
-          <section>
-            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Operational Trail</p>
-            <h3 className="mt-1 font-archivo text-lg font-bold text-ink-900 dark:text-white">Shipment Events</h3>
-            {events.length > 0 ? (
-              <ol className="mt-4 space-y-4 border-l-2 border-steel-200 pl-5 dark:border-steel-800">
-                {events.slice(-6).map((event, i) => (
-                  <motion.li 
-                    key={event.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    viewport={{ once: true }}
-                    className="relative"
-                  >
-                    <span className="absolute -left-[1.4rem] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-steel-400 shadow-sm dark:border-ink-950 dark:bg-steel-600" aria-hidden="true" />
-                    <p className="ledger-numeral text-xs text-steel-500 dark:text-gray-400">{formatStamp(event.at)} · {event.actor.name}</p>
-                    <p className="mt-1 text-sm font-medium text-ink-800 dark:text-gray-200">{event.summary}</p>
-                    {event.detail && <p className="mt-0.5 text-xs text-steel-500 dark:text-gray-500">{event.detail}</p>}
-                  </motion.li>
-                ))}
               </ol>
-            ) : (
-              <p className="mt-4 text-sm text-steel-500 dark:text-gray-500">No shipment events recorded yet.</p>
-            )}
-          </section>
-        </div>
+            </div>
 
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="rounded-sm border border-steel-200 p-4 dark:border-steel-800">
+                <p className="font-bold text-ink-900 dark:text-white mb-3">Delivery Evidence</p>
+                {verification?.evidence.length ? (
+                  <ul className="space-y-3">
+                    {verification.evidence.map((evidence) => (
+                      <li key={evidence.ref ?? evidence.label} className="flex items-center gap-3">
+                        <div className="h-8 w-8 shrink-0 bg-steel-100 flex items-center justify-center dark:bg-steel-900">
+                           {evidence.kind === "site-photo" && evidence.ref?.startsWith("/images/") ? <img src={evidence.ref} alt={evidence.label} className="size-full object-cover" /> : <span className="text-xs">🧾</span>}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-ink-800 dark:text-gray-200 truncate">{evidence.label}</p>
+                          <p className="ledger-numeral text-[10px] text-steel-500">{formatStamp(evidence.recordedAt)}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-steel-500">Weighbridge tickets appear here upon verification.</p>
+                )}
+                {verification?.rejectReason && (
+                  <div className="mt-3 border-l-2 border-signal-500 bg-signal-50 p-2 text-signal-900 dark:bg-signal-500/10 dark:text-signal-100">
+                    <p className="font-bold">Note:</p>
+                    <p>{verification.rejectReason}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-sm border border-steel-200 p-4 dark:border-steel-800">
+                <p className="font-bold text-ink-900 dark:text-white mb-3">Shipment Events</p>
+                {events.length > 0 ? (
+                  <ol className="space-y-3 border-l border-steel-200 pl-3 dark:border-steel-800">
+                    {events.slice(-4).map((event) => (
+                      <li key={event.id} className="relative">
+                        <span className="absolute -left-[15px] top-1 h-2 w-2 rounded-full border border-white bg-steel-400 dark:border-ink-950 dark:bg-steel-600" />
+                        <p className="ledger-numeral text-[10px] text-steel-500">{formatStamp(event.at)}</p>
+                        <p className="font-medium text-ink-800 dark:text-gray-200 truncate">{event.summary}</p>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="text-steel-500">No events recorded.</p>
+                )}
+              </div>
+            </div>
           </div>
         </details>
-        {/* Footer Actions */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-steel-200 pt-6 dark:border-steel-800">
-          <p className="text-sm font-medium text-steel-500 dark:text-gray-400">Booking {booking.id} · receiver intake {slot ? formatDate(slot.date) : "date pending"}</p>
+      </div>
+
+      <div className="flex flex-wrap lg:flex-col lg:items-end justify-center gap-4 lg:gap-2 border-t lg:border-t-0 border-steel-100 lg:border-l pt-4 lg:pt-0 lg:pl-6 dark:border-steel-800/50">
+        <div className="text-left lg:text-right w-full lg:w-auto">
+          <p className="eyebrow-label text-steel-500 mb-1 lg:hidden">Quantity</p>
+          <div className="flex items-baseline gap-1 lg:justify-end">
+            <p className="ledger-numeral text-3xl font-bold text-ink-900 dark:text-white">
+              {booking.tonnesT.toFixed(1)}
+            </p>
+            <span className="font-medium text-steel-400">t</span>
+          </div>
+          <p className="text-sm font-medium text-steel-500 dark:text-gray-400 mt-1">
+            {slot ? formatDate(slot.date) : "pending"}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-2 lg:mt-6 w-full lg:w-auto lg:justify-end">
           {!dispatchEvent && !verification && !booking.receiverAcceptedAt ? (
-            <span className="text-sm font-semibold text-warning-600">Waiting for the receiver to approve this booking</span>
+            <span className="text-sm font-semibold text-warning-600">Waiting for approval</span>
           ) : !dispatchEvent && !verification ? (
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button size="md" className="bg-ink-900 uppercase tracking-widest hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500" onClick={() => dispatchAction({ bookingId: booking.id })}>
-                Send load
-              </Button>
-            </motion.div>
+            <Button size="md" className="w-full lg:w-auto bg-ink-900 font-bold uppercase tracking-widest text-white hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500" onClick={() => dispatchAction({ bookingId: booking.id })}>
+              Send load
+            </Button>
           ) : (
-            <Link to="/app/verification" className="group flex items-center gap-2 text-sm font-bold text-ink-900 transition-colors hover:text-loop-600 dark:text-white dark:hover:text-loop-400">
-              View delivery record
-              <span className="transition-transform group-hover:translate-x-1">→</span>
+            <Link to="/app/verification" className="inline-flex min-h-11 w-full lg:w-auto items-center justify-center border border-steel-300 px-6 font-bold text-ink-900 hover:border-ink-900 hover:bg-gray-50 dark:border-steel-700 dark:text-white dark:hover:border-white dark:hover:bg-white/5 uppercase tracking-wide">
+              View record
             </Link>
           )}
         </div>
       </div>
     </article>
-  );
-}
-
-function RouteStop({ label, title, detail, align = "start" }: { label: string; title: string; detail: string; align?: "start" | "end" }) {
-  return (
-    <div className={cn("min-w-0 flex flex-col", align === "end" ? "items-end text-right" : "items-start text-left")}>
-      <p className="eyebrow-label text-steel-500 dark:text-steel-400">{label}</p>
-      <p className="mt-2 font-archivo text-xl font-bold text-ink-900 dark:text-white">{title}</p>
-      <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">{detail}</p>
-    </div>
-  );
-}
-
-function LoadMetric({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <dt className="eyebrow-label text-steel-500 dark:text-steel-400">{label}</dt>
-      <dd className={cn(
-        "ledger-numeral mt-1 text-xl font-bold capitalize",
-        highlight ? "text-loop-600 dark:text-loop-400" : "text-ink-900 dark:text-white"
-      )}>
-        {value}
-      </dd>
-    </div>
   );
 }

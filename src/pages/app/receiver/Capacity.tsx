@@ -9,6 +9,7 @@ import Button from "@/components/ui/button/Button";
 import type { MaterialTypeKey } from "@/domain/types";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { materialMediaFor, ambientVideo } from "@/config/appMedia";
 
 export default function Capacity() {
   const { dataset, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
@@ -63,6 +64,23 @@ export default function Capacity() {
         action={{ label: isAdding ? "Close form" : "Add capacity", onClick: () => setIsAdding((open) => !open) }}
       />
 
+      {/* Yard ambience — the intake operations these slots schedule */}
+      <figure className="relative mb-8 h-28 w-full overflow-hidden border border-steel-200 sm:h-36 dark:border-steel-800">
+        <video
+          className="size-full object-cover"
+          src={ambientVideo.materialHandling.src}
+          poster={ambientVideo.materialHandling.poster}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          tabIndex={-1}
+        />
+        <div className="absolute inset-0 bg-ink-950/55" aria-hidden="true" />
+        <figcaption className="absolute bottom-4 left-5 font-archivo text-lg font-bold uppercase tracking-wide text-white">Intake operations · {nextOpenSlot ? formatDate(nextOpenSlot.date) : "schedule ahead"}</figcaption>
+      </figure>
+
       {isAdding && (
         <form onSubmit={handleAddCapacity} className="mb-6 grid gap-4 rounded-sm border border-steel-200 bg-white p-6 shadow-sm sm:grid-cols-4 dark:border-steel-800 dark:bg-white/[0.02]">
           <label className="text-sm font-medium text-steel-700 dark:text-gray-300">Material type
@@ -105,8 +123,14 @@ export default function Capacity() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={slot.id}
-                className="flex flex-col justify-between rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]"
+                className="flex flex-col justify-between border border-steel-200 bg-white p-6 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
               >
+                <img
+                  src={materialMediaFor(slot.materialType).src}
+                  alt=""
+                  loading="lazy"
+                  className="mb-4 h-24 w-full border border-steel-200 object-cover dark:border-steel-800"
+                />
                 <div>
                   <div className="flex items-start justify-between gap-4">
                     <div>

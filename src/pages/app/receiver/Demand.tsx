@@ -10,6 +10,7 @@ import StatusBadge from "@/components/greenloop/StatusBadge";
 import { cn } from "@/utils";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { materialMediaFor } from "@/config/appMedia";
 import { materialMedia } from "@/components/greenloop/AppExploration";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -86,7 +87,7 @@ export default function Demand() {
           animate={{ opacity: 1, height: "auto" }}
           className="mb-10 overflow-hidden"
         >
-          <div id="request-form" className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
+          <div id="request-form" className="border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
             <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Tell providers what you need</h2>
             <form onSubmit={handleAddDemand} className="mt-6 grid gap-6 sm:grid-cols-2">
               <div>
@@ -186,8 +187,16 @@ export default function Demand() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={demand.id}
-                className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]"
+                className="border border-steel-200 bg-white transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
               >
+                {/* Requested material — what this facility needs */}
+                <div className="relative h-20 w-full overflow-hidden">
+                  <img src={materialMediaFor(demand.materialType).src} alt="" loading="lazy" className="size-full object-cover" />
+                  <div className="absolute inset-0 bg-ink-950/45" aria-hidden="true" />
+                  <p className="absolute bottom-2 left-4 font-archivo text-base font-bold uppercase tracking-wide text-white">{TYPE_LABEL[demand.materialType] ?? demand.materialType}</p>
+                  <p className="ledger-numeral absolute bottom-2 right-4 text-sm font-bold text-white/90">{demand.requiredT.toFixed(1)} t</p>
+                </div>
+                <div className="p-6">
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex flex-wrap items-start gap-x-12 gap-y-6">
                     <div>
@@ -256,7 +265,7 @@ export default function Demand() {
                         const photo = passport ? materialMedia(passport)[0] : undefined;
                         const receiverDistanceKm = dataset.receivers.find((item) => item.id === demand.receiverId)?.distanceKm;
                         return (
-                          <div key={offer.id} className="flex flex-col gap-3 bg-white p-4 shadow-sm rounded-sm dark:bg-gray-900 border border-steel-100 dark:border-steel-800 sm:flex-row sm:items-start sm:justify-between">
+                          <div key={offer.id} className="flex flex-col gap-3 border border-steel-100 bg-white p-4 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-gray-900 dark:hover:border-white sm:flex-row sm:items-start sm:justify-between">
                             <div className="flex min-w-0 gap-3">
                               {photo && <img src={photo.src} alt={photo.caption} className="size-20 shrink-0 object-cover" />}
                               <div>
@@ -279,6 +288,7 @@ export default function Demand() {
                     </div>
                   </div>
                 )}
+                </div>
               </motion.article>
             );
           })}

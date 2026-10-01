@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 import { materialMedia } from "@/components/greenloop/AppExploration";
+import { materialMediaFor } from "@/config/appMedia";
 import { useAuth } from "@/context/AuthContext";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -88,8 +89,23 @@ export default function MarketDemand() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={demand.id}
-                className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]"
+                className="border border-steel-200 bg-white transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
               >
+                {/* Demand media banner — the physical material being requested */}
+                <div className="relative h-24 w-full overflow-hidden sm:h-28">
+                  <img
+                    src={materialMediaFor(demand.materialType).src}
+                    alt={materialMediaFor(demand.materialType).alt}
+                    loading="lazy"
+                    className="size-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-ink-950/45" aria-hidden="true" />
+                  <p className="absolute bottom-3 left-5 font-archivo text-lg font-bold uppercase tracking-wide text-white">
+                    {TYPE_LABEL[demand.materialType] ?? demand.materialType}
+                  </p>
+                  <p className="ledger-numeral absolute bottom-3 right-5 text-sm font-bold text-white/90">{demand.requiredT.toFixed(1)} t needed</p>
+                </div>
+                <div className="p-6">
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex flex-wrap items-start gap-x-12 gap-y-6">
                     <div>
@@ -187,13 +203,14 @@ export default function MarketDemand() {
                     )}
                   </div>
                 )}
+                </div>
               </motion.article>
             );
           })}
         </div>
       )}
 
-      <section className="mt-10 rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
+      <section className="mt-10 border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
         <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Offers you have sent</h2>
         {myOffers.length === 0 ? <p className="mt-3 text-sm text-steel-500">Your submitted offers will appear here.</p> : (
           <div className="mt-4 space-y-3">

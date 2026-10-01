@@ -62,7 +62,7 @@ export default function ReceiverVerification() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   key={vr.id}
-                  className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]"
+                  className="border border-steel-200 bg-white p-6 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
                 >
                   <div className="grid gap-6 md:grid-cols-[1fr_auto]">
                     <div>

@@ -10,6 +10,7 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { cn, formatDate } from "@/utils";
 import { motion, AnimatePresence } from "motion/react";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { receiverMediaFor } from "@/config/appMedia";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -155,6 +156,8 @@ export default function Receivers() {
                       <span className="text-steel-500 dark:text-gray-400">Project origin: </span>
                       <Link to="/app/explore" state={{ projectId: material.projectId }} className="font-bold text-ink-900 underline decoration-steel-300 underline-offset-4 hover:text-loop-600 dark:text-white dark:hover:text-loop-400">{project?.name ?? material.projectId}</Link>
                       {project && <span className="text-steel-500 dark:text-gray-400"> · {project.location}</span>}
+                      <span className="mx-2 text-steel-300">|</span>
+                      <Link to={`/app/materials/${material.id}`} className="font-bold text-ink-900 underline decoration-steel-300 underline-offset-4 hover:text-loop-600 dark:text-white dark:hover:text-loop-400">View passport</Link>
                     </div>
                     <p className="text-xs text-steel-500 dark:text-gray-500">{media[0]?.caption ?? "No photo evidence available"}</p>
                   </div>
@@ -204,44 +207,50 @@ export default function Receivers() {
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1, duration: 0.5 }}
                   className={cn(
-                    "group relative overflow-hidden rounded-sm border bg-white shadow-sm transition-all hover:shadow-lg dark:bg-white/[0.02] lg:grid lg:grid-cols-[1fr_auto]", 
-                    isSelected ? "border-loop-500 ring-2 ring-loop-500/50 dark:border-loop-400" : candidate.recommended ? "border-ink-300 dark:border-steel-600" : "border-steel-200 dark:border-steel-800",
+                    "group relative flex flex-col lg:flex-row gap-6 border bg-white p-6 transition-colors dark:bg-white/[0.02]", 
+                    isSelected ? "border-ink-900 dark:border-white ring-1 ring-ink-900 dark:ring-white" : candidate.recommended ? "border-loop-500 dark:border-loop-400" : "border-steel-200 dark:border-steel-800",
                     "hover:border-ink-900 dark:hover:border-white"
                   )}
                 >
-                  {/* Subtle 3D background pulse if selected */}
+                  {/* Subtle highlight if selected */}
                   {isSelected && (
-                    <div className="absolute inset-0 -z-10 bg-gradient-to-r from-loop-500/5 to-transparent dark:from-loop-500/10" />
+                    <div className="absolute inset-0 -z-10 bg-gray-50 dark:bg-white/[0.01]" />
                   )}
 
-                  <div className="flex min-w-0 flex-col p-6 sm:p-8">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <h3 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">{receiver?.name ?? candidate.receiverId}</h3>
-                          {candidate.recommended && <span className="bg-loop-700 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">Best fit</span>}
+                  <div className="flex-1 flex flex-col justify-center">
+                    <div className="flex flex-wrap items-start justify-between gap-4 mb-2">
+                      <div className="flex items-center gap-4">
+                        <img
+                          src={receiverMediaFor(candidate.receiverId).src}
+                          alt={receiverMediaFor(candidate.receiverId).alt}
+                          loading="lazy"
+                          className="hidden size-16 border border-steel-200 object-cover sm:block dark:border-steel-800"
+                        />
+                        <div>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <h3 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white uppercase">{receiver?.name ?? candidate.receiverId}</h3>
+                            {candidate.recommended && <span className="bg-loop-100 text-loop-800 border border-loop-200 px-2 py-0.5 text-xs font-bold uppercase tracking-wider dark:bg-loop-900 dark:border-loop-800 dark:text-loop-100">Best fit</span>}
+                          </div>
+                          <p className="mt-1 text-theme-sm text-steel-600 dark:text-gray-400"><span className="ledger-numeral font-bold text-ink-900 dark:text-gray-200">{candidate.distanceKm} km</span> from project · {receiver?.location ?? "—"}</p>
                         </div>
-                        <p className="mt-2 text-sm text-steel-600 dark:text-gray-400"><span className="font-semibold text-ink-900 dark:text-gray-200">{candidate.distanceKm} km</span> from your project · {receiver?.location ?? "—"}</p>
                       </div>
-                      <span className={cn("rounded-sm border px-3 py-1.5 text-xs font-bold uppercase tracking-wider shadow-sm", statusClass)}>{availableStatus}</span>
+                      <span className={cn("px-3 py-1 text-xs font-bold uppercase tracking-wider", statusClass)}>{availableStatus}</span>
                     </div>
 
-                    <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-6 border-y border-steel-200 py-6 sm:grid-cols-4 dark:border-steel-800">
-                      <PassportMetric label="Free receiving capacity" value={`${candidate.availableT.toFixed(1)} t`} highlight={candidate.recommended} />
-                      <PassportMetric label="Total slot capacity" value={`${(ledger?.slot.capacityT ?? 0).toFixed(1)} t`} />
-                      <PassportMetric label="Daily intake" value={`${receiver?.dailyIntakeT ?? 0} t`} />
-                      <PassportMetric label="Potential recovery" value={`${potential.toFixed(1)} t`} />
-                    </dl>
+                    <div className="mt-6 flex flex-wrap gap-x-12 gap-y-6">
+                      <PassportMetric label="Free capacity" value={`${candidate.availableT.toFixed(1)} t`} highlight={candidate.recommended} />
+                      <PassportMetric label="Slot capacity" value={`${(ledger?.slot.capacityT ?? 0).toFixed(1)} t`} />
+                      <PassportMetric label="Potential" value={`${potential.toFixed(1)} t`} />
+                    </div>
                     
-                    <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                      <span className="font-semibold text-ink-900 dark:text-white">{TYPE_LABEL[material?.type ?? ""] ?? material?.type} accepted</span>
-                      {slot ? <span className="text-steel-600 dark:text-gray-400">{candidate.availableT.toFixed(1)} t free · {formatDate(slot.date)}</span> : <span className="font-medium text-signal-600 dark:text-signal-400">No intake date is listed yet.</span>}
-                      {candidate.recommended && <span className="text-sm text-steel-600 dark:text-gray-400">Best fit for material suitability, free capacity, and distance.</span>}
-                      {material && candidate.availableT < remainingT && <span className="font-medium text-signal-600 dark:text-signal-400">Capacity is {Math.max(0, candidate.availableT).toFixed(1)} t, which is {(remainingT - candidate.availableT).toFixed(1)} t short of your {remainingT.toFixed(1)} t.</span>}
+                    <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-steel-600 dark:text-gray-400">
+                      <span><span className="font-semibold text-ink-900 dark:text-white">{TYPE_LABEL[material?.type ?? ""] ?? material?.type}</span> accepted</span>
+                      {slot ? <span>{candidate.availableT.toFixed(1)} t free · {formatDate(slot.date)}</span> : <span className="font-medium text-signal-600 dark:text-signal-400">No intake date listed.</span>}
+                      {material && candidate.availableT < remainingT && <span className="font-medium text-signal-600 dark:text-signal-400">Shortfall: {(remainingT - candidate.availableT).toFixed(1)} t.</span>}
                     </div>
                   </div>
                   
-                  <div className="flex items-center border-t border-steel-200 bg-gray-50 p-6 lg:w-64 lg:border-l lg:border-t-0 dark:border-steel-800 dark:bg-black/20">
+                  <div className="flex flex-wrap lg:flex-col lg:items-end justify-center gap-4 lg:gap-2 border-t lg:border-t-0 border-steel-100 lg:border-l pt-4 lg:pt-0 lg:pl-6 dark:border-steel-800/50">
                     <button
                       type="button"
                       aria-pressed={isSelected}
@@ -251,15 +260,13 @@ export default function Receivers() {
                         setHoldState(null);
                       }}
                       className={cn(
-                        "group/btn relative w-full overflow-hidden border-2 px-6 py-4 font-archivo text-lg font-bold uppercase tracking-wide transition-all", 
+                        "w-full lg:w-auto min-w-[200px] border px-6 py-4 font-bold uppercase tracking-wide transition-all", 
                         isSelected 
-                          ? "border-transparent bg-ink-900 text-white shadow-[0_0_15px_rgba(0,0,0,0.2)] dark:bg-white dark:text-ink-900 dark:shadow-[0_0_15px_rgba(255,255,255,0.2)]" 
-                          : "border-steel-300 bg-white text-ink-900 hover:border-ink-900 hover:shadow-md dark:border-steel-700 dark:bg-transparent dark:text-white dark:hover:border-white"
+                          ? "bg-ink-900 text-white border-ink-900 dark:bg-white dark:text-ink-900 dark:border-white" 
+                          : "bg-white text-ink-900 border-steel-300 hover:border-ink-900 hover:bg-gray-50 dark:bg-transparent dark:text-white dark:border-steel-700 dark:hover:border-white dark:hover:bg-white/5"
                       )}
                     >
-                      <span className="relative z-10">{isSelected ? "Selected" : "Choose receiver"}</span>
-                      {!isSelected && <div className="absolute inset-0 -z-10 translate-y-full bg-ink-900 transition-transform duration-300 group-hover/btn:translate-y-0 dark:bg-white" />}
-                      {!isSelected && <span className="absolute inset-0 z-10 flex items-center justify-center text-white opacity-0 transition-opacity duration-300 group-hover/btn:opacity-100 dark:text-ink-900">Choose receiver</span>}
+                      {isSelected ? "Selected" : "Choose Receiver"}
                     </button>
                   </div>
                 </motion.article>

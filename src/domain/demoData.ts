@@ -252,7 +252,7 @@ const base: GreenLoopDataset = {
       confidence: 0.72,
       evidence: [
         { kind: "survey-sheet", label: "Beam and joist survey", ref: "survey-cy-003", recordedAt: "2026-09-17T10:45:00Z" },
-        { kind: "site-photo", label: "Timber sorting area", ref: "/images/site/sorting-facility.jpg", recordedAt: "2026-09-17T10:45:00Z" },
+        { kind: "site-photo", label: "Timber sorting area", ref: "/images/site/timber-stack.jpg", recordedAt: "2026-09-17T10:45:00Z" },
       ],
     },
     {
@@ -268,7 +268,7 @@ const base: GreenLoopDataset = {
       confidence: 0.95,
       evidence: [
         { kind: "survey-sheet", label: "Structural steel schedule", ref: "survey-ber-011", recordedAt: "2026-09-10T08:00:00Z" },
-        { kind: "site-photo", label: "Cut and graded sections", ref: "/images/site/auth-truck.jpg", recordedAt: "2026-09-10T08:30:00Z" },
+        { kind: "site-photo", label: "Cut and graded sections", ref: "/images/site/steel-beams.jpg", recordedAt: "2026-09-10T08:30:00Z" },
       ],
     },
     {
@@ -284,7 +284,7 @@ const base: GreenLoopDataset = {
       confidence: 0.6,
       evidence: [
         { kind: "survey-sheet", label: "Drywall strip-out tally", ref: "survey-kx-008", recordedAt: "2026-09-15T13:15:00Z" },
-        { kind: "site-photo", label: "Yard — drywall bays", ref: "/images/site/yard-wide.jpg", recordedAt: "2026-09-15T13:20:00Z" },
+        { kind: "site-photo", label: "Yard — drywall bays", ref: "/images/site/plasterboard-stack.jpg", recordedAt: "2026-09-15T13:20:00Z" },
       ],
     },
     {
@@ -300,7 +300,7 @@ const base: GreenLoopDataset = {
       confidence: 0.8,
       evidence: [
         { kind: "survey-sheet", label: "Curtain-wall glazing survey", ref: "survey-ber-012", recordedAt: "2026-09-10T09:20:00Z" },
-        { kind: "site-photo", label: "Glazing storage", ref: "/images/site/sorting-facility.jpg", recordedAt: "2026-09-10T09:30:00Z" },
+        { kind: "site-photo", label: "Glazing storage", ref: "/images/site/glass-cullet.jpg", recordedAt: "2026-09-10T09:30:00Z" },
       ],
     },
   ],

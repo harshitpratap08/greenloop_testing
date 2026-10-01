@@ -3,6 +3,8 @@ import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import Button from "@/components/ui/button/Button";
 import { useAuth } from "@/context/AuthContext";
+import { PageMotion, RevealItem, MediaPanel } from "@/components/greenloop/kit";
+import { ambientMedia } from "@/config/appMedia";
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
@@ -47,7 +49,22 @@ export default function Profile() {
       />
       <PageBreadCrumb pageTitle="Account Profile" />
 
-      <div className="mx-auto max-w-3xl rounded-sm border border-steel-200 bg-white p-8 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
+      <PageMotion className="mx-auto max-w-3xl">
+        <RevealItem>
+          <div className="relative group">
+            <MediaPanel
+              media={ambientMedia.siteCabins}
+              aspect="aspect-[21/9]"
+              caption={user?.activeWorkspace === "receiver" ? "Receiver workspace" : "Provider workspace"}
+            />
+            <div className="pointer-events-none absolute bottom-4 start-5 end-5">
+              <p className="font-archivo text-2xl font-bold text-white drop-shadow-md">{user?.name ?? "Your profile"}</p>
+              <p className="mt-1 text-sm font-medium text-white/85 drop-shadow-md">{user?.organization || "GreenLoop account"}</p>
+            </div>
+          </div>
+        </RevealItem>
+        <RevealItem className="mt-6">
+        <div className="border border-steel-200 bg-white p-8 dark:border-steel-800 dark:bg-white/[0.02]">
         <h2 className="mb-6 font-archivo text-2xl font-bold text-ink-900 dark:text-white">Profile Settings</h2>
         
         <form onSubmit={handleSave} className="space-y-6">
@@ -124,6 +141,8 @@ export default function Profile() {
           </div>
         </form>
       </div>
+        </RevealItem>
+      </PageMotion>
     </div>
   );
 }

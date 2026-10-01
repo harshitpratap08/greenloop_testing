@@ -36,10 +36,10 @@ export default function RoleSelection() {
       <AuthLayout>
         <div className="flex flex-1 flex-col justify-center max-w-md w-full mx-auto pt-10 px-4 md:px-0">
           <div className="mb-8">
-            <h1 className="mb-2 font-archivo text-title-sm font-semibold tracking-tight text-ink-900 sm:text-title-md dark:text-white">
-              How will you use GreenLoop?
+            <h1 className="mb-2 font-archivo text-4xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">
+              Choose Role
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-steel-600 dark:text-gray-400">
               Select your operational roles to customize your workspace. You can select both.
             </p>
           </div>
@@ -47,7 +47,7 @@ export default function RoleSelection() {
           <div className="flex flex-col gap-4 mb-6">
             <button
               onClick={() => toggleRole('provider')}
-              className={`text-left p-5 border rounded-lg transition-colors ${selected.includes('provider') ? 'border-loop-500 bg-loop-50 dark:bg-loop-900/20' : 'border-steel-200 hover:border-steel-400 hover:bg-gray-25 dark:border-steel-800 dark:hover:border-steel-600 dark:hover:bg-white/5'}`}
+              className={`text-left p-6 border transition-colors ${selected.includes('provider') ? 'border-ink-900 ring-1 ring-ink-900 dark:border-white dark:ring-white bg-gray-50 dark:bg-white/[0.02]' : 'border-steel-200 hover:border-ink-900 hover:bg-gray-50 dark:border-steel-800 dark:hover:border-white dark:hover:bg-white/5'}`}
             >
               <div className="flex items-center gap-3 mb-1">
                 <input type="checkbox" checked={selected.includes('provider')} readOnly className="size-4 rounded border-gray-300 text-loop-600 focus:ring-loop-600" />
@@ -60,7 +60,7 @@ export default function RoleSelection() {
 
             <button
               onClick={() => toggleRole('receiver')}
-              className={`text-left p-5 border rounded-lg transition-colors ${selected.includes('receiver') ? 'border-loop-500 bg-loop-50 dark:bg-loop-900/20' : 'border-steel-200 hover:border-steel-400 hover:bg-gray-25 dark:border-steel-800 dark:hover:border-steel-600 dark:hover:bg-white/5'}`}
+              className={`text-left p-6 border transition-colors ${selected.includes('receiver') ? 'border-ink-900 ring-1 ring-ink-900 dark:border-white dark:ring-white bg-gray-50 dark:bg-white/[0.02]' : 'border-steel-200 hover:border-ink-900 hover:bg-gray-50 dark:border-steel-800 dark:hover:border-white dark:hover:bg-white/5'}`}
             >
               <div className="flex items-center gap-3 mb-1">
                 <input type="checkbox" checked={selected.includes('receiver')} readOnly className="size-4 rounded border-gray-300 text-loop-600 focus:ring-loop-600" />
@@ -75,9 +75,9 @@ export default function RoleSelection() {
           <button
             onClick={handleContinue}
             disabled={selected.length === 0}
-            className="w-full rounded-lg bg-ink-900 py-3 text-sm font-medium text-white hover:bg-loop-600 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500"
+            className="mt-4 flex w-full items-center justify-center border-2 border-ink-900 bg-ink-900 px-4 py-4 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-loop-600 hover:border-loop-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500 dark:hover:border-loop-500 dark:hover:text-white"
           >
-            Continue to Workspace
+            Continue
           </button>
         </div>
       </AuthLayout>

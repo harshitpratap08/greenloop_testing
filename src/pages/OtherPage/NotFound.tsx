@@ -1,5 +1,7 @@
 import GridShape from "@/components/common/GridShape";
 import PageMeta from "@/components/common/PageMeta";
+import { MediaPanel } from "@/components/greenloop/kit";
+import { ambientMedia } from "@/config/appMedia";
 import { cn } from "@/utils";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -29,12 +31,15 @@ export default function NotFound({ className }: NotFoundProps) {
             Page Not Found
           </h1>
 
-          <img src="/images/error/404.svg" alt="404" className="dark:hidden" />
-          <img
-            src="/images/error/404-dark.svg"
-            alt="404"
-            className="hidden dark:block"
-          />
+          <div className="relative group mx-auto w-full max-w-md">
+            <MediaPanel media={ambientMedia.siteCabins} aspect="aspect-[16/10]" caption="GreenLoop yard" />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 flex items-center justify-center font-archivo text-6xl font-bold tracking-tight text-white drop-shadow-lg"
+            >
+              404
+            </span>
+          </div>
 
           <p className="mt-10 mb-6 text-base text-gray-700 sm:text-lg dark:text-gray-400">
             {t("message")}

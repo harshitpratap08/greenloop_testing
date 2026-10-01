@@ -18,6 +18,9 @@ import {
   BoxMoving,
   CheckCircleIcon,
   BoxTapped,
+  UserCircleIcon,
+  SettingsAltIcon,
+  HeadphoneAltIcon,
 } from "../icons";
 import { cn } from "../utils";
 import SidebarWidget from "./SidebarWidget";
@@ -110,7 +113,7 @@ const providerOthersItems: NavItem[] = [
   },
   {
     icon: <LayoutIcon fontSize={24} />,
-    name: "Matches (admin)",
+    name: "Match Details",
     key: "allocations",
     path: "/app/allocations",
   },
@@ -162,6 +165,45 @@ const receiverOthersItems: NavItem[] = [
     path: "/",
   },
 ];
+
+const accountNavItems: NavItem[] = [
+  {
+    icon: <UserCircleIcon fontSize={24} />,
+    name: "Profile",
+    path: "/app/profile",
+  },
+  {
+    icon: <SettingsAltIcon fontSize={24} />,
+    name: "Settings",
+    path: "/app/settings",
+  },
+  {
+    icon: <HeadphoneAltIcon fontSize={24} />,
+    name: "Support",
+    path: "/app/support",
+  },
+];
+
+/** Signed-in essentials pinned under the nav — identity, preferences, help. */
+const AccountSidebarWidget: React.FC<{
+  render: (items: NavItem[], menuType: "main" | "others") => React.ReactNode;
+}> = ({ render }) => {
+  const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+  return (
+    <div className="border-t border-steel-200 pt-4 dark:border-steel-800">
+      {isExpanded || isHovered || isMobileOpen ? (
+        <h2 className="mb-4 flex text-xs leading-5 text-gray-400 uppercase justify-start">
+          Account
+        </h2>
+      ) : (
+        <h2 className="mb-4 flex justify-center">
+          <HorizontaLDots className="size-6" />
+        </h2>
+      )}
+      {render(accountNavItems, "others")}
+    </div>
+  );
+};
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered, setIsMobileOpen } =
@@ -523,6 +565,8 @@ const AppSidebar: React.FC = () => {
               </h2>
               {renderMenuItems(currentOthersItems, "others")}
             </div>
+
+            <AccountSidebarWidget render={renderMenuItems} />
           </div>
         </nav>
 

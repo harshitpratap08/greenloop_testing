@@ -6,6 +6,7 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import type { MaterialCondition, MaterialGrade, MaterialTypeKey, Evidence, MaterialPassport } from "@/domain/types";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/utils";
+import { materialMediaFor } from "@/config/appMedia";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -115,7 +116,7 @@ export default function NewSurvey() {
           <p className="mt-2 text-sm font-medium text-steel-700 dark:text-gray-300">Step {step < 6 ? step : 5} of 5 · {step === 1 ? "Choose material" : step === 2 ? "Enter amount" : step === 3 ? "Choose location" : step === 4 ? "Add photos" : step === 5 ? "Review" : "Complete"}</p>
         </header>
         {step < 6 && (
-          <div className="mb-8 overflow-hidden rounded-sm border border-steel-200 bg-white shadow-sm dark:border-steel-800 dark:bg-black">
+          <div className="mb-8 overflow-hidden border border-steel-200 bg-white dark:border-steel-800 dark:bg-black">
             <div className="flex divide-x divide-steel-200 dark:divide-steel-800">
               {['What do you have?', 'How much?', 'Where is it?', 'Photos', 'Review'].map((label, idx) => (
                 <div key={label} className={cn("flex-1 p-4 text-center transition-colors", step === idx + 1 ? "bg-loop-50 text-loop-700 dark:bg-loop-500/10 dark:text-loop-400" : step > idx + 1 ? "bg-gray-50 text-ink-900 dark:bg-white/[0.02] dark:text-white" : "text-steel-400")}>
@@ -128,19 +129,40 @@ export default function NewSurvey() {
 
         <AnimatePresence mode="wait">
           {step === 1 && (
-            <motion.div key="choose-material" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
+            <motion.div key="choose-material" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border border-steel-200 border-t-4 border-t-loop-600 bg-white p-8 dark:border-steel-800 dark:border-t-loop-500 dark:bg-black">
               <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">What do you have?</h2>
               <p className="mt-2 text-steel-600 dark:text-gray-400">Choose the main material type. You can add its amount, project location, photos, and detailed condition next.</p>
-              <label className="mt-8 block text-sm font-semibold text-steel-700 dark:text-gray-300">Material type
-                <select value={type} onChange={(event) => setType(event.target.value as MaterialTypeKey)} className="mt-2 w-full rounded-sm border-2 border-steel-300 p-3 dark:border-steel-700 dark:bg-black dark:text-white">
-                  {Object.entries(TYPE_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                </select>
-              </label>
+              <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3" role="radiogroup" aria-label="Material type">
+                {(Object.entries(TYPE_LABEL) as [MaterialTypeKey, string][]).map(([key, label]) => {
+                  const media = materialMediaFor(key);
+                  const active = type === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setType(key)}
+                      className={cn(
+                        "group relative overflow-hidden border text-start transition-all",
+                        active ? "border-ink-900 ring-2 ring-ink-900 dark:border-white dark:ring-white" : "border-steel-200 hover:border-ink-900 dark:border-steel-800 dark:hover:border-white",
+                      )}
+                    >
+                      <span className="relative block h-24 w-full overflow-hidden">
+                        <img src={media.src} alt={media.alt} loading="lazy" className={cn("size-full object-cover transition-transform duration-500", active ? "scale-105" : "group-hover:scale-105")} />
+                        <span className="absolute inset-0 bg-ink-950/35" aria-hidden="true" />
+                        <span className="absolute bottom-2 left-3 font-archivo text-sm font-bold uppercase tracking-wide text-white">{label}</span>
+                        {active && <span className="absolute right-2 top-2 size-5 rounded-full border-2 border-white bg-loop-500" aria-hidden="true" />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
               <div className="mt-8 flex justify-end"><button onClick={() => setStep(2)} className="min-h-11 bg-ink-900 px-8 py-3 font-semibold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">Continue</button></div>
             </motion.div>
           )}
           {step === 3 && (
-            <motion.div key="choose-location" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
+            <motion.div key="choose-location" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border border-steel-200 border-t-4 border-t-loop-600 bg-white p-8 dark:border-steel-800 dark:border-t-loop-500 dark:bg-black">
               <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Where is the material?</h2>
               <p className="mt-2 text-steel-600 dark:text-gray-400">Choose the project where the material is located. This is saved with its Material Passport.</p>
               
@@ -173,7 +195,7 @@ export default function NewSurvey() {
           )}
 
           {step === 2 && (
-            <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
+            <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border border-steel-200 border-t-4 border-t-loop-600 bg-white p-8 dark:border-steel-800 dark:border-t-loop-500 dark:bg-black">
               <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">How much material is there?</h2>
               <p className="mt-2 text-steel-600 dark:text-gray-400">Enter your best estimate in tonnes. You can add an estimate range, condition, and grade if you know them.</p>
               
@@ -226,7 +248,7 @@ export default function NewSurvey() {
           )}
 
           {step === 4 && (
-            <motion.div key="add-photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
+            <motion.div key="add-photos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border border-steel-200 border-t-4 border-t-loop-600 bg-white p-8 dark:border-steel-800 dark:border-t-loop-500 dark:bg-black">
               <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Add photos</h2>
               <p className="mt-2 text-steel-600 dark:text-gray-400">Photos help providers and receivers understand what the material looks like. Evidence means the supporting photos or documents attached to its record.</p>
               
@@ -271,7 +293,7 @@ export default function NewSurvey() {
           )}
 
           {step === 5 && (
-            <motion.div key="review-material" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t-4 border-loop-600 bg-white p-8 shadow-sm dark:border-loop-500 dark:bg-black">
+            <motion.div key="review-material" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border border-steel-200 border-t-4 border-t-loop-600 bg-white p-8 dark:border-steel-800 dark:border-t-loop-500 dark:bg-black">
               <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Review & Create Passport</h2>
               
               <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 rounded-sm border border-steel-200 bg-gray-50 p-6 sm:grid-cols-3 dark:border-steel-800 dark:bg-white/[0.02]">
@@ -307,7 +329,7 @@ export default function NewSurvey() {
           )}
 
           {step === 6 && createdPassport && (
-            <motion.div key="step5" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="border-t-4 border-loop-500 bg-white p-12 text-center shadow-lg dark:border-loop-400 dark:bg-black">
+            <motion.div key="step5" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="border border-steel-200 border-t-4 border-t-loop-500 bg-white p-12 text-center dark:border-steel-800 dark:border-t-loop-400 dark:bg-black">
               <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-full bg-loop-100 text-loop-600 dark:bg-loop-500/20 dark:text-loop-400">
                 <svg className="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -319,7 +341,7 @@ export default function NewSurvey() {
               </p>
               
               <div className="mt-10 flex justify-center gap-4">
-                <button onClick={() => navigate('/app/materials')} className="border-2 border-steel-300 px-8 py-4 font-bold uppercase tracking-wide hover:border-ink-900 dark:border-steel-700 dark:text-white dark:hover:border-white">View Passports</button>
+                <button onClick={() => navigate(`/app/materials/${createdPassport.id}`)} className="border-2 border-steel-300 px-8 py-4 font-bold uppercase tracking-wide hover:border-ink-900 dark:border-steel-700 dark:text-white dark:hover:border-white">View Passport</button>
                 <button onClick={() => navigate('/app/receivers', { state: { materialId: createdPassport.id } })} className="bg-ink-900 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">Find a Receiver</button>
               </div>
             </motion.div>

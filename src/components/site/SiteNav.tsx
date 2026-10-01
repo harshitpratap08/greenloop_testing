@@ -32,7 +32,7 @@ export default function SiteNav() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-3">
-          <Link to="/sign-in" className="inline-flex min-h-11 items-center text-sm font-medium text-white/75 transition-colors hover:text-white">Sign In</Link>
+          <Link to="/sign-in" className="hidden min-h-11 items-center text-sm font-medium text-white/75 transition-colors hover:text-white xsm:inline-flex">Sign In</Link>
           <Link to="/sign-up" className="inline-flex min-h-11 items-center bg-loop-500 px-4 text-sm font-bold text-ink-950 transition-colors hover:bg-loop-400">Create Account</Link>
           <button type="button" aria-expanded={menuOpen} aria-controls="site-mobile-nav" aria-label={menuOpen ? "Close navigation" : "Open navigation"} onClick={() => setMenuOpen((open) => !open)} className="inline-flex size-11 items-center justify-center border border-white/20 text-white xl:hidden">
             <span className="text-xl leading-none" aria-hidden="true">{menuOpen ? "×" : "☰"}</span>

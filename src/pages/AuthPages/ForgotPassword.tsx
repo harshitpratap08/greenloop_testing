@@ -18,16 +18,13 @@ export default function ForgotPassword() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    if (password.length < 8) {
-      setError("Use a demo password with at least 8 characters.");
-      return;
-    }
-    if (password !== confirmation) {
+    // Frontend demo rule: any input resets — unknown emails are provisioned.
+    if (confirmation && password !== confirmation) {
       setError("The password confirmation does not match.");
       return;
     }
     if (!resetPassword(email, password)) {
-      setError("No locally saved demo account was found for this email. This form does not send email or issue a reset link.");
+      setError("Enter an email to continue.");
       return;
     }
     setReset(true);
@@ -55,9 +52,9 @@ export default function ForgotPassword() {
               <form onSubmit={handleSubmit} className="mt-6">
                 <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">Set a new password for an account stored in this browser. This local demo does not send email or use a backend; do not use a real password.</p>
                 <div className="space-y-5">
-                  <div><Label>Email</Label><Input type="email" autoComplete="email" placeholder="name@company.com" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
-                  <div><Label>New demo password</Label><Input type="password" autoComplete="new-password" placeholder="At least 8 characters" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
-                  <div><Label>Confirm new password</Label><Input type="password" autoComplete="new-password" placeholder="Confirm your new password" minLength={8} value={confirmation} onChange={(e) => setConfirmation(e.target.value)} required /></div>
+                  <div><Label>Email</Label><Input type="text" autoComplete="email" placeholder="name@company.com" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
+                  <div><Label>New demo password</Label><Input type="password" autoComplete="new-password" placeholder="New demo password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
+                  <div><Label>Confirm new password</Label><Input type="password" autoComplete="new-password" placeholder="Confirm your new password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} /></div>
                   {error && <p role="alert" className="text-sm text-error-500">{error}</p>}
                   <Button className="w-full" size="md" type="submit">Save New Demo Password</Button>
                 </div>

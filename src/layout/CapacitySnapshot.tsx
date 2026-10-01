@@ -1,15 +1,16 @@
-import { demoDataset, slotLedger, STORY } from "@/domain";
-import { useMemo } from "react";
+import { slotLedger, STORY } from "@/domain";
+import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { formatDate } from "@/utils";
 
 /**
- * Sidebar capacity snapshot — live view of the demo dataset's Riverstone
+ * Sidebar capacity snapshot — LIVE view of the store's Riverstone
  * Aggregates concrete intake (the locked 15-tonne scenario slot).
- * Every figure is computed by the pure capacity engine, never hardcoded.
+ * Every figure is computed by the pure capacity engine from the current
+ * dataset, so bookings/cancellations update the sidebar in real time.
  */
 export default function CapacitySnapshot() {
-  const { receiverName, slotDate, ledger } = useMemo(() => {
-    const dataset = demoDataset();
+  const { dataset } = useGreenLoopStore();
+  const { receiverName, slotDate, ledger } = (() => {
     const l = slotLedger(dataset, STORY.concreteSlotSept24);
     const receiver = dataset.receivers.find((r) => r.id === STORY.receiverId);
     return {
@@ -17,7 +18,7 @@ export default function CapacitySnapshot() {
       slotDate: l?.slot.date ? formatDate(l.slot.date) : "",
       ledger: l,
     };
-  }, []);
+  })();
 
   if (!ledger) return null;
 

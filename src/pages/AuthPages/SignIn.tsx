@@ -9,7 +9,7 @@ export default function SignIn() {
         title="Sign In | GreenLoop"
         description="Sign in to GreenLoop to coordinate construction material recovery."
       />
-      <AuthLayout>
+      <AuthLayout tone="dispatch">
         <SignInForm />
       </AuthLayout>
     </>

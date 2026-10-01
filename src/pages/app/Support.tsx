@@ -42,7 +42,7 @@ export default function Support() {
       <div className="mx-auto max-w-3xl space-y-8">
         
         {/* Help Information */}
-        <section className="rounded-sm border border-steel-200 bg-white p-8 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
+        <section className="border border-steel-200 bg-white p-8 dark:border-steel-800 dark:bg-white/[0.02]">
           <h2 className="mb-4 font-archivo text-xl font-bold text-ink-900 dark:text-white">GreenLoop Workflow Help</h2>
           <div className="prose prose-sm max-w-none text-ink-800 dark:text-gray-300">
             <p className="mb-4">
@@ -59,7 +59,7 @@ export default function Support() {
         </section>
 
         {/* Contact Form */}
-        <section className="rounded-sm border border-steel-200 bg-white p-8 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
+        <section className="border border-steel-200 bg-white p-8 dark:border-steel-800 dark:bg-white/[0.02]">
           <h2 className="mb-6 font-archivo text-xl font-bold text-ink-900 dark:text-white">Contact Support</h2>
           
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -101,7 +101,7 @@ export default function Support() {
         </section>
 
         {(dataset.supportRequests ?? []).filter((request) => request.email === user?.email).length > 0 && (
-          <section className="rounded-sm border border-steel-200 bg-white p-8 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
+          <section className="border border-steel-200 bg-white p-8 dark:border-steel-800 dark:bg-white/[0.02]">
             <h2 className="mb-4 font-archivo text-xl font-bold text-ink-900 dark:text-white">Your support requests</h2>
             <div className="space-y-4">
               {(dataset.supportRequests ?? []).filter((request) => request.email === user?.email).map((request) => (

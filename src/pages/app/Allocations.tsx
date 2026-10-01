@@ -12,9 +12,11 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion } from "motion/react";
 import { cn } from "@/utils";
 import { EmptyState } from "@/components/greenloop/AppExploration";
+import { materialMediaFor, receiverMediaFor } from "@/config/appMedia";
 
 export default function Allocations() {
   const { dataset } = useGreenLoopStore();
+  const materialMedia = (id: string) => materialMediaFor(dataset.materials.find((m) => m.id === id)?.type ?? "");
 
   const materialLabel = (id: string) => {
     const material = dataset.materials.find((m) => m.id === id);
@@ -58,6 +60,12 @@ export default function Allocations() {
             className="overflow-hidden rounded-sm border border-steel-200 bg-white shadow-sm dark:border-steel-800 dark:bg-white/[0.02]"
           >
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-steel-200 bg-gray-50 px-6 py-5 dark:border-steel-800 dark:bg-black/20">
+              <img
+                src={materialMedia(allocation.materialId).src}
+                alt={materialMedia(allocation.materialId).alt}
+                loading="lazy"
+                className="h-16 w-24 shrink-0 border border-steel-200 bg-steel-100 object-cover dark:border-steel-800 dark:bg-steel-900"
+              />
               <div>
                 <h3 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">
                   <span className="ledger-numeral text-steel-500 dark:text-steel-400">{allocation.id}</span>
@@ -103,8 +111,16 @@ export default function Allocations() {
                   {allocation.candidates.map((candidate) => (
                     <TableRow key={candidate.receiverId} className={cn("transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03]", candidate.recommended && "bg-loop-50/50 dark:bg-loop-500/5")}>
                       <TableCell className="px-6 py-4 text-start">
+                        <span className="flex items-center gap-3">
+                          <img
+                            src={receiverMediaFor(candidate.receiverId).src}
+                            alt={receiverMediaFor(candidate.receiverId).alt}
+                            loading="lazy"
+                            className="hidden h-10 w-14 shrink-0 border border-steel-200 bg-steel-100 object-cover sm:block dark:border-steel-800 dark:bg-steel-900"
+                          />
                         <span className="font-archivo text-base font-semibold text-ink-900 dark:text-white">
                           {receiverName(candidate.receiverId)}
+                        </span>
                         </span>
                         {candidate.recommended && (
                           <span className="ml-3 inline-flex items-center rounded-sm bg-loop-100 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-loop-700 dark:bg-loop-500/20 dark:text-loop-400">

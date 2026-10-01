@@ -1,7 +1,6 @@
 import Label from "@/components/form/Label";
 import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
-import Button from "@/components/ui/button/Button";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -20,8 +19,10 @@ export default function SignInForm() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    // Frontend demo rule: any input signs in (unknown emails are
+    // auto-provisioned by the auth layer — no validation restrictions).
     if (!login(email, password, rememberMe)) {
-      setError("Email or password doesn't match a locally saved demo account. Create an account or reset its demo password.");
+      setError("Enter an email to continue.");
       return;
     }
     const hasWorkspace = (() => {
@@ -45,16 +46,16 @@ export default function SignInForm() {
       </div>
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
         <div>
-          <div className="mb-5 sm:mb-8">
-            <h1 className="mb-2 font-archivo text-title-sm font-semibold tracking-tight text-ink-900 sm:text-title-md dark:text-white">Sign in to GreenLoop</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Plan where recoverable materials go — before the truck leaves.</p>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">This is a local demo. Your password is stored in this browser and is not suitable for real credentials.</p>
+          <div className="mb-8">
+            <h1 className="mb-2 font-archivo text-4xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">Sign In</h1>
+            <p className="text-steel-600 dark:text-gray-400">Plan where recoverable materials go — before the truck leaves.</p>
+            <p className="mt-4 border-l-2 border-loop-500 pl-3 text-xs text-steel-500 dark:text-gray-500">This is a local demo. Your password is stored in this browser and is not suitable for real credentials.</p>
           </div>
           <form onSubmit={handleSubmit}>
             <div className="space-y-6">
               <div>
                 <Label>Email <span className="text-error-500">*</span></Label>
-                <Input type="email" autoComplete="email" required placeholder="name@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input type="text" autoComplete="email" required placeholder="name@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div>
                 <Label>Password <span className="text-error-500">*</span></Label>
@@ -70,7 +71,7 @@ export default function SignInForm() {
                 <Link to="/forgot-password" className="text-sm text-ink-900 hover:text-ink-700 underline dark:text-white dark:hover:text-gray-200">Forgot password?</Link>
               </div>
               {error && <p role="alert" className="text-sm text-error-500">{error}</p>}
-              <Button className="w-full" size="sm" type="submit">Sign in</Button>
+              <button type="submit" className="flex w-full items-center justify-center border-2 border-ink-900 bg-ink-900 px-4 py-4 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-loop-600 hover:border-loop-600 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500 dark:hover:border-loop-500 dark:hover:text-white">Sign in</button>
             </div>
           </form>
 
@@ -85,7 +86,7 @@ export default function SignInForm() {
             }
             const savedRoles = localStorage.getItem("gl_workspaces_google-user@example.com");
             navigate(savedRoles && savedRoles !== "[]" ? "/app" : "/onboarding");
-          }} className="inline-flex w-full items-center justify-center gap-3 rounded-sm border border-steel-200 bg-steel-50 px-5 py-3 text-sm font-medium text-ink-800 transition-colors hover:border-steel-400 hover:bg-gray-25 dark:border-steel-800 dark:bg-white/5 dark:text-gray-200 dark:hover:border-steel-600 dark:hover:bg-white/10">
+          }} className="inline-flex w-full items-center justify-center gap-3 border-2 border-steel-300 bg-white px-5 py-4 text-sm font-bold uppercase tracking-wider text-ink-900 transition-colors hover:border-ink-900 dark:border-steel-700 dark:bg-black dark:text-white dark:hover:border-white">
             <span aria-hidden="true" className="font-semibold text-blue-600">G</span>
             Continue with Google
           </button>

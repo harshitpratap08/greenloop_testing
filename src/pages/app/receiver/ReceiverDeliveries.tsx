@@ -3,6 +3,7 @@ import PageMeta from "@/components/common/PageMeta";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion, AnimatePresence } from "motion/react";
+import { materialMediaFor } from "@/config/appMedia";
 import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { useAuth } from "@/context/AuthContext";
@@ -55,10 +56,17 @@ export default function ReceiverDeliveries() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   key={booking.id}
-                  className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]"
+                  className="border border-steel-200 bg-white p-6 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
                 >
                   <div className="grid gap-6 md:grid-cols-[1fr_auto]">
-                    <div>
+                    <div className="md:grid md:grid-cols-[9rem_1fr] md:gap-5">
+                      <img
+                        src={materialMediaFor(material?.type ?? "concrete").src}
+                        alt=""
+                        loading="lazy"
+                        className="hidden h-28 w-full border border-steel-200 object-cover md:block dark:border-steel-800"
+                      />
+                      <div>
                       <div className="flex flex-wrap items-center gap-3">
                         <StatusBadge status="confirmed" size="sm" />
                         <p className="font-semibold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t {material?.type} from {project?.name ?? "provider"}</p>
@@ -129,6 +137,7 @@ export default function ReceiverDeliveries() {
                         </Button>
                       )}
                     </div>
+                      </div>
                   </div>
                 </motion.article>
               );

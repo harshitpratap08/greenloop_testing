@@ -112,8 +112,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (email: string, password: string, remember: boolean) => {
     const normalized = normalizeEmail(email);
+    if (!normalized) return false;
+
+    // Frontend demo rule: any input signs in. Unknown emails are
+    // auto-provisioned as local demo profiles; mismatched passwords on known
+    // demo accounts simply refresh the stored demo password. No backend.
     const storedPassword = localStorage.getItem(passwordKey(normalized));
-    if (!normalized || !storedPassword || storedPassword !== password) return false;
+    if (!storedPassword) {
+      createAccount({ email: normalized, name: normalized.split('@')[0] || 'Demo User' }, password || 'greenloop-local-demo');
+    } else if (storedPassword !== password) {
+      localStorage.setItem(passwordKey(normalized), password || storedPassword);
+    }
 
     localStorage.removeItem('gl_session_email');
     sessionStorage.removeItem('gl_session_email');
@@ -143,7 +152,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetPassword = (email: string, password: string) => {
     const normalized = normalizeEmail(email);
-    if (!normalized || !localStorage.getItem(passwordKey(normalized))) return false;
+    if (!normalized) return false;
+    // Frontend demo rule: any input resets/creates the local demo password.
+    if (!localStorage.getItem(passwordKey(normalized))) {
+      createAccount({ email: normalized, name: normalized.split('@')[0] || 'Demo User' }, password || 'greenloop-local-demo');
+      return true;
+    }
     localStorage.setItem(passwordKey(normalized), password);
     return true;
   };

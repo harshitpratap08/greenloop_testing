@@ -23,6 +23,7 @@ import MarketDemand from "./pages/app/MarketDemand";
 import Profile from "./pages/app/Profile";
 import Support from "./pages/app/Support";
 import Settings from "./pages/app/Settings";
+import MaterialPassport from "./pages/app/MaterialPassport";
 import AuditTrail from "./pages/app/AuditTrail";
 import Landing from "./pages/site/Landing";
 import NotFound from "./pages/OtherPage/NotFound";
@@ -65,6 +66,7 @@ export default function App() {
                 <Route path="/app/operations" element={<Operations />} />
                 <Route path="/app/projects" element={<Projects />} />
                 <Route path="/app/materials/new" element={<NewSurvey />} />
+                <Route path="/app/materials/:id" element={<MaterialPassport />} />
                 <Route path="/app/materials" element={<Materials />} />
                 <Route path="/app/receivers" element={<Receivers />} />
                 <Route path="/app/allocations" element={<Allocations />} />

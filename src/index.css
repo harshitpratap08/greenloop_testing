@@ -364,6 +364,16 @@
   100% { transform: scale(1.02) translate(0, 0); }
 }
 
+/* GreenLoop landing: slow technical-grid drift behind the hero. */
+@utility animate-grid-drift {
+  animation: gridDrift 36s linear infinite alternate;
+}
+
+@keyframes gridDrift {
+  from { background-position: 0 0; }
+  to { background-position: 88px 176px; }
+}
+
 @utility surface-card {
   @apply rounded-sm border border-steel-200 bg-gray-25 dark:border-steel-800 dark:bg-gray-dark;
 }

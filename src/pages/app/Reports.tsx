@@ -5,6 +5,9 @@ import type { GreenLoopDataset } from "@/domain/types";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { cn } from "@/utils";
+import { Link } from "react-router";
+import { MediaPanel, StatCard } from "@/components/greenloop/kit";
+import { materialMediaFor } from "@/config/appMedia";
 
 const TYPE_COLORS: Record<string, string> = {
   concrete: "bg-ink-900 dark:bg-white",
@@ -41,6 +44,13 @@ function useCountUp(target: number, durationMs = 1500): number {
 
 export default function Reports() {
   const { dataset } = useGreenLoopStore();
+
+  const flow = computeFlow(dataset);
+  const typeTotals = new Map<string, number>();
+  for (const m of dataset.materials) typeTotals.set(m.type, (typeTotals.get(m.type) ?? 0) + m.quantityT);
+  const typeRows = [...typeTotals.entries()].sort((a, b) => b[1] - a[1]);
+  const grandTotal = typeRows.reduce((s, [, t]) => s + t, 0);
+  const activeBookingCount = dataset.bookings.filter((b) => b.status === "confirmed" || b.status === "hold" || b.status === "pending").length;
 
   return (
     <div className="relative min-h-screen pb-24">
@@ -88,6 +98,19 @@ export default function Reports() {
         </ol>
       </div>
 
+      {/* Live context band */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+        className="mb-10 grid grid-cols-2 gap-4 lg:grid-cols-4"
+      >
+        <StatCard label="Material surveyed" value={flow.surveyed} suffix=" t" hint={`${dataset.materials.length} live passports`} />
+        <StatCard label="Verified recovery" value={flow.verified} suffix=" t" tone="positive" hint={`${dataset.verifications.length} verifications logged`} />
+        <StatCard label="Dispatched" value={flow.dispatched} suffix=" t" hint="loads en route or received" />
+        <StatCard label="Bookings placed" value={dataset.bookings.length} decimals={0} hint={`${activeBookingCount} active now`} />
+      </motion.div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="lg:col-span-2">
           <CompositionChart dataset={dataset} />
@@ -113,6 +136,39 @@ export default function Reports() {
           <CapacityTimelineChart dataset={dataset} />
         </motion.div>
       </div>
+
+      {/* Material-breakdown media strip */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="mt-10"
+        aria-label="Material breakdown"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-steel-200 pb-5 dark:border-steel-800">
+          <div>
+            <h2 className="font-archivo text-xl font-bold tracking-tight text-ink-900 dark:text-white">Material in the system</h2>
+            <p className="mt-1 text-sm text-steel-500 dark:text-gray-400">Live tonnage by type — every tile links to the passport library.</p>
+          </div>
+          <p className="ledger-numeral text-2xl font-bold text-ink-900 dark:text-white">{grandTotal.toFixed(1)} t</p>
+        </div>
+        <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          {typeRows.map(([type, t]) => {
+            const media = materialMediaFor(type);
+            return (
+              <li key={type}>
+                <Link to="/app/materials" className="group block">
+                  <MediaPanel media={media} aspect="aspect-[4/3]" caption={type} />
+                  <div className="mt-2 flex items-baseline justify-between gap-2">
+                    <span className="font-archivo text-sm font-bold capitalize text-ink-900 dark:text-white">{type}</span>
+                    <span className="ledger-numeral text-sm font-bold text-steel-600 dark:text-gray-400">{t.toFixed(1)} t</span>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </motion.section>
     </div>
   );
 }
@@ -127,7 +183,7 @@ function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
   const animatedGrand = useCountUp(grand);
 
   return (
-    <section className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm sm:p-8 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
       <ChartHeader
         question="What materials do we have?"
         note="Surveyed tonnage by material type across all projects."
@@ -162,7 +218,7 @@ function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
 function RecoveryFlowChart({ dataset }: { dataset: GreenLoopDataset }) {
   const flow = computeFlow(dataset);
   return (
-    <section className="rounded-sm border border-steel-200 bg-white p-6 shadow-sm sm:p-8 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
       <ChartHeader
         question="Where is material in the process?"
         note="Tonnage at each lifecycle stage right now."
@@ -233,7 +289,7 @@ function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
   const max = Math.max(...totals.map((t) => t.capacity), 1);
 
   return (
-    <section className="h-full rounded-sm border border-steel-200 bg-white p-6 shadow-sm sm:p-8 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="h-full border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
       <ChartHeader
         question="Where can this material go?"
         note="Total 28 Sep intake capacity, reserved vs available."
@@ -293,7 +349,7 @@ function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
   const max = Math.max(...rows.map((r) => r.surveyed), 1);
 
   return (
-    <section className="h-full rounded-sm border border-steel-200 bg-white p-6 shadow-sm sm:p-8 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="h-full border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
       <ChartHeader
         question="How are projects progressing?"
         note="Surveyed tonnage vs verified recovery per project."
@@ -352,7 +408,7 @@ function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
   ];
 
   return (
-    <section className="h-full rounded-sm border border-steel-200 bg-white p-6 shadow-sm sm:p-8 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="h-full border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
       <ChartHeader
         question="What actually arrived?"
         note={`${v.loadRef} at ${dataset.receivers.find((r) => r.id === v.receiverId)?.name}.`}
@@ -409,7 +465,7 @@ function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
   ];
 
   return (
-    <section className="h-full rounded-sm border border-steel-200 bg-white p-6 shadow-sm sm:p-8 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="h-full border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
       <ChartHeader
         question="How does the ledger resolve conflicts?"
         note={`Riverstone Aggregates ${capacity.toFixed(0)} t concrete slot — receiving capacity timeline.`}
