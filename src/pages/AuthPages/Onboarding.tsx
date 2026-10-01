@@ -19,15 +19,6 @@ const ROLE_OPTIONS: { roles: Role[]; title: string; description: string }[] = [
   { roles: BOTH_ROLES, title: "Both", description: "I supply and receive materials." },
 ];
 
-const FIRST_ACTIONS = [
-  { id: "provider:material", role: "provider" as const, title: "Add material", description: "Create a Material Passport for a project.", path: "/app/materials/new" },
-  { id: "provider:receiver", role: "provider" as const, title: "Find a receiver", description: "Match material with a receiving facility.", path: "/app/receivers" },
-  { id: "provider:deliveries", role: "provider" as const, title: "Track deliveries", description: "Open provider delivery tracking.", path: "/app/deliveries" },
-  { id: "receiver:demand", role: "receiver" as const, title: "Request material", description: "Publish receiver demand.", path: "/app/receiver/demand" },
-  { id: "receiver:offers", role: "receiver" as const, title: "Review offers", description: "Review material offers in your demand workspace.", path: "/app/receiver/demand" },
-  { id: "receiver:capacity", role: "receiver" as const, title: "Manage capacity", description: "Add and plan receiving capacity.", path: "/app/receiver/capacity" },
-];
-
 export default function Onboarding() {
   const { user, ready, addWorkspaces, setActiveWorkspace, updateUser } = useAuth();
   const { dataset } = useGreenLoopStore();
@@ -39,28 +30,22 @@ export default function Onboarding() {
   const [vat, setVat] = useState(user?.vat || "");
   const [roles, setRoles] = useState<Role[]>([]);
   const [workspaceMode, setWorkspaceMode] = useState<"sample" | "own">("sample");
-  const [firstAction, setFirstAction] = useState<string | null>(null);
 
   if (!ready) {
     return <div role="status" className="flex min-h-screen items-center justify-center bg-white text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">Restoring your local demo session…</div>;
   }
   if (!user) return <Navigate to="/sign-in" replace />;
 
-  const selectRoles = (selected: Role[]) => {
-    setRoles(selected);
-    setFirstAction((current) => current && selected.includes(current.split(":")[0] as Role)
-      ? current
-      : selected[0] === "receiver" ? "receiver:demand" : selected[0] ? "provider:material" : null);
-  };
+  const selectRoles = (selected: Role[]) => setRoles(selected);
 
   const finishOnboarding = () => {
-    const destination = FIRST_ACTIONS.find((action) => action.id === firstAction);
-    if (!user || !destination || !roles.includes(destination.role)) return;
+    if (!user || roles.length === 0) return;
     const matchedReceiver = dataset.receivers.find((receiver) => receiver.name.trim().toLowerCase() === orgName.trim().toLowerCase());
+    const homeRole = user.activeWorkspace && roles.includes(user.activeWorkspace) ? user.activeWorkspace : roles[0];
     updateUser({ organization: orgName.trim() || user.organization, location: location.trim(), vat: vat.trim(), receiverId: matchedReceiver?.id ?? user.receiverId ?? "R-001" });
     addWorkspaces(roles);
-    setActiveWorkspace(destination.role);
-    navigate(destination.path);
+    setActiveWorkspace(homeRole);
+    navigate("/app");
   };
 
   const stepClass = (active: boolean) =>
@@ -167,7 +152,7 @@ export default function Onboarding() {
               </motion.div>
             )}
 
-            {/* Step 3 — organization details (optional) + first action */}
+            {/* Step 3 — organization details */}
             {step === 3 && (
               <motion.div
                 key="s3"
@@ -179,25 +164,17 @@ export default function Onboarding() {
                 <div className="mb-8">
                   <p className="eyebrow-label text-steel-500 dark:text-steel-400">Set up · 3 of 3</p>
                   <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white">Organization details</h1>
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Optional — prefills your profile. Then choose your first action.</p>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Optional — prefills your profile.</p>
                 </div>
                 <div className="mb-6 space-y-4">
                   <div><Label>Organization Name</Label><Input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="e.g. Riverstone Aggregates" /></div>
                   <div><Label>Location / Region</Label><Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. London, UK" /></div>
                   <div><Label>VAT / Company Number</Label><Input value={vat} onChange={(e) => setVat(e.target.value)} placeholder="Optional" /></div>
                 </div>
-                <div className="mb-6 flex flex-col gap-3">
-                  {FIRST_ACTIONS.filter((action) => roles.includes(action.role)).map((action) => (
-                    <button key={action.id} type="button" aria-pressed={firstAction === action.id} onClick={() => setFirstAction(action.id)} className={cn(stepClass(firstAction === action.id), "px-4 py-3")}>
-                      <span className="block font-semibold text-ink-900 dark:text-white">{action.title}</span>
-                      <span className="mt-0.5 block text-sm text-gray-500 dark:text-gray-400">{action.description}</span>
-                    </button>
-                  ))}
-                </div>
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setStep(2)} className="flex items-center justify-center border-2 border-steel-300 bg-white px-6 py-4 text-sm font-bold uppercase tracking-wider text-ink-900 transition-colors hover:border-ink-900 dark:border-steel-700 dark:bg-black dark:text-white dark:hover:border-white">Back</button>
-                  <button type="button" onClick={finishOnboarding} disabled={!firstAction} className="flex flex-1 items-center justify-center border-2 border-ink-900 bg-ink-900 px-4 py-4 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-loop-600 hover:border-loop-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500 dark:hover:border-loop-500 dark:hover:text-white">
-                    Finish setup
+                  <button type="button" onClick={finishOnboarding} className="flex flex-1 items-center justify-center border-2 border-ink-900 bg-ink-900 px-4 py-4 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-loop-600 hover:border-loop-600 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500 dark:hover:border-loop-500 dark:hover:text-white">
+                    Finish Setup
                   </button>
                 </div>
               </motion.div>
