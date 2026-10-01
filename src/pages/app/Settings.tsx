@@ -1,4 +1,3 @@
-import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import { AVAILABLE_LANGUAGES, type LanguageCode, useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -15,7 +14,6 @@ export default function Settings() {
   return (
     <div className="relative min-h-screen pb-24">
       <PageMeta title="Settings | GreenLoop" description="Manage your GreenLoop application preferences." />
-      <PageBreadCrumb pageTitle="Settings" />
 
       <PageMotion className="mx-auto max-w-3xl space-y-6">
         <RevealItem>

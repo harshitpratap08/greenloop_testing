@@ -16,12 +16,18 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
   const navigate = useNavigate();
   const reduce = useReducedMotion();
   const [query, setQuery] = useState("");
+  const [wasOpen, setWasOpen] = useState(open);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (open) setQuery("");
+  }
 
   useEffect(() => {
     if (open) {
-      setQuery("");
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const timer = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
     }
   }, [open]);
 

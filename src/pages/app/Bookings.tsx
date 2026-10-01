@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import Button from "@/components/ui/button/Button";
@@ -41,7 +40,6 @@ export default function Bookings() {
         title="Bookings | GreenLoop"
         description="Dated receiver intake slots, held requests, confirmed bookings, and available capacity."
       />
-      <PageBreadCrumb pageTitle="Bookings" />
 
       <WorkflowPageHeader
         title="Bookings"

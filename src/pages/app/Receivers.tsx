@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
-import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { materialMedia } from "@/components/greenloop/AppExploration";
@@ -61,7 +60,6 @@ export default function Receivers() {
         title="Find a Receiver | GreenLoop"
         description="Find a suitable receiver and check real intake capacity for surveyed construction material."
       />
-      <PageBreadCrumb pageTitle="Find a receiver" />
 
       <WorkflowPageHeader
         title="Find a receiver"

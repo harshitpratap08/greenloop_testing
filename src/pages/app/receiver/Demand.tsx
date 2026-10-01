@@ -1,6 +1,5 @@
 import { useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { type MaterialTypeKey } from "@/domain/types";
 import { slotMatchesDemandPeriod } from "@/domain/capacity";
@@ -71,7 +70,6 @@ export default function Demand() {
   return (
     <div className="relative min-h-screen pb-24">
       <PageMeta title="Material Requests | GreenLoop" description="Tell providers what material your facility needs." />
-      <PageBreadcrumb pageTitle="Material Requests" />
       <WorkflowPageHeader
         title="Material Requests"
         description="Tell providers what you need. Offers come to you. A material request describes the type, amount, and date your facility needs."
@@ -187,10 +185,10 @@ export default function Demand() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={demand.id}
-                className="border border-steel-200 bg-white transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
+                className="overflow-hidden rounded-[1.25rem] border border-steel-200 bg-white transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
               >
                 {/* Requested material — what this facility needs */}
-                <div className="relative h-20 w-full overflow-hidden">
+                <div className="relative h-20 w-full overflow-hidden rounded-t-[1.25rem]">
                   <img src={materialMediaFor(demand.materialType).src} alt="" loading="lazy" className="size-full object-cover" />
                   <div className="absolute inset-0 bg-ink-950/45" aria-hidden="true" />
                   <p className="absolute bottom-2 left-4 font-archivo text-base font-bold uppercase tracking-wide text-white">{TYPE_LABEL[demand.materialType] ?? demand.materialType}</p>

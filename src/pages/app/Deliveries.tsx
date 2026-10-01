@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import Button from "@/components/ui/button/Button";
@@ -31,7 +30,6 @@ export default function Deliveries() {
         title="Deliveries | GreenLoop"
         description="Track material loads from project dispatch through receiver delivery and evidence."
       />
-      <PageBreadCrumb pageTitle="Deliveries" />
 
       <WorkflowPageHeader
         title="Where is my load?"

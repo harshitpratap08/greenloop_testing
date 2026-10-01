@@ -1,4 +1,3 @@
-import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import {
   materialMedia,
@@ -52,7 +51,6 @@ export default function Projects() {
         title="Projects | GreenLoop"
         description="Demolition and construction projects on the GreenLoop recovery platform."
       />
-      <PageBreadCrumb pageTitle="Projects" />
 
       {/* Hero Header */}
       <header className="mb-12">

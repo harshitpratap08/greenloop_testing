@@ -1,4 +1,3 @@
-import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { formatStamp } from "@/utils";
@@ -11,7 +10,6 @@ export default function AuditTrail() {
   return (
     <div className="relative min-h-screen pb-24">
       <PageMeta title="Activity history | GreenLoop" description="Review the GreenLoop shared transaction event history." />
-      <PageBreadCrumb pageTitle="Activity history" />
 
       <motion.header
         initial={{ opacity: 0, y: -16 }}

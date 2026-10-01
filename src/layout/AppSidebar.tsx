@@ -1,7 +1,7 @@
 import { useSidebar } from "@/context/SidebarContext";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, type Role } from "@/context/AuthContext";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router";
 import {
@@ -217,9 +217,11 @@ const AppSidebar: React.FC = () => {
   const currentNavItems = user?.activeWorkspace === 'receiver' ? receiverNavItems : providerNavItems;
   const currentOthersItems = user?.activeWorkspace === 'receiver' ? receiverOthersItems : providerOthersItems;
   const location = useLocation();
-  const [openSubmenu, setOpenSubmenu] = useState<{
-    type: "main" | "others";
-    index: number;
+  type Submenu = { type: "main" | "others"; index: number } | null;
+  const [submenuOverride, setSubmenuOverride] = useState<{
+    locationKey: string;
+    workspace: Role | undefined;
+    submenu: Submenu;
   } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
     {},
@@ -240,31 +242,18 @@ const AppSidebar: React.FC = () => {
     [location.pathname],
   );
 
-  useEffect(() => {
-    let submenuMatched = false;
-
-    ["main", "others"].forEach((menuType) => {
+  const routeSubmenu = useMemo(() => {
+    let match: Submenu = null;
+    for (const menuType of ["main", "others"] as const) {
       const items = menuType === "main" ? currentNavItems : currentOthersItems;
-
-      items.forEach((nav, index) => {
-        if (nav.subItems) {
-          nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({
-                type: menuType as "main" | "others",
-                index,
-              });
-              submenuMatched = true;
-            }
-          });
-        }
-      });
-    });
-
-    if (!submenuMatched) {
-      setOpenSubmenu(null);
+      const index = items.findIndex((nav) => nav.subItems?.some((item) => item.path === location.pathname));
+      if (index !== -1) match = { type: menuType, index };
     }
-  }, [location, isActive]);
+    return match;
+  }, [currentNavItems, currentOthersItems, location.pathname]);
+  const openSubmenu = submenuOverride?.locationKey === location.key &&
+    submenuOverride.workspace === user?.activeWorkspace
+    ? submenuOverride.submenu : routeSubmenu;
 
   useEffect(() => {
     if (openSubmenu !== null) {
@@ -279,15 +268,11 @@ const AppSidebar: React.FC = () => {
   }, [openSubmenu]);
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
-    setOpenSubmenu((prevOpenSubmenu) => {
-      if (
-        prevOpenSubmenu &&
-        prevOpenSubmenu.type === menuType &&
-        prevOpenSubmenu.index === index
-      ) {
-        return null;
-      }
-      return { type: menuType, index };
+    setSubmenuOverride({
+      locationKey: location.key,
+      workspace: user?.activeWorkspace,
+      submenu: openSubmenu?.type === menuType && openSubmenu.index === index
+        ? null : { type: menuType, index },
     });
   };
 

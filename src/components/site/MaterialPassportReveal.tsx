@@ -32,9 +32,11 @@ export default function MaterialPassportReveal({
   const footageScale = useTransform(progress, [0, 1], [1.08, 1]);
 
   // Stage labels light up sequentially along the transformation chain.
-  const labelOpacities = [0, 1, 2, 3].map((index) =>
-    useTransform(progress, [0.1 + index * 0.12, 0.24 + index * 0.12], [0.25, 1]),
-  );
+  const physicalOpacity = useTransform(progress, [0.1, 0.24], [0.25, 1]);
+  const surveyOpacity = useTransform(progress, [0.22, 0.36], [0.25, 1]);
+  const evidenceOpacity = useTransform(progress, [0.34, 0.48], [0.25, 1]);
+  const digitalOpacity = useTransform(progress, [0.46, 0.6], [0.25, 1]);
+  const labelOpacities = [physicalOpacity, surveyOpacity, evidenceOpacity, digitalOpacity];
 
   return (
     <div ref={ref} className={cn("relative", className)}>

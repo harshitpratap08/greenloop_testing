@@ -1,6 +1,5 @@
 import { useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion, AnimatePresence } from "motion/react";
 import Button from "@/components/ui/button/Button";
@@ -23,7 +22,6 @@ export default function IncomingRequests() {
   return (
     <div className="relative min-h-screen pb-24">
       <PageMeta title="Incoming Requests | GreenLoop" description="Review provider requests for receiving capacity." />
-      <PageBreadcrumb pageTitle="Incoming Requests" />
       <WorkflowPageHeader
         title="Incoming Requests"
         description="Providers are asking to book space at your facility. Confirm the amount you can receive, choose another date, or decline."

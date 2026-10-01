@@ -1,6 +1,5 @@
 import PageMeta from "@/components/common/PageMeta";
 import { useState } from "react";
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { slotLedger } from "@/domain/capacity";
 import { motion } from "motion/react";
@@ -56,7 +55,6 @@ export default function Capacity() {
   return (
     <div className="relative min-h-screen pb-24">
       <PageMeta title="Receiving Capacity | GreenLoop" description="Set the amount of each material your facility can receive by date." />
-      <PageBreadcrumb pageTitle="Receiving Capacity" />
       <WorkflowPageHeader
         title="Receiving Capacity"
         description="How much can your facility accept? Set an amount for each material and date. Bookings use this capacity so loads are not double-booked."

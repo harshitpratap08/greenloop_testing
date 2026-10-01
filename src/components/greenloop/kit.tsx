@@ -71,10 +71,7 @@ export function Counter({
   const rafRef = useRef(0);
 
   useEffect(() => {
-    if (reduce) {
-      setDisplay(value);
-      return;
-    }
+    if (reduce) return;
     const start = performance.now();
     const tick = (now: number) => {
       const p = Math.min(1, (now - start) / (duration * 1000));
@@ -87,7 +84,7 @@ export function Counter({
 
   return (
     <span className={cn("ledger-numeral tabular-nums", className)}>
-      {display.toFixed(decimals)}
+      {(reduce ? value : display).toFixed(decimals)}
       {suffix}
     </span>
   );

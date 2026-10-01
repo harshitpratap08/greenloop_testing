@@ -1,6 +1,5 @@
 import { useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion, AnimatePresence } from "motion/react";
 import { materialMediaFor } from "@/config/appMedia";
@@ -27,7 +26,6 @@ export default function ReceiverDeliveries() {
   return (
     <div className="relative min-h-screen pb-24">
       <PageMeta title="Incoming Deliveries | GreenLoop" description="See expected loads and record their arrival." />
-      <PageBreadcrumb pageTitle="Incoming Deliveries" />
       <WorkflowPageHeader
         title="Incoming Deliveries"
         description="See what providers are sending to your facility. When a truck arrives, record the amount shown on the Weighbridge Ticket."

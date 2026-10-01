@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import type { MaterialCondition, MaterialGrade, MaterialTypeKey, Evidence, MaterialPassport } from "@/domain/types";
@@ -107,7 +106,6 @@ export default function NewSurvey() {
   return (
     <div className="relative min-h-screen pb-24">
       <PageMeta title="Add Material | GreenLoop" description="Add construction material from a project and attach supporting photos." />
-      <PageBreadCrumb pageTitle="Add Material" />
 
       <div className="mx-auto max-w-4xl">
         <header className="mb-6 border-b border-steel-200 pb-5 dark:border-steel-800">
