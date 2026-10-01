@@ -273,24 +273,24 @@ export default function Explore() {
             action={<Link to="/app/materials" className={textLinkClass}>All materials</Link>}
           />
           {dataset.materials.length > 0 ? (
-            <ul className="grid gap-px border border-steel-300 bg-steel-300 dark:border-steel-800 dark:bg-steel-800 sm:grid-cols-2 xl:grid-cols-3" aria-label="Material passports">
+            <ul className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-3 xl:gap-6" aria-label="Material passports">
               {dataset.materials.map((material) => {
                 const allocation = activeAllocations.find((item) => item.materialId === material.id);
                 const receiver = allocation ? dataset.receivers.find((item) => item.id === allocation.receiverId) : undefined;
                 const materialProject = dataset.projects.find((item) => item.id === material.projectId);
                 const isPrimary = primaryMaterial?.id === material.id;
                 return (
-                  <li key={material.id} className="min-w-0 bg-gray-25 dark:bg-ink-950">
-                    <article className="group flex h-full flex-col">
-                      <Link to={`/app/materials/${material.id}`} className="relative block aspect-[16/8] overflow-hidden" aria-label={`Open ${TYPE_LABEL[material.type]} passport ${material.id}`}>
-                        <img src={materialMediaFor(material.type).src} alt={materialMediaFor(material.type).alt} loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
+                  <li key={material.id} className="min-w-0">
+                    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-steel-200 bg-white shadow-theme-sm transition-shadow duration-300 hover:shadow-theme-lg dark:border-steel-800 dark:bg-ink-900">
+                      <Link to={`/app/materials/${material.id}`} className="relative block aspect-[16/8] overflow-hidden focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-loop-400" aria-label={`Open ${TYPE_LABEL[material.type]} passport ${material.id}`}>
+                        <img src={materialMediaFor(material.type).src} alt={materialMediaFor(material.type).alt} loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.04] motion-reduce:transform-none" />
                         <span className="absolute inset-0 bg-gradient-to-t from-ink-950/75 via-transparent to-transparent" aria-hidden="true" />
                         <span className="absolute inset-x-4 bottom-3 flex items-end justify-between gap-3 text-white">
                           <span className="font-archivo text-lg font-bold uppercase tracking-wide">{TYPE_LABEL[material.type] ?? material.type}</span>
                           <span className="ledger-numeral text-lg font-bold">{material.quantityT.toFixed(1)} t</span>
                         </span>
                       </Link>
-                      <div className="flex flex-1 flex-col p-4">
+                      <div className="flex flex-1 flex-col p-5">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="ledger-numeral text-[11px] text-steel-500 dark:text-steel-400">{material.id} · Grade {material.grade}</span>
                           <StatusChip status={materialChip(material)} label={material.status} />
@@ -302,10 +302,10 @@ export default function Explore() {
                           </div>
                           {receiver && <span className="max-w-32 truncate self-start text-end text-xs text-gray-500 dark:text-gray-400">{receiver.name}</span>}
                         </div>
-                        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-steel-200 pt-3 dark:border-steel-800">
-                          <Link to={`/app/materials/${material.id}`} className={textLinkClass}>View passport</Link>
+                        <div className="mt-auto flex flex-wrap items-center gap-3 pt-5">
+                          <Link to={`/app/materials/${material.id}`} className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg bg-ink-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-loop-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-loop-500 dark:bg-steel-100 dark:text-ink-900 dark:hover:bg-loop-200">View passport</Link>
                           {!allocation && material.status !== "verified" && material.status !== "dispatched" && (
-                            <Link to="/app/receivers" state={{ materialId: material.id }} className={cn(textLinkClass, "ms-auto", isPrimary && "text-loop-700 dark:text-loop-400")}>Find receiver</Link>
+                            <Link to="/app/receivers" state={{ materialId: material.id }} className={cn("inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-steel-200 px-3 py-2 text-xs font-semibold text-ink-900 transition-colors hover:border-loop-500 hover:bg-loop-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-loop-500 dark:border-steel-700 dark:text-steel-100 dark:hover:border-loop-400 dark:hover:bg-loop-900", isPrimary && "border-loop-200 text-loop-700 dark:border-loop-700 dark:text-loop-300")}>Find receiver</Link>
                           )}
                         </div>
                       </div>

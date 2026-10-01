@@ -1,4 +1,3 @@
-import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import {
@@ -31,7 +30,6 @@ export default function Allocations() {
         title="Matches | GreenLoop"
         description="See which receivers match each material and why a destination is suitable."
       />
-      <PageBreadCrumb pageTitle="Matches" />
 
       {/* Hero Header */}
       <motion.header 

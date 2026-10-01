@@ -8,6 +8,14 @@ if (typeof window !== "undefined") {
 
 import "jsvectormap/dist/maps/world.js";
 
+type SetScale = (scale: number, anchorX?: number, anchorY?: number, isCentered?: boolean, animate?: boolean) => void;
+type VectorMapInstance = jsVectorMap & {
+  setScale?: SetScale;
+  _setScale?: SetScale;
+  _width?: number;
+  _height?: number;
+};
+
 export type VectorMapMarker = {
   name?: string;
   coords?: [number, number];
@@ -42,7 +50,7 @@ export type VectorMapProps = {
   lines?: unknown[];
   lineStyle?: Record<string, unknown>;
   series?: Record<string, unknown>;
-  visualizeData?: Record<string, unknown>;
+  visualizeData?: jsVectorMap.MapOptions["visualizeData"];
   focusOn?: Record<string, unknown>;
   onLoaded?: (map: unknown) => void;
   onRegionClick?: (event: MouseEvent, code: string) => void;
@@ -71,7 +79,7 @@ export type VectorMapProps = {
   ) => void;
   onViewportChange?: (scale: number, transX: number, transY: number) => void;
   onDestroyed?: () => void;
-  mapRef?: RefObject<any> | { current: any };
+  mapRef?: RefObject<VectorMapInstance | null>;
   style?: CSSProperties;
   className?: string;
 };
@@ -175,7 +183,7 @@ export function VectorMap({
       };
     });
 
-    let mapInstance: any = null;
+    let mapInstance: VectorMapInstance | null = null;
 
     try {
       mapInstance = new jsVectorMap({
@@ -190,24 +198,24 @@ export function VectorMap({
         zoomMin,
         zoomAnimate,
         zoomStep,
-        ...(markers ? { markers: normalizedMarkers as any } : {}),
-        ...(markerStyle ? { markerStyle: markerStyle as any } : {}),
+        ...(markers ? { markers: normalizedMarkers as jsVectorMap.MapOptions["markers"] } : {}),
+        ...(markerStyle ? { markerStyle: markerStyle as jsVectorMap.MapOptions["markerStyle"] } : {}),
         markersSelectable:
           markersSelectable ?? Boolean(selectedMarkers && selectedMarkers.length > 0),
         ...(markersSelectableOne !== undefined ? { markersSelectableOne } : {}),
         ...(selectedMarkers ? { selectedMarkers } : {}),
-        ...(regionStyle ? { regionStyle: regionStyle as any } : {}),
-        ...(regionLabelStyle ? { regionLabelStyle: regionLabelStyle as any } : {}),
+        ...(regionStyle ? { regionStyle: regionStyle as jsVectorMap.MapOptions["regionStyle"] } : {}),
+        ...(regionLabelStyle ? { regionLabelStyle: regionLabelStyle as jsVectorMap.MapOptions["regionLabelStyle"] } : {}),
         regionsSelectable:
           regionsSelectable ?? Boolean(selectedRegions && selectedRegions.length > 0),
         ...(regionsSelectableOne !== undefined ? { regionsSelectableOne } : {}),
         ...(selectedRegions ? { selectedRegions } : {}),
-        ...(labels ? { labels: labels as any } : {}),
-        ...(lines ? { lines: lines as any } : {}),
-        ...(lineStyle ? { lineStyle: lineStyle as any } : {}),
-        ...(series ? { series: series as any } : {}),
-        ...(visualizeData ? { visualizeData: visualizeData as any } : {}),
-        ...(focusOn ? { focusOn: focusOn as any } : {}),
+        ...(labels ? { labels: labels as jsVectorMap.MapOptions["labels"] } : {}),
+        ...(lines ? { lines: lines as jsVectorMap.MapOptions["lines"] } : {}),
+        ...(lineStyle ? { lineStyle: lineStyle as jsVectorMap.MapOptions["lineStyle"] } : {}),
+        ...(series ? { series: series as jsVectorMap.MapOptions["series"] } : {}),
+        ...(visualizeData ? { visualizeData } : {}),
+        ...(focusOn ? { focusOn: focusOn as jsVectorMap.MapOptions["focusOn"] } : {}),
         ...(onLoaded ? { onLoaded } : {}),
         ...(onRegionClick ? { onRegionClick } : {}),
         ...(onMarkerClick ? { onMarkerClick } : {}),
@@ -217,7 +225,7 @@ export function VectorMap({
           ? { onRegionTooltipShow }
           : onRegionTipShow
             ? {
-                onRegionTooltipShow: (event: any, tooltip: any, code: string) =>
+                onRegionTooltipShow: (event: MouseEvent, tooltip: jsVectorMap.Tooltip, code: string) =>
                   onRegionTipShow(event, tooltip, code),
               }
             : {}),
@@ -225,7 +233,7 @@ export function VectorMap({
           ? { onMarkerTooltipShow }
           : onMarkerTipShow
             ? {
-                onMarkerTooltipShow: (event: any, tooltip: any, index: string) =>
+                onMarkerTooltipShow: (event: MouseEvent, tooltip: jsVectorMap.Tooltip, index: string) =>
                   onMarkerTipShow(event, tooltip, Number(index)),
               }
             : {}),
@@ -236,22 +244,23 @@ export function VectorMap({
       // Compatibility helpers for custom zoom buttons
       if (typeof mapInstance.setScale !== "function") {
         mapInstance.setScale = function (
+          this: VectorMapInstance,
           scale: number,
           anchorX?: number,
           anchorY?: number,
           isCentered?: boolean,
           animate?: boolean,
         ) {
-          if (typeof (this as any)._setScale === "function") {
-            (this as any)._setScale(scale, anchorX, anchorY, isCentered, animate);
+          if (typeof this._setScale === "function") {
+            this._setScale(scale, anchorX, anchorY, isCentered, animate);
           }
         };
       }
 
       if (!Object.prototype.hasOwnProperty.call(mapInstance, "width")) {
         Object.defineProperty(mapInstance, "width", {
-          get() {
-            return (this as any)._width ?? node?.clientWidth ?? 0;
+          get(this: VectorMapInstance) {
+            return this._width ?? node?.clientWidth ?? 0;
           },
           configurable: true,
         });
@@ -259,8 +268,8 @@ export function VectorMap({
 
       if (!Object.prototype.hasOwnProperty.call(mapInstance, "height")) {
         Object.defineProperty(mapInstance, "height", {
-          get() {
-            return (this as any)._height ?? node?.clientHeight ?? 0;
+          get(this: VectorMapInstance) {
+            return this._height ?? node?.clientHeight ?? 0;
           },
           configurable: true,
         });

@@ -44,11 +44,6 @@ function AuthMediaHalf({ image, tagline }: { image: AppMedia; tagline: string })
     <div className="relative hidden min-h-screen w-full overflow-hidden lg:grid lg:w-1/2">
       <img src={image.src} alt={image.alt} className="absolute inset-0 size-full object-cover" />
       <div className="absolute inset-0 bg-ink-950/70" aria-hidden="true" />
-      {/* Fine construction-line grid */}
-      <div className="pointer-events-none absolute inset-0 opacity-[0.08]" aria-hidden="true">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] bg-[size:120px_120px]" />
-      </div>
-
       <motion.div
         className="relative z-1 flex min-h-screen w-full flex-col px-7 py-6 sm:px-8 sm:py-8"
         initial={reduce ? false : "hidden"}

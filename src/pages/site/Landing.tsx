@@ -88,14 +88,9 @@ export default function Landing() {
           <motion.div className="absolute inset-0" style={reduceMotion ? undefined : { y: videoY, scale: videoScale }}>
             <VideoBackground
               video={siteVideos.hero}
-              overlayClassName="bg-gradient-to-r from-ink-950 via-ink-950/80 to-ink-950/40 bg-gradient-to-t from-ink-950 via-transparent to-ink-950/30"
+              overlayClassName="bg-linear-to-r from-ink-950/75 via-ink-950/60 to-ink-950/45"
             />
           </motion.div>
-          {/* Moving technical grid */}
-          <div className="pointer-events-none absolute inset-0 opacity-[0.13]" aria-hidden="true">
-            <div className={`absolute inset-0 bg-[linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] bg-[size:88px_88px] ${reduceMotion ? "" : "animate-grid-drift"}`} />
-          </div>
-
           <motion.div
             className="relative mx-auto grid w-full max-w-7xl items-center gap-12 px-5 py-24 sm:px-8 lg:grid-cols-[1.1fr_0.9fr]"
             style={reduceMotion ? undefined : { y: contentY, opacity: contentOpacity }}

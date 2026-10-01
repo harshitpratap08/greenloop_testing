@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import EventLog from "@/components/greenloop/EventLog";
 import StatusBadge from "@/components/greenloop/StatusBadge";
@@ -31,7 +30,6 @@ export default function Verification() {
         title="Proof of Recovery | GreenLoop"
         description="Evidence-backed records of loads received and accepted by material receivers."
       />
-      <PageBreadCrumb pageTitle="Proof of Recovery" />
 
       <WorkflowPageHeader
         title="Proof of Recovery"

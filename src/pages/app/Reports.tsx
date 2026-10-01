@@ -1,9 +1,8 @@
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import type { GreenLoopDataset } from "@/domain/types";
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/utils";
 import { Link } from "react-router";
 import { MediaPanel, StatCard } from "@/components/greenloop/kit";
@@ -21,13 +20,10 @@ const TYPE_COLORS: Record<string, string> = {
 const FLOW_STAGES = ["Surveyed", "Matched", "Reserved", "Dispatched", "Verified"] as const;
 
 function useCountUp(target: number, durationMs = 1500): number {
+  const reduce = useReducedMotion();
   const [value, setValue] = useState(0);
   useEffect(() => {
-    const reduce = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      setValue(target);
-      return;
-    }
+    if (reduce) return;
     let raf = 0;
     const start = performance.now();
     const tick = (now: number) => {
@@ -38,8 +34,8 @@ function useCountUp(target: number, durationMs = 1500): number {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [target, durationMs]);
-  return value;
+  }, [target, durationMs, reduce]);
+  return reduce ? target : value;
 }
 
 export default function Reports() {
@@ -58,7 +54,6 @@ export default function Reports() {
         title="Reports | GreenLoop"
         description="Six charts answering real operational questions."
       />
-      <PageBreadCrumb pageTitle="Reports" />
 
       {/* Hero Header */}
       <motion.header 

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion, AnimatePresence } from "motion/react";
 import Button from "@/components/ui/button/Button";
@@ -26,7 +25,6 @@ export default function ReceiverVerification() {
   return (
     <div className="relative min-h-screen pb-24">
       <PageMeta title="Check & Accept | GreenLoop" description="Compare expected and received quantities, then confirm accepted material." />
-      <PageBreadcrumb pageTitle="Check & Accept" />
       <WorkflowPageHeader
         title="Check & Accept"
         description="Compare the expected amount with the Weighbridge Ticket. Enter how much you accept; the provider is notified when you confirm."

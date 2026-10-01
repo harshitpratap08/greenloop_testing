@@ -1,6 +1,5 @@
 import { useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion } from "motion/react";
 import Button from "@/components/ui/button/Button";
@@ -59,7 +58,6 @@ export default function MarketDemand() {
   return (
     <div className="relative min-h-screen pb-24">
       <PageMeta title="Who Needs Material | GreenLoop" description="See material requests from receivers and offer your material." />
-      <PageBreadcrumb pageTitle="Who Needs Material" />
       <WorkflowPageHeader
         title="Who Needs Material"
         description="Receivers are asking for material. Offer yours directly using a Material Passport, your material’s digital record."

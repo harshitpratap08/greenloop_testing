@@ -19,6 +19,12 @@
 }
 
 @theme {
+  /* Shared corners for GreenLoop controls and surfaces. */
+  --radius-control: 0.75rem;
+  --radius-surface: 1rem;
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.75rem;
+
   /* Typography — Archivo display / Inter UI / IBM Plex Mono data */
   --font-*: initial;
   --font-outfit: Archivo, "Inter", system-ui, sans-serif;
@@ -221,6 +227,20 @@
     cursor: pointer;
   }
 
+  /* Base defaults also cover custom controls outside the shared UI components.
+     Explicit radius utilities still take precedence (e.g. avatars and pills). */
+  :where(button, select, textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), [role="button"]),
+  :where(a.inline-flex, a.inline-block):is([class~="border"], [class*="bg-"]) {
+    border-radius: var(--radius-control);
+  }
+
+  /* Only complete borders identify panels; section dividers stay untouched.
+     Radius does not clip content, so dropdowns and animations can still extend
+     beyond their containers. */
+  :where(div, article, aside, section, header, footer, form, fieldset, ul, ol, dl, figure, a:not(.inline-flex):not(.inline-block))[class~="border"] {
+    border-radius: var(--radius-surface);
+  }
+
   body {
     @apply relative z-1 bg-gray-50 font-inter font-normal;
     font-feature-settings: "ss01";
@@ -334,6 +354,28 @@
 
 @utility ledger-numeral {
   @apply font-mono tabular-nums;
+}
+
+/* Keep material passports readable with one consistent UI typeface. */
+@utility materials-typography {
+  & .font-bold,
+  & .font-semibold {
+    @apply font-medium;
+  }
+
+  & .font-archivo,
+  & .ledger-numeral,
+  & figcaption {
+    font-family: var(--font-inter);
+  }
+
+  & .eyebrow-label {
+    @apply font-inter text-theme-xs font-medium tracking-wide;
+  }
+
+  & figcaption {
+    @apply font-medium tracking-wide;
+  }
 }
 
 @utility hairline-t {
