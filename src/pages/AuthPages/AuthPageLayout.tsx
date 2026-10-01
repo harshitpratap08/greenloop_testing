@@ -1,16 +1,15 @@
 import { motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import ThemeTogglerTwo from "@/components/common/ThemeTogglerTwo";
-import { ambientVideo, ambientMedia, type AppVideo, type AppMedia } from "@/config/appMedia";
+import { ambientMedia, type AppMedia } from "@/config/appMedia";
 
 /**
  * Auth layout — one cinematic media half + one focused form half.
  *
- * The media half runs slow, muted, looping recovery footage (reduced motion:
- * the poster frame) under a charcoal scrim, with the GreenLoop identity and
- * three live operational proof chips from the demo scenario. Forms receive
- * a staggered entrance. Any-input demo auth is preserved downstream.
+ * The media half pairs a static recovery photograph with a charcoal scrim,
+ * GreenLoop identity and live operational proof chips from the demo scenario.
+ * Any-input demo auth is preserved downstream.
  */
 
 const PROOF_CHIPS = [
@@ -19,35 +18,8 @@ const PROOF_CHIPS = [
   { value: "7.4 t", label: "verified" },
 ];
 
-function AuthMediaHalf({ video, image, tagline }: { video: AppVideo; image: AppMedia; tagline: string }) {
+function AuthMediaHalf({ image, tagline }: { image: AppMedia; tagline: string }) {
   const reduce = useReducedMotion();
-  const frameRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const frame = frameRef.current;
-    const media = videoRef.current;
-    if (!frame || !media || reduce) return;
-    let visible = true;
-    const tryPlay = () => {
-      if (visible && media.paused) media.play().catch(() => {});
-    };
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        visible = entry.isIntersecting;
-        if (visible) tryPlay();
-        else media.pause();
-      },
-      { threshold: 0.2 },
-    );
-    observer.observe(frame);
-    const keepalive = window.setInterval(tryPlay, 4000);
-    return () => {
-      observer.disconnect();
-      window.clearInterval(keepalive);
-    };
-  }, [reduce]);
 
   const children = [
     <motion.p key="p0" variants={item} className="eyebrow-label text-white/60">Construction material recovery network</motion.p>,
@@ -69,32 +41,8 @@ function AuthMediaHalf({ video, image, tagline }: { video: AppVideo; image: AppM
   ];
 
   return (
-    <div ref={frameRef} className="relative hidden min-h-screen w-full overflow-hidden lg:grid lg:w-1/2">
+    <div className="relative hidden min-h-screen w-full overflow-hidden lg:grid lg:w-1/2">
       <img src={image.src} alt={image.alt} className="absolute inset-0 size-full object-cover" />
-      {reduce ? (
-        <img src={image.src} alt={image.alt} className="absolute inset-0 size-full object-cover" />
-      ) : (
-        <motion.div
-          className="absolute inset-0"
-          initial={false}
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <video
-            ref={videoRef}
-            className={ready ? "size-full object-cover opacity-100 transition-opacity duration-700" : "size-full object-cover opacity-0 transition-opacity duration-700"}
-            src={video.src}
-            poster={image.src}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            tabIndex={-1}
-            onCanPlay={() => setReady(true)}
-          />
-        </motion.div>
-      )}
       <div className="absolute inset-0 bg-ink-950/70" aria-hidden="true" />
       {/* Fine construction-line grid */}
       <div className="pointer-events-none absolute inset-0 opacity-[0.08]" aria-hidden="true">
@@ -124,7 +72,7 @@ const item = {
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="relative z-1 flex min-h-screen bg-white dark:bg-black">
-      <AuthMediaHalf video={ambientVideo.demolition} image={ambientMedia.surveyHero} tagline="Plan where recoverable materials go — before the truck leaves." />
+      <AuthMediaHalf image={ambientMedia.surveyHero} tagline="Plan where recoverable materials go — before the truck leaves." />
       <div className="relative flex w-full flex-col lg:w-1/2">{children}</div>
       <div className="fixed end-6 bottom-6 z-50">
         <ThemeTogglerTwo />
