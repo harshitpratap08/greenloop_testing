@@ -16,7 +16,7 @@ export default function SignUpForm() {
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState("");
   const [socialMessage, setSocialMessage] = useState("");
-  const { createAccount, simulateGoogleLogin } = useAuth();
+  const { createAccount, login, simulateGoogleLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -30,13 +30,40 @@ export default function SignUpForm() {
       setError("The password confirmation does not match.");
       return;
     }
-    // Frontend demo rule: any input signs up — no format, strength or
-    // account-existence enforcement. An existing email simply signs in.
-    if (!createAccount({ email, name, organization }, password)) {
-      setError("This account could not be created in this browser.");
+    if (!termsAccepted) {
+      setError("Accept the Terms and Conditions and Privacy Policy to continue.");
       return;
     }
-    navigate("/onboarding");
+
+    try {
+      const created = createAccount({ email, name, organization }, password);
+      if (!created) {
+        if (!login(email, password, true)) {
+          setError("Enter an email address to continue.");
+          return;
+        }
+        let hasWorkspace = false;
+        try {
+          const roles: unknown = JSON.parse(localStorage.getItem(`gl_workspaces_${email.trim().toLowerCase()}`) || "[]");
+          hasWorkspace = Array.isArray(roles) && roles.length > 0;
+        } catch {
+          hasWorkspace = false;
+        }
+        navigate(hasWorkspace ? "/app" : "/onboarding");
+        return;
+      }
+      navigate("/onboarding");
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === "QuotaExceededError") {
+        setError("Browser storage is full. Free up space and try creating your account again.");
+      } else if (cause instanceof DOMException && cause.name === "SecurityError") {
+        setError("Browser storage is unavailable. Check your privacy settings and allow site storage.");
+      } else if (cause instanceof Error && cause.message) {
+        setError(`Account creation failed: ${cause.message}`);
+      } else {
+        setError("Account could not be saved in this browser. Check browser storage permissions and try again.");
+      }
+    }
   };
 
   return (
@@ -84,7 +111,7 @@ export default function SignUpForm() {
               </div>
               <div>
                 <Label>Work Email<span className="text-error-500">*</span></Label>
-                <Input type="text" id="email" name="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your work email" />
+                <Input type="email" id="email" name="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your work email" />
               </div>
               <div>
                 <Label>Password<span className="text-error-500">*</span></Label>
@@ -97,7 +124,7 @@ export default function SignUpForm() {
               </div>
               <div>
                 <Label>Confirm Password<span className="text-error-500">*</span></Label>
-                <Input id="confirm-password" name="confirm-password" autoComplete="new-password" placeholder="Confirm your password" type={showPassword ? "text" : "password"} value={confirmation} onChange={(e) => setConfirmation(e.target.value)} />
+                <Input id="confirm-password" name="confirm-password" autoComplete="new-password" required placeholder="Confirm your password" type={showPassword ? "text" : "password"} value={confirmation} onChange={(e) => setConfirmation(e.target.value)} />
               </div>
               <Checkbox id="terms-accepted" className="h-5 w-5" checked={termsAccepted} onChange={setTermsAccepted} label="I agree to the Terms and Conditions and Privacy Policy" />
               {error && <p role="alert" className="text-sm text-error-500">{error}</p>}
