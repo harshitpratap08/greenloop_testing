@@ -40,19 +40,19 @@ export default function SignUpForm() {
   };
 
   return (
-    <div className="no-scrollbar flex w-full flex-1 flex-col overflow-y-auto lg:w-1/2">
-      <div className="mx-auto mb-5 w-full max-w-md sm:pt-10">
+    <div className="no-scrollbar flex w-full flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto w-full max-w-md px-6 pt-10 sm:px-8 lg:px-0">
         <Link to="/" className="inline-flex items-center text-sm text-steel-600 transition-colors hover:text-ink-900 dark:text-steel-400 dark:hover:text-white">
           <ChevronLeftIcon className="size-5 rtl:rotate-180" />
           Back to GreenLoop
         </Link>
       </div>
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 sm:px-8 lg:px-0">
         <div>
           <div className="mb-8">
             <h1 className="mb-2 font-archivo text-4xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">Create Account</h1>
-            <p className="text-steel-600 dark:text-gray-400">Survey materials, match receivers, reserve capacity, verify loads.</p>
-            <p className="mt-4 border-l-2 border-loop-500 pl-3 text-xs text-steel-500 dark:text-gray-500">Local demo only: account details and password are stored in this browser, not sent to a server. Do not use a real password.</p>
+            <p className="text-steel-600 dark:text-gray-400">Survey materials, match receivers, reserve capacity and verify loads.</p>
+            <p className="mt-4 border-s-2 border-loop-500 ps-3 text-xs text-steel-500 dark:text-gray-500">Local demo only: account details and password are stored in this browser, not sent to a server. Do not use a real password.</p>
           </div>
           <div className="grid grid-cols-1 gap-3">
             <button type="button" onClick={() => {
@@ -73,7 +73,7 @@ export default function SignUpForm() {
             <div className="relative flex justify-center text-sm"><span className="bg-gray-25 p-2 text-gray-500 sm:px-5 sm:py-2 dark:bg-gray-dark dark:text-gray-400">Or register with email</span></div>
           </div>
           <form onSubmit={handleSubmit}>
-            <div className="space-y-5">
+            <div className="space-y-6">
               <div>
                 <Label>Full Name<span className="text-error-500">*</span></Label>
                 <Input type="text" id="name" name="name" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter your full name" />
