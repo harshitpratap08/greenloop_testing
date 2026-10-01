@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createAccount = (details: Pick<User, 'email' | 'name' | 'organization'>, password: string) => {
     const normalized = normalizeEmail(details.email);
-    if (!normalized || localStorage.getItem(passwordKey(normalized))) return false;
+    if (!normalized) return false;
 
     const newUser: User = {
       email: normalized,
@@ -142,10 +142,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       organization: details.organization?.trim(),
       workspaces: [],
     };
-    localStorage.setItem(passwordKey(normalized), password);
-    saveProfile(newUser);
-    localStorage.setItem('gl_session_email', normalized);
-    sessionStorage.removeItem('gl_session_email');
+    const keys = [
+      passwordKey(normalized),
+      profileKey(normalized),
+      `gl_workspaces_${normalized}`,
+      `gl_name_${normalized}`,
+      `gl_org_${normalized}`,
+      'gl_session_email',
+    ];
+    let previousValues: Array<[string, string | null]> = [];
+    let previousSessionEmail: string | null = null;
+    let storageSnapshotTaken = false;
+
+    try {
+      if (localStorage.getItem(passwordKey(normalized))) return false;
+      previousValues = keys.map((key) => [key, localStorage.getItem(key)]);
+      previousSessionEmail = sessionStorage.getItem('gl_session_email');
+      storageSnapshotTaken = true;
+      localStorage.setItem(passwordKey(normalized), password);
+      saveProfile(newUser);
+      localStorage.setItem('gl_session_email', normalized);
+      sessionStorage.removeItem('gl_session_email');
+    } catch (error) {
+      if (storageSnapshotTaken) {
+        for (const [key, value] of previousValues) {
+          try {
+            if (value === null) localStorage.removeItem(key);
+            else localStorage.setItem(key, value);
+          } catch {
+            // Preserve the original storage error if rollback is also unavailable.
+          }
+        }
+        try {
+          if (previousSessionEmail === null) sessionStorage.removeItem('gl_session_email');
+          else sessionStorage.setItem('gl_session_email', previousSessionEmail);
+        } catch {
+          // Preserve the original storage error if rollback is also unavailable.
+        }
+      }
+      throw error;
+    }
+
     setUser(newUser);
     return true;
   };
