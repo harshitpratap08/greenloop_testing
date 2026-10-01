@@ -128,7 +128,7 @@ const providerOthersItems: NavItem[] = [
 const receiverNavItems: NavItem[] = [
   {
     icon: <GridIcon fontSize={24} />,
-    name: "Overview",
+    name: "Home",
     path: "/app/receiver/overview",
   },
   {
