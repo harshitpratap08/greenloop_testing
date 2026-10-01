@@ -68,13 +68,13 @@ const providerNavItems: NavItem[] = [
   },
   {
     icon: <ListIcon fontSize={24} />,
-    name: "Who Needs Material",
+    name: "Active Demand",
     key: "marketDemand",
     path: "/app/market-demand",
   },
   {
     icon: <BoxTapped fontSize={24} />,
-    name: "Find a receiver",
+    name: "Find a Receiver",
     key: "receivers",
     path: "/app/receivers",
   },

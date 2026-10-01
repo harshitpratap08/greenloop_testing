@@ -20,7 +20,7 @@ export default function SidebarWidget() {
           <span className="absolute bottom-2 left-3 font-mono text-[10px] uppercase tracking-[0.14em] text-white/85">Live demand</span>
         </span>
         <span className="block px-4 py-3">
-          <span className="block text-theme-sm font-semibold text-ink-900 dark:text-white">Who needs material</span>
+          <span className="block text-theme-sm font-semibold text-ink-900 dark:text-white">Active Demand</span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">Open receiver requests waiting for offers.</span>
         </span>
       </Link>

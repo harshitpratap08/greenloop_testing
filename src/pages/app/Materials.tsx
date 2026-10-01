@@ -3,11 +3,10 @@
  *
  * Media-first cards (distinct imagery per material type), each showing
  * quantity, project, condition/grade, status, evidence count and the
- * passport action. The project site-media gallery stays below.
+ * passport action. Evidence is shown on each material's passport.
  */
 
 import PageMeta from "@/components/common/PageMeta";
-import { ProjectSiteMedia } from "@/components/greenloop/AppExploration";
 import { computeMatch } from "@/domain/capacity";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { Link } from "react-router";
@@ -154,34 +153,6 @@ export default function Materials() {
         </ul>
       )}
 
-      {/* Project site-media gallery (preserved) */}
-      <section className="mt-16 border-t border-steel-300 pt-10 dark:border-steel-700" aria-label="Site media by project">
-        <div className="mb-8 flex flex-wrap items-baseline justify-between gap-4">
-          <div>
-            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Source evidence</p>
-            <h2 className="mt-2 font-archivo text-3xl font-medium tracking-tight text-ink-900 dark:text-white">Site media by project</h2>
-          </div>
-          <Link to="/app/projects" className="group flex items-center gap-2 text-sm font-medium text-ink-800 transition-colors hover:text-loop-600 dark:text-gray-200 dark:hover:text-loop-400">
-            All projects
-            <span className="transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
-          </Link>
-        </div>
-        <div className="grid gap-8 lg:grid-cols-2">
-          {dataset.projects
-            .filter((project) => dataset.materials.some((material) => material.projectId === project.id))
-            .slice(0, 2)
-            .map((project) => (
-              <div key={project.id} className="overflow-hidden border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02]">
-                <div className="border-b border-steel-200 px-6 py-4 dark:border-steel-800">
-                  <h3 className="font-archivo text-lg font-medium text-ink-900 dark:text-white">{project.name}</h3>
-                </div>
-                <div className="p-6">
-                  <ProjectSiteMedia projectId={project.id} />
-                </div>
-              </div>
-            ))}
-        </div>
-      </section>
     </PageMotion>
   );
 }

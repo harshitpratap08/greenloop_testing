@@ -57,9 +57,9 @@ export default function MarketDemand() {
 
   return (
     <div className="relative min-h-screen pb-24">
-      <PageMeta title="Who Needs Material | GreenLoop" description="See material requests from receivers and offer your material." />
+      <PageMeta title="Active Demand | GreenLoop" description="See material requests from receivers and offer your material." />
       <WorkflowPageHeader
-        title="Who Needs Material"
+        title="Active Demand"
         description="Receivers are asking for material. Offer yours directly using a Material Passport, your material’s digital record."
         status={`${openDemands.length} request${openDemands.length === 1 ? "" : "s"} currently open`}
       />
