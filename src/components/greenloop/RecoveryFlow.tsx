@@ -21,38 +21,50 @@ export default function RecoveryFlow({ dataset }: { dataset: GreenLoopDataset })
   ];
 
   return (
-    <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
       {stages.map((stage, index) => (
         <li
           key={stage.key}
           className={cn(
-            "rounded-sm border p-4",
+            "min-w-0 rounded-sm border p-4",
             stage.active
               ? "border-ink-900 bg-gray-25 dark:border-white/25 dark:bg-white/5"
               : "border-steel-200 bg-steel-50 dark:border-steel-800 dark:bg-transparent",
           )}
         >
-          <p
+          <span
             className={cn(
-              "eyebrow-label",
+              "font-mono text-xs font-bold tracking-[0.12em]",
               stage.active
                 ? "text-ink-900 dark:text-white/90"
                 : "text-steel-500 dark:text-steel-500",
             )}
           >
-            {String(index + 1).padStart(2, "0")} · {stage.label}
-          </p>
+            {String(index + 1).padStart(2, "0")}
+          </span>
+          <h4
+            className={cn(
+              "mt-1 whitespace-nowrap font-archivo text-base font-bold uppercase tracking-wide",
+              stage.active
+                ? "text-ink-900 dark:text-white/90"
+                : "text-steel-500 dark:text-steel-500",
+            )}
+          >
+            {stage.label}
+          </h4>
           <p
             className={cn(
-              "ledger-numeral mt-2 text-title-sm font-bold",
+              "ledger-numeral mt-3 flex items-baseline gap-1.5 whitespace-nowrap text-title-sm font-bold",
               stage.active
                 ? "text-ink-900 dark:text-white/90"
                 : "text-gray-300 dark:text-steel-700",
             )}
           >
             {stage.count}
+            <span className="font-sans text-theme-xs font-normal text-gray-500 dark:text-gray-400">
+              {stage.count === 1 ? "passport" : "passports"}
+            </span>
           </p>
-          <p className="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">passports</p>
         </li>
       ))}
     </ol>

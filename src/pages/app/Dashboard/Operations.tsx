@@ -84,8 +84,8 @@ export default function Operations() {
             <Link to="/app/projects" className="font-bold uppercase text-sm tracking-wider underline underline-offset-4 hover:text-loop-600">All Projects</Link>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 gap-6">
+            <div>
               <div className="border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
                 <ProjectSiteMedia projectId={activeProject.id} />
                 <div className="mt-6 flex flex-wrap gap-8">
