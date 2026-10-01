@@ -54,11 +54,11 @@ function AuthMediaHalf({ video, image, tagline }: { video: AppVideo; image: AppM
     <motion.h1 key="p1" variants={item} className="mt-5 font-archivo text-4xl font-bold leading-tight tracking-tight text-white">
       GREEN<span className="text-loop-400">LOOP</span>
     </motion.h1>,
-    <motion.p key="p2" variants={item} className="mt-5 font-archivo text-xl font-medium leading-7 text-white/90">{tagline}</motion.p>,
+    <motion.p key="p2" variants={item} className="mt-5 max-w-[430px] font-archivo text-xl font-medium leading-7 text-white/90">{tagline}</motion.p>,
     <motion.p key="p3" variants={item} className="mt-3 max-w-sm text-sm leading-6 text-white/60">
       Survey materials, match receivers, reserve capacity and verify every recovered tonne.
     </motion.p>,
-    <motion.div key="p4" variants={item} className="mt-8 flex flex-wrap gap-2">
+    <motion.div key="p4" variants={item} className="mt-auto flex flex-wrap gap-2 pt-8">
       {PROOF_CHIPS.map((chip) => (
         <span key={chip.label} className="border border-white/20 bg-white/[0.06] px-3 py-1.5 backdrop-blur-sm">
           <span className="ledger-numeral text-sm font-semibold text-white">{chip.value}</span>
@@ -69,7 +69,8 @@ function AuthMediaHalf({ video, image, tagline }: { video: AppVideo; image: AppM
   ];
 
   return (
-    <div ref={frameRef} className="relative hidden h-full w-full items-center overflow-hidden lg:grid lg:w-1/2">
+    <div ref={frameRef} className="relative hidden min-h-screen w-full overflow-hidden lg:grid lg:w-1/2">
+      <img src={image.src} alt={image.alt} className="absolute inset-0 size-full object-cover" />
       {reduce ? (
         <img src={image.src} alt={image.alt} className="absolute inset-0 size-full object-cover" />
       ) : (
@@ -101,7 +102,7 @@ function AuthMediaHalf({ video, image, tagline }: { video: AppVideo; image: AppM
       </div>
 
       <motion.div
-        className="relative z-1 mx-auto flex max-w-md flex-col px-8"
+        className="relative z-1 flex min-h-screen w-full flex-col px-7 py-6 sm:px-8 sm:py-8"
         initial={reduce ? false : "hidden"}
         animate="show"
         variants={{ hidden: {}, show: { transition: { staggerChildren: 0.09, delayChildren: 0.1 } } }}
@@ -120,21 +121,10 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
-export default function AuthLayout({
-  children,
-  tone = "demolition",
-}: {
-  children: ReactNode;
-  /** Which footage family this auth page uses. */
-  tone?: "demolition" | "dispatch" | "receiving";
-}) {
-  const video = tone === "dispatch" ? ambientVideo.dispatch : tone === "receiving" ? ambientVideo.receiving : ambientVideo.demolition;
-  const image =
-    tone === "dispatch" ? ambientMedia.authTruck : tone === "receiving" ? ambientMedia.authYard : ambientMedia.authConcrete;
-
+export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="relative z-1 flex min-h-screen bg-white dark:bg-black">
-      <AuthMediaHalf video={video} image={image} tagline={tone === "dispatch" ? "Plan where recoverable materials go — before the truck leaves." : tone === "receiving" ? "Every received tonne, checked and on the record." : "Plan where recoverable materials go — before the truck leaves."} />
+      <AuthMediaHalf video={ambientVideo.demolition} image={ambientMedia.surveyHero} tagline="Plan where recoverable materials go — before the truck leaves." />
       <div className="relative flex w-full flex-col lg:w-1/2">{children}</div>
       <div className="fixed end-6 bottom-6 z-50">
         <ThemeTogglerTwo />
