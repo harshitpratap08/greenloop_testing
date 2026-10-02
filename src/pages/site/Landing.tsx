@@ -1,5 +1,5 @@
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
@@ -37,14 +37,22 @@ const matchFactors = ["SUITABILITY", "DISTANCE", "DEMAND", "STORAGE", "CAPACITY"
 
 export default function Landing() {
   const reduceMotion = useReducedMotion();
+  const [siteTheme, setSiteTheme] = useState<"light" | "dark">(() =>
+    window.localStorage.getItem("greenloop.site-theme") === "light" ? "light" : "dark",
+  );
+  const toggleSiteTheme = () => {
+    const nextTheme = siteTheme === "light" ? "dark" : "light";
+    window.localStorage.setItem("greenloop.site-theme", nextTheme);
+    setSiteTheme(nextTheme);
+  };
 
   return (
-    <div className="min-h-screen bg-ink-950 text-white">
+    <div data-site-theme={siteTheme} className={`public-site min-h-screen overflow-x-clip ${siteTheme === "dark" ? "bg-ink-950 text-white" : "bg-gray-50 text-ink-900"}`}>
       <PageMeta
         title="GreenLoop — The operating layer for construction material recovery"
         description="Connect recovered construction materials with organizations that need them. Coordinate demand, receiving capacity, bookings, delivery, and verification in one network."
       />
-      <SiteNav />
+      <SiteNav theme={siteTheme} onToggleTheme={toggleSiteTheme} />
       <main>
         {/* 01 · HERO — the physical world happening behind the coordination layer */}
         <HeroBeat />
@@ -88,7 +96,8 @@ export default function Landing() {
           <motion.div className="absolute inset-0" style={reduceMotion ? undefined : { y: videoY, scale: videoScale }}>
             <VideoBackground
               video={siteVideos.hero}
-              overlayClassName="bg-linear-to-r from-ink-950/75 via-ink-950/60 to-ink-950/45"
+              videoClassName="brightness-[0.72] contrast-[0.9] saturate-[0.85]"
+              overlayClassName="bg-linear-to-r from-ink-950/90 via-ink-950/75 to-ink-950/65"
             />
           </motion.div>
           <motion.div
@@ -104,7 +113,7 @@ export default function Landing() {
                 Construction material recovery network
               </motion.p>
               <motion.h1
-                className="mt-7 font-archivo text-6xl font-bold leading-[0.92] tracking-[-0.055em] sm:text-8xl"
+                className="mt-7 font-archivo text-5xl font-bold leading-[0.92] tracking-[-0.055em] sm:text-7xl lg:text-8xl"
                 {...entrance(reduceMotion, 0.12)}
               >
                 GREEN<span className="text-loop-400">LOOP</span>
@@ -132,8 +141,8 @@ export default function Landing() {
               className="relative mx-auto w-full max-w-lg lg:ms-auto"
               {...entrance(reduceMotion, 0.6)}
             >
-              <div className="absolute -inset-3 border border-white/15" aria-hidden="true" />
-              <div className="relative border border-white/20 bg-ink-950/90 p-5 shadow-2xl backdrop-blur-sm sm:p-7">
+              <div className="absolute -inset-3 border border-white/[0.08]" aria-hidden="true" />
+              <div className="relative border border-white/10 bg-ink-950/90 p-5 shadow-2xl backdrop-blur-sm sm:p-7">
                 <div className="flex items-center justify-between border-b border-white/15 pb-4">
                   <p className="eyebrow-label text-white/55">One network · two sides</p>
                   <span className="ledger-numeral text-xs text-loop-300">GREENLOOP</span>
@@ -264,13 +273,13 @@ export default function Landing() {
 
   function PassportBeat() {
     return (
-      <section className="relative border-b border-white/10 bg-ink-950">
+      <section className="relative border-b border-steel-200 bg-gray-50 site-dark:border-white/10 site-dark:bg-ink-950">
         <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 md:py-24">
           <div className="mb-10 max-w-3xl">
             <ScrollReveal>
               <p className="eyebrow-label text-loop-300">Material Passport</p>
               <h2 className="mt-4 font-archivo text-4xl font-bold tracking-tight sm:text-5xl">Your material’s digital record.</h2>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-white/65">A Material Passport brings the basic facts, condition and supporting evidence together so both sides can make a grounded decision.</p>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-ink-600 site-dark:text-white/65">A Material Passport brings the basic facts, condition and supporting evidence together so both sides can make a grounded decision.</p>
             </ScrollReveal>
           </div>
           <MaterialPassportReveal video={siteVideos.passport}>
@@ -289,20 +298,20 @@ export default function Landing() {
       ["Status", "Ready to match"],
     ];
     return (
-      <div className="border border-white/15 bg-[#1a1e1a]/95 backdrop-blur-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 p-5">
+      <div className="border border-steel-200 bg-white site-dark:border-white/15 site-dark:bg-[#1a1e1a]/95">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-steel-200 p-5 site-dark:border-white/10">
           <div>
-            <p className="eyebrow-label text-white/45">Material Passport · MP-014</p>
-            <h3 className="mt-2 font-archivo text-2xl font-bold">Concrete</h3>
-            <p className="mt-1 text-sm text-white/55">Harrow Road · Site evidence attached</p>
+            <p className="eyebrow-label text-steel-500 site-dark:text-white/45">Material Passport · MP-014</p>
+            <h3 className="mt-2 font-archivo text-2xl font-bold text-ink-900 site-dark:text-white">Concrete</h3>
+            <p className="mt-1 text-sm text-steel-600 site-dark:text-white/55">Harrow Road · Site evidence attached</p>
           </div>
-          <p className="ledger-numeral text-3xl font-semibold text-loop-300">15 t</p>
+          <p className="ledger-numeral text-3xl font-semibold text-loop-700 site-dark:text-loop-300">15 t</p>
         </div>
         <div className="grid grid-cols-2 gap-4 p-5 text-sm">
           {records.map(([label, value]) => (
-            <div key={label} className="border-l border-white/15 pl-3">
-              <p className="eyebrow-label text-white/40">{label}</p>
-              <p className="mt-1 text-sm font-medium text-white/85">{value}</p>
+            <div key={label} className="border-s border-steel-200 ps-3 site-dark:border-white/15">
+              <p className="eyebrow-label text-steel-500 site-dark:text-white/40">{label}</p>
+              <p className="mt-1 text-sm font-medium text-ink-800 site-dark:text-white/85">{value}</p>
             </div>
           ))}
         </div>
@@ -631,7 +640,10 @@ export default function Landing() {
 
   function NetworkBeat() {
     return (
-      <section id="about" className="relative scroll-mt-24 overflow-hidden bg-ink-950">
+      <section id="about" className="relative scroll-mt-24 overflow-hidden bg-gray-50 text-ink-900 site-dark:bg-ink-950 site-dark:text-white">
+        <div className="absolute inset-0 opacity-[0.12] site-dark:opacity-[0.18]" aria-hidden="true">
+          <VideoBackground video={siteVideos.match} overlayClassName="bg-white/50 site-dark:bg-ink-950/70" />
+        </div>
         <div className="relative mx-auto max-w-7xl px-5 py-16 sm:px-8 md:py-24">
           <div className="mb-14 max-w-3xl">
             <ScrollReveal>
@@ -643,11 +655,11 @@ export default function Landing() {
             <NetworkFlow />
           </ScrollReveal>
 
-          <div className="mt-16 grid gap-8 border-t border-white/10 pt-10 md:grid-cols-[1fr_auto] md:items-end">
+          <div className="mt-16 grid gap-8 border-t border-steel-200 pt-10 site-dark:border-white/10 md:grid-cols-[1fr_auto] md:items-end">
             <div>
               <p className="eyebrow-label text-loop-300">GreenLoop · construction recovery infrastructure</p>
               <h3 className="mt-4 max-w-3xl font-archivo text-3xl font-bold leading-tight sm:text-4xl">Providers turn recovered material into structured supply. Receivers express demand and available capacity. GreenLoop connects the movement between them.</h3>
-              <p className="mt-4 text-sm text-white/55">Coordination for material, demand, capacity, booking, delivery and verification — not another standalone listing.</p>
+              <p className="mt-4 text-sm text-steel-600 site-dark:text-white/55">Coordination for material, demand, capacity, booking, delivery and verification — not another standalone listing.</p>
             </div>
             <Link to="/sign-up" className="inline-flex min-h-12 items-center justify-center bg-loop-500 px-6 text-sm font-bold text-ink-950 hover:bg-loop-400">Create account</Link>
           </div>

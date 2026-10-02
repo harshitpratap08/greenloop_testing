@@ -9,6 +9,12 @@
     "filter": "Filter",
     "seeAll": "See all"
   },
+  "site": {
+    "theme": {
+      "switchToLight": "Switch to light mode",
+      "switchToDark": "Switch to dark mode"
+    }
+  },
   "sidebar": {
     "groups": {
       "menu": "Operations",
@@ -24,8 +30,8 @@
       "dashboard": "Operations console",
       "projects": "Projects",
       "materials": "Materials & Passports",
-      "marketDemand": "Who Needs Material",
-      "receivers": "Find a receiver",
+      "marketDemand": "Active Demand",
+      "receivers": "Find a Receiver",
       "allocations": "Match Details",
       "bookings": "Bookings",
       "verification": "Proof of Recovery",

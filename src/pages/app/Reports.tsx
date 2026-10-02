@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/utils";
 import { Link } from "react-router";
-import { MediaPanel, StatCard } from "@/components/greenloop/kit";
-import { materialMediaFor } from "@/config/appMedia";
+import { MediaPanel } from "@/components/greenloop/kit";
+import { ambientMedia, materialMediaFor } from "@/config/appMedia";
 
 const TYPE_COLORS: Record<string, string> = {
   concrete: "bg-ink-900 dark:bg-white",
@@ -55,79 +55,81 @@ export default function Reports() {
         description="Six charts answering real operational questions."
       />
 
-      {/* Hero Header */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
+      <motion.header
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="mb-10 border-b border-steel-300 pb-8 dark:border-steel-800"
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="relative mb-4 min-h-40 overflow-hidden rounded-xl border border-[#e5e1d8] bg-[#17291e] sm:min-h-44 dark:border-steel-800"
       >
-        <p className="eyebrow-label text-loop-600 dark:text-loop-400">GreenLoop Intelligence</p>
-        <h1 className="mt-4 font-archivo text-4xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-5xl">
-          System Analytics
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg text-steel-600 dark:text-gray-400">
-          Six animated charts answering real questions from the live dataset. Every figure reflects current operations.
-        </p>
+        <img src={ambientMedia.sortingFacility.src} alt={ambientMedia.sortingFacility.alt} className="absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/95 via-[#17291e]/75 to-[#17291e]/20" aria-hidden="true" />
+        <div className="relative flex min-h-40 max-w-3xl flex-col justify-end px-5 py-5 text-white sm:min-h-44 sm:px-7 sm:py-6">
+          <p className="eyebrow-label text-loop-300">GreenLoop intelligence</p>
+          <h1 className="mt-1 font-archivo text-3xl font-bold tracking-tight sm:text-4xl">System Analytics</h1>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/85">
+            Six animated charts answering real questions from the live dataset. Every figure reflects current operations.
+          </p>
+        </div>
       </motion.header>
 
-      <div className="mb-10 overflow-x-auto rounded-sm border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
-        <ol className="flex min-w-max items-center justify-between gap-4" aria-label="Recovery process">
-          {FLOW_STAGES.map((stage, index) => (
-            <motion.li 
-              key={stage}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex flex-1 items-center gap-4"
-            >
-              <div className="flex flex-col">
-                <span className="ledger-numeral text-xs font-bold text-steel-400 dark:text-steel-600">0{index + 1}</span>
-                <span className={cn("font-archivo text-sm font-bold uppercase tracking-wider", index === FLOW_STAGES.length - 1 ? "text-loop-600 dark:text-loop-400" : "text-ink-900 dark:text-white")}>
-                  {stage}
-                </span>
-              </div>
-              {index < FLOW_STAGES.length - 1 && <span aria-hidden="true" className="h-px flex-1 bg-steel-200 dark:bg-steel-700" />}
-            </motion.li>
-          ))}
+      <div className="mb-4 overflow-x-auto rounded-lg border border-[#e5e1d8] bg-white px-4 py-3 dark:border-steel-800 dark:bg-white/[0.02]">
+        <ol className="flex min-w-[650px] items-center gap-3 sm:min-w-0" aria-label="Recovery process">
+          {FLOW_STAGES.map((stage, index) => {
+            const stageValues = [flow.surveyed, flow.matched, flow.reserved, flow.dispatched, flow.verified];
+            const supported = stageValues[index] > 0;
+            return (
+              <motion.li
+                key={stage}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.06, duration: 0.25 }}
+                className="flex min-w-0 flex-1 items-center gap-2"
+              >
+                <div className="flex shrink-0 flex-col">
+                  <span className="ledger-numeral text-[9px] font-bold text-steel-400 dark:text-steel-500">0{index + 1}</span>
+                  <span className={cn("font-archivo text-[10px] font-bold uppercase tracking-wider sm:text-[11px]", supported ? "text-loop-800 dark:text-loop-400" : "text-steel-400 dark:text-steel-600")}>{stage}</span>
+                </div>
+                {index < FLOW_STAGES.length - 1 && <span aria-hidden="true" className={cn("h-px min-w-3 flex-1", supported ? "bg-loop-300 dark:bg-loop-800" : "bg-steel-200 dark:bg-steel-700")} />}
+              </motion.li>
+            );
+          })}
         </ol>
       </div>
 
-      {/* Live context band */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-        className="mb-10 grid grid-cols-2 gap-4 lg:grid-cols-4"
+        transition={{ duration: 0.4, delay: 0.08 }}
+        className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4"
       >
-        <StatCard label="Material surveyed" value={flow.surveyed} suffix=" t" hint={`${dataset.materials.length} live passports`} />
-        <StatCard label="Verified recovery" value={flow.verified} suffix=" t" tone="positive" hint={`${dataset.verifications.length} verifications logged`} />
-        <StatCard label="Dispatched" value={flow.dispatched} suffix=" t" hint="loads en route or received" />
-        <StatCard label="Bookings placed" value={dataset.bookings.length} decimals={0} hint={`${activeBookingCount} active now`} />
+        <KpiCard label="Material surveyed" value={flow.surveyed} suffix=" t" hint={`${dataset.materials.length} live passports`} icon="materials" />
+        <KpiCard label="Verified recovery" value={flow.verified} suffix=" t" hint={`${dataset.verifications.length} verifications logged`} icon="verified" positive />
+        <KpiCard label="Dispatched" value={flow.dispatched} suffix=" t" hint="Loads en route or received" icon="dispatch" />
+        <KpiCard label="Bookings placed" value={dataset.bookings.length} decimals={0} hint={`${activeBookingCount} active now`} icon="bookings" />
       </motion.div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.05 }}>
           <CompositionChart dataset={dataset} />
         </motion.div>
         
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }} className="lg:col-span-2">
+        <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}>
           <RecoveryFlowChart dataset={dataset} />
         </motion.div>
         
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.15 }}>
           <ReceiverCapacityChart dataset={dataset} />
         </motion.div>
         
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.4 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}>
           <ProjectRecoveryChart dataset={dataset} />
         </motion.div>
         
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.5 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.25 }}>
           <PlannedActualChart dataset={dataset} />
         </motion.div>
         
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.6 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }}>
           <CapacityTimelineChart dataset={dataset} />
         </motion.div>
       </div>
@@ -137,7 +139,7 @@ export default function Reports() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="mt-10"
+        className="mt-8"
         aria-label="Material breakdown"
       >
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-steel-200 pb-5 dark:border-steel-800">
@@ -147,7 +149,7 @@ export default function Reports() {
           </div>
           <p className="ledger-numeral text-2xl font-bold text-ink-900 dark:text-white">{grandTotal.toFixed(1)} t</p>
         </div>
-        <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {typeRows.map(([type, t]) => {
             const media = materialMediaFor(type);
             return (
@@ -168,6 +170,49 @@ export default function Reports() {
   );
 }
 
+function KpiCard({
+  label,
+  value,
+  suffix = "",
+  decimals = 1,
+  hint,
+  icon,
+  positive = false,
+}: {
+  label: string;
+  value: number;
+  suffix?: string;
+  decimals?: number;
+  hint: string;
+  icon: "materials" | "verified" | "dispatch" | "bookings";
+  positive?: boolean;
+}) {
+  const animatedValue = useCountUp(value);
+  return (
+    <section className={cn("flex min-w-0 items-center gap-3 rounded-lg border bg-white px-3 py-3 dark:bg-white/[0.02]", positive ? "border-loop-200 dark:border-loop-700/50" : "border-[#e5e1d8] dark:border-steel-800")}>
+      <span className={cn("flex size-9 shrink-0 items-center justify-center border", positive ? "border-loop-200 bg-loop-50 text-loop-800 dark:border-loop-700/50 dark:bg-loop-900/30 dark:text-loop-300" : "border-steel-200 bg-steel-50 text-ink-800 dark:border-steel-700 dark:bg-white/[0.03] dark:text-steel-300")}>
+        <MetricIcon kind={icon} />
+      </span>
+      <div className="min-w-0">
+        <p className="eyebrow-label truncate text-steel-500 dark:text-steel-400">{label}</p>
+        <p className="ledger-numeral mt-0.5 text-xl font-bold leading-none text-ink-900 dark:text-white">{animatedValue.toFixed(decimals)}{suffix}</p>
+        <p className="mt-1 truncate text-[10px] text-steel-500 dark:text-gray-400">{hint}</p>
+      </div>
+    </section>
+  );
+}
+
+function MetricIcon({ kind }: { kind: "materials" | "verified" | "dispatch" | "bookings" }) {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+      {kind === "materials" && <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4.3 7.6 7.7 4.3 7.7-4.3M12 12v9" /></>}
+      {kind === "verified" && <><path d="M12 3 20 6v5.5c0 4.6-3.1 7.8-8 9.5-4.9-1.7-8-4.9-8-9.5V6l8-3Z" /><path d="m8.5 12 2.2 2.2 4.8-4.8" /></>}
+      {kind === "dispatch" && <><path d="M3 7h11v11H3zM14 11h4l3 3v4h-7z" /><circle cx="7.5" cy="18" r="1.5" /><circle cx="17.5" cy="18" r="1.5" /></>}
+      {kind === "bookings" && <><path d="M6 3.5h12v17H6zM9 7.5h6M9 11.5h6M9 15.5h3" /><path d="M9 3.5v-1M15 3.5v-1" /></>}
+    </svg>
+  );
+}
+
 function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
   const totals = new Map<string, number>();
   for (const m of dataset.materials) {
@@ -178,19 +223,19 @@ function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
   const animatedGrand = useCountUp(grand);
 
   return (
-    <section className="border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
+    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
       <ChartHeader
         question="What materials do we have?"
         note="Surveyed tonnage by material type across all projects."
         figure={`${animatedGrand.toFixed(1)} t`}
       />
-      <div className="mt-8 space-y-5">
+      <div className="mt-5 space-y-3">
         {rows.map(([type, t], i) => {
           const pct = (t / grand) * 100;
           return (
-            <div key={type} className="group flex items-center gap-4">
-              <span className="w-32 shrink-0 font-archivo text-sm font-bold uppercase tracking-wider text-ink-900 dark:text-white">{type}</span>
-              <div className="h-6 grow overflow-hidden rounded-r-sm bg-steel-100 dark:bg-steel-900">
+            <div key={type} className="group flex items-center gap-2.5">
+              <span className="w-24 shrink-0 font-archivo text-[11px] font-bold uppercase tracking-wider text-ink-900 dark:text-white sm:w-28 sm:text-xs">{type}</span>
+              <div className="h-4 grow overflow-hidden bg-steel-100 dark:bg-steel-900">
                 <motion.div
                   initial={{ width: 0 }}
                   whileInView={{ width: `${pct}%` }}
@@ -199,7 +244,7 @@ function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
                   className={cn("h-full", TYPE_COLORS[type] ?? "bg-steel-400")}
                 />
               </div>
-              <span className="ledger-numeral w-20 shrink-0 text-right text-lg font-bold text-ink-900 dark:text-white">
+              <span className="ledger-numeral w-16 shrink-0 text-right text-sm font-bold text-ink-900 dark:text-white sm:text-base">
                 {t.toFixed(1)} <span className="text-sm text-steel-400">t</span>
               </span>
             </div>
@@ -213,37 +258,33 @@ function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
 function RecoveryFlowChart({ dataset }: { dataset: GreenLoopDataset }) {
   const flow = computeFlow(dataset);
   return (
-    <section className="border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
+    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
       <ChartHeader
         question="Where is material in the process?"
         note="Tonnage at each lifecycle stage right now."
         figure={`${flow.surveyed.toFixed(1)} t surveyed`}
       />
-      <div className="mt-12 flex h-72 items-end gap-3 sm:gap-6" aria-label="Recovery flow">
+      <div className="mt-6 flex h-52 items-end gap-2 sm:gap-4" aria-label="Recovery flow">
         {FLOW_STAGES.map((stage, i) => {
           const t = flow[stage.toLowerCase() as keyof typeof flow] as number;
           const max = flow.surveyed || 1;
           const hPct = Math.max(2, (t / max) * 100);
           return (
             <div key={stage} className="group relative flex h-full flex-1 flex-col items-center justify-end perspective-1000">
-              <span className="ledger-numeral text-sm font-bold text-ink-900 opacity-0 transition-all duration-300 group-hover:-translate-y-1 group-hover:opacity-100 dark:text-white mb-3">
+              <span className="ledger-numeral mb-2 text-xs font-bold text-ink-900 dark:text-white sm:text-sm">
                 {t.toFixed(1)} t
               </span>
-              <div className="relative w-full flex-1 flex flex-col justify-end rounded-t-lg bg-gradient-to-b from-steel-50 to-transparent dark:from-white/[0.05] dark:to-transparent mb-4 border-x border-t border-steel-100 dark:border-white/[0.05]">
+              <div className="relative mb-3 flex w-full flex-1 flex-col justify-end border-x border-t border-steel-100 bg-steel-50/60 dark:border-white/[0.05] dark:bg-white/[0.02]">
                 <motion.div
                   initial={{ height: 0 }}
                   whileInView={{ height: `${hPct}%` }}
                   transition={{ duration: 1.5, type: "spring", bounce: 0.2, delay: i * 0.15 }}
                   viewport={{ once: true }}
                   className={cn(
-                    "relative w-full rounded-t-lg transition-all duration-300 shadow-[0_-5px_15px_rgba(0,0,0,0.1)] dark:shadow-[0_-5px_15px_rgba(0,0,0,0.3)] overflow-hidden",
-                    i === FLOW_STAGES.length - 1 
-                      ? "bg-gradient-to-t from-loop-600 to-loop-400 group-hover:from-loop-500 group-hover:to-loop-300" 
-                      : "bg-gradient-to-t from-ink-950 to-ink-800 dark:from-gray-300 dark:to-white group-hover:from-ink-800 group-hover:to-ink-700 dark:group-hover:from-white dark:group-hover:to-gray-200"
+                    "relative w-full overflow-hidden transition-[height] duration-300",
+                    i === FLOW_STAGES.length - 1 ? "bg-loop-600 dark:bg-loop-500" : "bg-loop-950 dark:bg-steel-500"
                   )}
                 >
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.2)_0%,transparent_20%,transparent_80%,rgba(0,0,0,0.2)_100%)] mix-blend-overlay" />
-                  <div className="absolute top-0 inset-x-0 h-1 bg-white/40" />
                 </motion.div>
               </div>
               <span className="text-center text-xs font-bold uppercase tracking-wider text-steel-500 dark:text-gray-400">{stage}</span>
@@ -284,13 +325,13 @@ function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
   const max = Math.max(...totals.map((t) => t.capacity), 1);
 
   return (
-    <section className="h-full border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
+    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
       <ChartHeader
         question="Where can this material go?"
-        note="Total 28 Sep intake capacity, reserved vs available."
+        note="Current receiving capacity, reserved vs available."
         figure={`${totals.reduce((s, t) => s + t.available, 0).toFixed(1)} t free`}
       />
-      <div className="mt-8 space-y-6">
+      <div className="mt-5 space-y-4">
         {totals.map((t, i) => {
           const reservedPct = (t.reserved / max) * 100;
           const availablePct = (t.available / max) * 100;
@@ -302,7 +343,7 @@ function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
                   <span className="text-ink-900 dark:text-gray-200">{t.reserved.toFixed(1)} t</span> reserved · {t.available.toFixed(1)} t free
                 </span>
               </div>
-              <div className="mt-2 flex h-4 w-full overflow-hidden rounded-sm bg-steel-100 dark:bg-steel-900">
+              <div className="mt-2 flex h-3 w-full overflow-hidden bg-steel-100 dark:bg-steel-900">
                 <motion.div 
                   initial={{ width: 0 }}
                   whileInView={{ width: `${reservedPct}%` }}
@@ -344,13 +385,13 @@ function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
   const max = Math.max(...rows.map((r) => r.surveyed), 1);
 
   return (
-    <section className="h-full border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
+    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
       <ChartHeader
         question="How are projects progressing?"
         note="Surveyed tonnage vs verified recovery per project."
         figure={`${rows.filter((r) => r.verified > 0).length} verifying`}
       />
-      <div className="mt-8 space-y-6">
+      <div className="mt-5 space-y-4">
         {rows.map((r, i) => (
           <div key={r.name}>
             <div className="flex items-baseline justify-between">
@@ -359,7 +400,7 @@ function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
                 <span className="text-loop-600 dark:text-loop-400">{r.verified.toFixed(1)} t</span> / {r.surveyed.toFixed(1)} t
               </span>
             </div>
-            <div className="relative mt-2 h-4 w-full overflow-hidden rounded-sm bg-steel-100 dark:bg-steel-900">
+            <div className="relative mt-2 h-3 w-full overflow-hidden bg-steel-100 dark:bg-steel-900">
               <motion.div 
                 initial={{ width: 0 }}
                 whileInView={{ width: `${(r.surveyed / max) * 100}%` }}
@@ -372,7 +413,7 @@ function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
                 whileInView={{ width: `${(r.verified / max) * 100}%` }}
                 transition={{ duration: 1, delay: i * 0.1 + 0.2, ease: "easeOut" }}
                 viewport={{ once: true }}
-                className="absolute inset-y-0 left-0 h-full bg-loop-500 shadow-[2px_0_10px_rgba(0,0,0,0.1)]" 
+                className="absolute inset-y-0 left-0 h-full bg-loop-600 dark:bg-loop-500" 
               />
             </div>
           </div>
@@ -398,22 +439,22 @@ function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
   const rows = [
     { label: "Planned", value: planned, cls: "bg-steel-400 dark:bg-steel-600" },
     { label: "Actual", value: actual, cls: "bg-ink-900 dark:bg-white" },
-    { label: "Accepted", value: accepted, cls: "bg-loop-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]" },
+    { label: "Accepted", value: accepted, cls: "bg-loop-600 dark:bg-loop-500" },
     { label: "Rejected", value: rejected, cls: "bg-signal-500" },
   ];
 
   return (
-    <section className="h-full border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
+    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
       <ChartHeader
         question="What actually arrived?"
         note={`${v.loadRef} at ${dataset.receivers.find((r) => r.id === v.receiverId)?.name}.`}
         figure={`${Math.round((v.acceptedT / v.plannedT) * 100)}% accepted`}
       />
-      <div className="mt-8 space-y-5">
+      <div className="mt-5 space-y-3">
         {rows.map((r, i) => (
-          <div key={r.label} className="flex items-center gap-4">
-            <span className="w-24 shrink-0 font-archivo text-sm font-bold uppercase tracking-wider text-ink-900 dark:text-gray-200">{r.label}</span>
-            <div className="h-6 grow overflow-hidden rounded-r-sm bg-steel-100 dark:bg-steel-900">
+          <div key={r.label} className="flex items-center gap-2.5">
+            <span className="w-20 shrink-0 font-archivo text-xs font-bold uppercase tracking-wider text-ink-900 dark:text-gray-200 sm:w-24 sm:text-sm">{r.label}</span>
+            <div className="h-4 grow overflow-hidden bg-steel-100 dark:bg-steel-900">
               <motion.div 
                 initial={{ width: 0 }}
                 whileInView={{ width: `${(r.value / max) * 100}%` }}
@@ -422,7 +463,7 @@ function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
                 className={cn("h-full", r.cls)} 
               />
             </div>
-            <span className="ledger-numeral w-16 shrink-0 text-right text-lg font-bold text-ink-900 dark:text-white">
+            <span className="ledger-numeral w-14 shrink-0 text-right text-sm font-bold text-ink-900 dark:text-white sm:text-base">
               {r.value.toFixed(1)} <span className="text-sm text-steel-400">t</span>
             </span>
           </div>
@@ -460,13 +501,13 @@ function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
   ];
 
   return (
-    <section className="h-full border border-steel-200 bg-white p-6 sm:p-8 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white">
+    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
       <ChartHeader
         question="How does the ledger resolve conflicts?"
         note={`Riverstone Aggregates ${capacity.toFixed(0)} t concrete slot — receiving capacity timeline.`}
         figure={`${steps[steps.length - 1].availableT.toFixed(1)} t final free`}
       />
-      <div className="mt-8 space-y-6">
+      <div className="mt-5 space-y-4">
         {steps.map((s, i) => {
           const usedPct = ((capacity - s.availableT) / capacity) * 100;
           return (
@@ -474,7 +515,7 @@ function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
               <span className="ledger-numeral w-12 shrink-0 text-sm font-bold text-steel-500 dark:text-gray-400">{s.time}</span>
               <div className="grow">
                 <p className="text-sm font-medium text-ink-900 dark:text-gray-200">{s.label}</p>
-                <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-steel-100 dark:bg-steel-900">
+                <div className="mt-2 h-3 w-full overflow-hidden bg-steel-100 dark:bg-steel-900">
                   <motion.div
                     initial={{ width: 0 }}
                     whileInView={{ width: `${usedPct}%` }}
@@ -503,9 +544,9 @@ function ChartHeader({ question, note, figure }: { question: string; note: strin
     <div className="flex flex-wrap items-end justify-between gap-4 border-b border-steel-200 pb-5 dark:border-steel-800">
       <div>
         <h2 className="font-archivo text-xl font-bold tracking-tight text-ink-900 dark:text-white">{question}</h2>
-        <p className="mt-1 text-sm text-steel-500 dark:text-gray-400">{note}</p>
+        <p className="mt-0.5 text-xs text-steel-500 dark:text-gray-400">{note}</p>
       </div>
-      <p className="ledger-numeral text-2xl font-bold text-ink-900 dark:text-white">{figure}</p>
+      <p className="ledger-numeral text-xl font-bold text-ink-900 dark:text-white">{figure}</p>
     </div>
   );
 }

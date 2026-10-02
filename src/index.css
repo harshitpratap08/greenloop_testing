@@ -5,6 +5,7 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant site-dark (&:where([data-site-theme="dark"] *));
 
 /* GreenLoop motion default: no smooth scrolling for reduced-motion users
    (main.tsx sets smooth scrolling only when motion is allowed). */
@@ -248,15 +249,15 @@
 }
 
 @utility menu-item {
-  @apply relative flex w-full items-center gap-3 rounded-sm px-3 py-2 text-theme-sm font-medium;
+  @apply relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-theme-sm font-medium transition-colors;
 }
 
 @utility menu-item-active {
-  @apply bg-ink-100 text-ink-900 dark:bg-white/[0.07] dark:text-white;
+  @apply bg-[#326a49] text-white;
 }
 
 @utility menu-item-inactive {
-  @apply text-gray-700 group-hover:text-ink-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-100;
+  @apply text-white/70 hover:bg-white/8 hover:text-white;
 }
 
 @utility menu-item-icon {
@@ -264,11 +265,11 @@
 }
 
 @utility menu-item-icon-active {
-  @apply text-ink-900 dark:text-white;
+  @apply text-white;
 }
 
 @utility menu-item-icon-inactive {
-  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
+  @apply text-white/65 group-hover:text-white;
 }
 
 @utility menu-item-arrow {
