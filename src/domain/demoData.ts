@@ -19,7 +19,7 @@ import type {
   Actor,
   DomainEvent,
   GreenLoopDataset,
-} from "./types";
+} from "./types.ts";
 
 const contractorA: Actor = { kind: "contractor", name: "Harrow Road Demolition — site team" };
 const contractorB: Actor = { kind: "contractor", name: "Kings Cross Strip-out — site team" };

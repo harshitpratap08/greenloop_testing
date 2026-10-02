@@ -86,6 +86,7 @@ export interface Evidence {
 }
 
 export interface ReceiverFacility {
+  distanceKnown?: boolean;
   id: string;
   name: string;
   location: string;
@@ -100,6 +101,8 @@ export interface ReceiverFacility {
 
 /** A one-day intake slot at a receiver, per material class. */
 export interface ReceiverDaySlot {
+  /** Reservations owned by other providers, supplied by the server ledger. */
+  reservedT?: number;
   id: string;
   receiverId: string;
   /** ISO date for this slot. */
@@ -128,6 +131,7 @@ export interface Allocation {
 }
 
 export interface AllocationCandidate {
+  distanceKnown?: boolean;
   receiverId: string;
   /** 0–1 suitability of the material for this receiver's process. */
   suitability: number;
@@ -197,6 +201,8 @@ export interface VerificationRecord {
 }
 
 export interface DemandRecord {
+  /** Confirmed coverage from the shared server ledger. */
+  coveredT?: number;
   id: string;
   receiverId: string;
   materialType: MaterialTypeKey;

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
@@ -9,9 +10,10 @@ import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 
 export default function ReceiverVerification() {
+  const { t } = useTranslation();
   const { dataset, verifyLoadAction } = useGreenLoopStore();
   const { user } = useAuth();
-  const receiverId = user?.receiverId ?? "R-001";
+  const receiverId = user?.receiverId ?? "";
   
   const pendingVerifications = dataset.verifications.filter(v => 
     v.receiverId === receiverId && v.status === "pending"
@@ -141,9 +143,9 @@ export default function ReceiverVerification() {
                             size="md"
                             className="min-h-11 w-full"
                             disabled={!acceptedT || isNaN(Number(acceptedT)) || Number(acceptedT) > vr.actualT || (rejectedNum > 0 && !rejectReason)} 
-                            onClick={() => {
-                              verifyLoadAction(vr.id, acceptedNum, rejectedNum, rejectReason);
-                              setSuccessMessage(`${acceptedNum.toFixed(1)} t accepted. The provider has been notified.`);
+                            onClick={async () => {
+                              if (!await verifyLoadAction(vr.id, acceptedNum, rejectedNum, rejectReason)) return;
+                              setSuccessMessage(`${acceptedNum.toFixed(1)} t accepted. ${t("backend.providerCanView")}`);
                               setVerifyingId(null);
                             }}
                           >

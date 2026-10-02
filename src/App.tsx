@@ -46,8 +46,8 @@ function AppRedirect() {
 
 export default function App() {
   return (
-    <GreenLoopStoreProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <GreenLoopStoreProvider>
         <Router>
           <ScrollToTop />
           <Routes>
@@ -104,7 +104,7 @@ export default function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>
-      </AuthProvider>
-    </GreenLoopStoreProvider>
+      </GreenLoopStoreProvider>
+    </AuthProvider>
   );
 }

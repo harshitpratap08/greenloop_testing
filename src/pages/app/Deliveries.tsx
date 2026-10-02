@@ -150,7 +150,7 @@ function LoadCard({ booking }: { booking: Booking }) {
               <div className="relative flex flex-1 items-center px-8 text-center sm:flex-col">
                 <div className="absolute top-0 -translate-y-full pb-2">
                   <span className="ledger-numeral rounded-sm border border-steel-300 bg-white px-3 py-1 font-bold text-ink-900 dark:border-steel-700 dark:bg-ink-950 dark:text-white">
-                    {receiver?.distanceKm ?? 0} km
+                    {receiver?.distanceKnown === false ? "\u2014" : `${receiver?.distanceKm ?? 0} km`}
                   </span>
                 </div>
                 <div className="relative h-2 w-full overflow-hidden rounded-full bg-steel-200 dark:bg-steel-800">

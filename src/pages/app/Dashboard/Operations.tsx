@@ -5,8 +5,7 @@ import StatusBadge from "@/components/greenloop/StatusBadge";
 import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import Badge from "@/components/ui/badge/Badge";
-import { reservedT, slotLedger } from "@/domain/capacity";
-import { STORY } from "@/domain/demoData";
+import { slotLedger } from "@/domain/capacity";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { Link } from "react-router";
 import { formatDate } from "@/utils";
@@ -39,8 +38,7 @@ export default function Operations() {
   const activeProject = dataset.projects[0];
   const projectMaterials = dataset.materials.filter((m) => m.projectId === activeProject?.id);
 
-  const scenarioLedger = slotLedger(dataset, STORY.concreteSlotSept24);
-  const nextSlotLedger = slotLedger(dataset, STORY.concreteSlotSept28);
+  const capacitySlots = dataset.slots.filter(slot => slot.date >= new Date().toISOString().slice(0, 10)).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 2);
   const receiverName = (id: string) => dataset.receivers.find((r) => r.id === id)?.name ?? id;
   const materialName = (id: string) => dataset.materials.find((m) => m.id === id)?.type ?? id;
   const projectName = (id: string) => dataset.projects.find((p) => p.id === id)?.name ?? id;
@@ -153,40 +151,23 @@ export default function Operations() {
             <Link to="/app/receivers" className="font-bold uppercase text-sm tracking-wider underline underline-offset-4 hover:text-loop-600">Find Receivers</Link>
           </div>
           <div className="border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02] h-[calc(100%-2rem)]">
-            <h4 className="font-bold text-ink-900 dark:text-white mb-2">{receiverName(STORY.receiverId)}</h4>
+            <h4 className="font-bold text-ink-900 dark:text-white mb-2">{capacitySlots[0] ? receiverName(capacitySlots[0].receiverId) : "\u2014"}</h4>
             <p className="text-sm text-steel-600 dark:text-steel-400 mb-6">Real-time receiving capacity for tracked facilities.</p>
             
-            {scenarioLedger && nextSlotLedger && (
-              <div className="space-y-6">
-                <div>
+            <div className="space-y-6">
+              {capacitySlots.map(slot => {
+                const ledger = slotLedger(dataset, slot.id);
+                if (!ledger) return null;
+                return <div key={slot.id}>
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="font-medium text-ink-900 dark:text-white/90">
-                      {formatDate(scenarioLedger.slot.date)} Intake
-                    </p>
-                    <Badge color="warning" size="sm">Limited</Badge>
+                    <p className="font-medium text-ink-900 dark:text-white">{formatDate(slot.date)} Intake</p>
+                    <Badge color={ledger.available > 0 ? "success" : "warning"} size="sm">{ledger.available.toFixed(1)} t</Badge>
                   </div>
-                  <CapacityBar
-                    capacityT={scenarioLedger.slot.capacityT}
-                    reservedT={reservedT(dataset.bookings.filter((b) => b.slotId === scenarioLedger.slot.id))}
-                    heldT={scenarioLedger.heldT}
-                  />
-                </div>
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="font-medium text-ink-900 dark:text-white/90">
-                      {formatDate(nextSlotLedger.slot.date)} Intake
-                    </p>
-                    <Badge color="success" size="sm">Available</Badge>
-                  </div>
-                  <CapacityBar
-                    capacityT={nextSlotLedger.slot.capacityT}
-                    reservedT={reservedT(dataset.bookings.filter((b) => b.slotId === nextSlotLedger.slot.id))}
-                    heldT={nextSlotLedger.heldT}
-                  />
-                </div>
-              </div>
-            )}
-            
+                  <CapacityBar capacityT={slot.capacityT} reservedT={ledger.reserved} heldT={ledger.heldT} />
+                </div>;
+              })}
+            </div>
+
             {holdBookings.length > 0 && (
               <div className="mt-8 border-t border-amber-200 pt-6">
                 <p className="eyebrow-label text-amber-600 mb-2">On Hold Due to Capacity</p>

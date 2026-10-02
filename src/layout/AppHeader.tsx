@@ -180,9 +180,9 @@ const AppHeader: React.FC = () => {
             {user && user.workspaces.length > 1 && (
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   const target = user.activeWorkspace === "receiver" ? "provider" : "receiver";
-                  setActiveWorkspace(target);
+                  if (!await setActiveWorkspace(target)) return;
                   navigate(target === "receiver" ? "/app/receiver/overview" : "/app/explore");
                 }}
                 className="hidden items-center gap-2 border border-steel-200 bg-white px-3 py-2 text-theme-xs font-semibold text-ink-900 transition-colors hover:border-ink-900 sm:inline-flex dark:border-steel-800 dark:bg-gray-dark dark:text-white dark:hover:border-white"

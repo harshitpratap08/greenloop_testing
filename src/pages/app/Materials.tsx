@@ -80,7 +80,7 @@ export default function Materials() {
         <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-3" aria-label="Material passports">
           {dataset.materials.map((material) => {
             const allocation = dataset.allocations.find((a) => a.materialId === material.id && a.status !== "cancelled");
-            const candidate = computeMatch(dataset, material.id)[0];
+            const candidate = computeMatch(dataset, material.id, new Date().toISOString().slice(0, 10))[0];
             const receiverId = allocation?.receiverId ?? candidate?.receiverId;
             const matchedReceiver = receiverId ? dataset.receivers.find((item) => item.id === receiverId) : undefined;
             const photoCount = material.evidence.filter((e) => e.kind === "site-photo").length;

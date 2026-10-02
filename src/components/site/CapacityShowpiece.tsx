@@ -1,6 +1,5 @@
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { slotLedger } from "@/domain/capacity";
-import { STORY } from "@/domain/demoData";
+import { STORY, demoDataset } from "@/domain/demoData";
 import { useState, useEffect, useRef } from "react";
 import { motion, useReducedMotion, useInView } from "motion/react";
 import { cn } from "@/utils";
@@ -30,7 +29,7 @@ const ACT_LABELS: Record<Act, string> = {
  * the act buttons frame the transitions the engine performs in the app.
  */
 export default function CapacityShowpiece() {
-  const { dataset } = useGreenLoopStore();
+  const dataset = demoDataset();
   const [act, setAct] = useState<Act>(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const reduceMotion = useReducedMotion();

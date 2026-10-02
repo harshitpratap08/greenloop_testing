@@ -4,7 +4,6 @@ import PageMeta from "@/components/common/PageMeta";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { materialMedia } from "@/components/greenloop/AppExploration";
 import { computeMatch, slotLedger } from "@/domain/capacity";
-import { STORY } from "@/domain/demoData";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { cn, formatDate } from "@/utils";
 import { motion, AnimatePresence } from "motion/react";
@@ -23,7 +22,7 @@ const TYPE_LABEL: Record<string, string> = {
 export default function Receivers() {
   const { dataset, requestCapacityAction } = useGreenLoopStore();
   const location = useLocation();
-  const [materialId, setMaterialId] = useState<string>(location.state?.materialId || STORY.materialAId);
+  const [materialId, setMaterialId] = useState<string>(location.state?.materialId || dataset.materials[0]?.id || "");
   const [receiverId, setReceiverId] = useState<string>("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [requestQuantity, setRequestQuantity] = useState("");
@@ -31,14 +30,14 @@ export default function Receivers() {
   const [chooseAnotherDate, setChooseAnotherDate] = useState(false);
   const [alternateSlotId, setAlternateSlotId] = useState("");
   
-  const material = dataset.materials.find((item) => item.id === materialId);
+  const material = dataset.materials.find((item) => item.id === materialId) ?? dataset.materials[0];
   const allocatedT = material ? dataset.allocations
     .filter((a) => a.materialId === material.id && a.status !== "cancelled")
     .reduce((sum, a) => sum + a.requestedT, 0) : 0;
   const remainingT = material ? Math.max(0, material.quantityT - allocatedT) : 0;
   const project = material && dataset.projects.find((item) => item.id === material.projectId);
   const media = material ? materialMedia(material) : [];
-  const matches = material ? computeMatch(dataset, material.id) : [];
+  const matches = material ? computeMatch(dataset, material.id, new Date().toISOString().slice(0, 10)) : [];
   const orderedMatches = [...matches].sort((a, b) => Number(b.recommended) - Number(a.recommended));
   const selectedMatch = orderedMatches.find((candidate) => candidate.receiverId === receiverId) ?? orderedMatches[0];
   const selectedReceiver = selectedMatch && dataset.receivers.find((receiver) => receiver.id === selectedMatch.receiverId);
@@ -82,7 +81,7 @@ export default function Receivers() {
           <div className="group relative">
             <label className="sr-only">Select material passport</label>
             <select
-              value={materialId}
+              value={material?.id ?? ""}
               onChange={(event) => {
                 setMaterialId(event.target.value);
                 setReceiverId("");
@@ -229,7 +228,7 @@ export default function Receivers() {
                             <h3 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white uppercase">{receiver?.name ?? candidate.receiverId}</h3>
                             {candidate.recommended && <span className="bg-loop-100 text-loop-800 border border-loop-200 px-2 py-0.5 text-xs font-bold uppercase tracking-wider dark:bg-loop-900 dark:border-loop-800 dark:text-loop-100">Best fit</span>}
                           </div>
-                          <p className="mt-1 text-theme-sm text-steel-600 dark:text-gray-400"><span className="ledger-numeral font-bold text-ink-900 dark:text-gray-200">{candidate.distanceKm} km</span> from project · {receiver?.location ?? "—"}</p>
+                          <p className="mt-1 text-theme-sm text-steel-600 dark:text-gray-400"><span className="ledger-numeral font-bold text-ink-900 dark:text-gray-200">{candidate.distanceKnown === false ? "\u2014" : `${candidate.distanceKm} km`}</span> from project · {receiver?.location ?? "—"}</p>
                         </div>
                       </div>
                       <span className={cn("px-3 py-1 text-xs font-bold uppercase tracking-wider", statusClass)}>{availableStatus}</span>
@@ -293,7 +292,7 @@ export default function Receivers() {
                   <p className="eyebrow-label text-loop-600 dark:text-loop-400">03 · Capacity → 04 · Action</p>
                   <h2 id="capacity-heading" className="mt-3 font-archivo text-4xl font-bold uppercase text-ink-900 dark:text-white">{selectedReceiver.name}</h2>
                   <p className="mt-2 text-lg text-steel-600 dark:text-gray-300">
-                    <span className="font-semibold text-ink-900 dark:text-white">{requestedT.toFixed(1)} t</span> of {TYPE_LABEL[material.type] ?? material.type} · {selectedMatch.distanceKm} km · {selectedSlot?.date ? formatDate(selectedSlot.date) : "No intake date"}
+                    <span className="font-semibold text-ink-900 dark:text-white">{requestedT.toFixed(1)} t</span> of {TYPE_LABEL[material.type] ?? material.type} · {selectedMatch.distanceKnown === false ? "\u2014" : `${selectedMatch.distanceKm} km`} · {selectedSlot?.date ? formatDate(selectedSlot.date) : "No intake date"}
                   </p>
                   <div className="mt-5 grid gap-4 sm:grid-cols-2">
                     <label className="text-sm font-semibold text-ink-900 dark:text-white">Request quantity (t)
@@ -378,8 +377,8 @@ export default function Receivers() {
                       {holdState.available > 0 && (
                         <button
                           type="button"
-                          onClick={() => {
-                            requestCapacityAction({ materialId: material.id, receiverId: holdState.receiverId, slotId: holdState.slotId, tonnesT: holdState.available });
+                          onClick={async () => {
+                            if (!await requestCapacityAction({ materialId: material.id, receiverId: holdState.receiverId, slotId: holdState.slotId, tonnesT: holdState.available })) return;
                             setHoldState(null);
                           }}
                           className="bg-signal-600 px-6 py-3 font-bold text-white shadow-sm transition-colors hover:bg-signal-700 dark:bg-signal-500 dark:hover:bg-signal-600"
@@ -418,8 +417,8 @@ export default function Receivers() {
                               })}
                             </select>
                           </label>
-                          <button type="button" disabled={!alternateSlotId} onClick={() => {
-                            requestCapacityAction({ materialId: material.id, receiverId: holdState.receiverId, slotId: alternateSlotId, tonnesT: holdState.requested });
+                          <button type="button" disabled={!alternateSlotId} onClick={async () => {
+                            if (!await requestCapacityAction({ materialId: material.id, receiverId: holdState.receiverId, slotId: alternateSlotId, tonnesT: holdState.requested })) return;
                             setHoldState(null);
                             setChooseAnotherDate(false);
                           }} className="bg-ink-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-ink-900">Request slot</button>

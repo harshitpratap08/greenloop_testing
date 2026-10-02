@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import { ChevronLeftIcon } from "@/icons";
@@ -8,7 +9,6 @@ import { useAuth } from "@/context/AuthContext";
 import type { Role } from "@/context/AuthContext";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { cn } from "@/utils";
 
 const BOTH_ROLES: Role[] = ["provider", "receiver"];
@@ -29,8 +29,8 @@ const FIRST_ACTIONS = [
 ];
 
 export default function Onboarding() {
-  const { user, ready, addWorkspaces, setActiveWorkspace, updateUser } = useAuth();
-  const { dataset } = useGreenLoopStore();
+  const { t } = useTranslation();
+  const { user, ready, updateUser } = useAuth();
   const navigate = useNavigate();
   const reduce = useReducedMotion();
   const [step, setStep] = useState(1);
@@ -38,11 +38,10 @@ export default function Onboarding() {
   const [location, setLocation] = useState(user?.location || "");
   const [vat, setVat] = useState(user?.vat || "");
   const [roles, setRoles] = useState<Role[]>([]);
-  const [workspaceMode, setWorkspaceMode] = useState<"sample" | "own">("sample");
   const [firstAction, setFirstAction] = useState<string | null>(null);
 
   if (!ready) {
-    return <div role="status" className="flex min-h-screen items-center justify-center bg-white text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">Restoring your local demo session…</div>;
+    return <div role="status" className="flex min-h-screen items-center justify-center bg-white text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">Restoring your session…</div>;
   }
   if (!user) return <Navigate to="/sign-in" replace />;
 
@@ -53,13 +52,10 @@ export default function Onboarding() {
       : selected[0] === "receiver" ? "receiver:demand" : selected[0] ? "provider:material" : null);
   };
 
-  const finishOnboarding = () => {
+  const finishOnboarding = async () => {
     const destination = FIRST_ACTIONS.find((action) => action.id === firstAction);
     if (!user || !destination || !roles.includes(destination.role)) return;
-    const matchedReceiver = dataset.receivers.find((receiver) => receiver.name.trim().toLowerCase() === orgName.trim().toLowerCase());
-    updateUser({ organization: orgName.trim() || user.organization, location: location.trim(), vat: vat.trim(), receiverId: matchedReceiver?.id ?? user.receiverId ?? "R-001" });
-    addWorkspaces(roles);
-    setActiveWorkspace(destination.role);
+    if (!await updateUser({ organization: orgName.trim() || user.organization, location: location.trim(), vat: vat.trim(), workspaces: roles, activeWorkspace: destination.role })) return;
     navigate(destination.path);
   };
 
@@ -134,30 +130,7 @@ export default function Onboarding() {
                   <h1 className="mb-2 font-archivo text-4xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">Set up your workspace</h1>
                   <p className="text-steel-600 dark:text-gray-400">Choose how you want to start using GreenLoop.</p>
                 </div>
-                <div className="flex flex-col gap-3">
-                  <button type="button" aria-pressed={workspaceMode === "sample"} onClick={() => setWorkspaceMode("sample")} className={stepClass(workspaceMode === "sample")}>
-                    <span className="flex items-start gap-3">
-                      <span className={cn("mt-0.5 flex size-4 shrink-0 items-center justify-center border", workspaceMode === "sample" ? "border-loop-700 bg-loop-700" : "border-steel-400 dark:border-steel-600")} aria-hidden="true">
-                        {workspaceMode === "sample" && <span className="size-1.5 bg-white" />}
-                      </span>
-                      <span>
-                        <span className="block font-archivo text-sm font-bold uppercase tracking-wider text-ink-900 dark:text-white">Use sample data</span>
-                        <span className="mt-1 block text-sm text-gray-600 dark:text-gray-400">Explore GreenLoop with a ready-to-use recovery scenario.</span>
-                      </span>
-                    </span>
-                  </button>
-                  <button type="button" aria-pressed={workspaceMode === "own"} onClick={() => setWorkspaceMode("own")} className={stepClass(workspaceMode === "own")}>
-                    <span className="flex items-start gap-3">
-                      <span className={cn("mt-0.5 flex size-4 shrink-0 items-center justify-center border", workspaceMode === "own" ? "border-loop-700 bg-loop-700" : "border-steel-400 dark:border-steel-600")} aria-hidden="true">
-                        {workspaceMode === "own" && <span className="size-1.5 bg-white" />}
-                      </span>
-                      <span>
-                        <span className="block font-archivo text-sm font-bold uppercase tracking-wider text-ink-900 dark:text-white">Add your own data</span>
-                        <span className="mt-1 block text-sm text-gray-600 dark:text-gray-400">Set up your workspace using your own company and project information.</span>
-                      </span>
-                    </span>
-                  </button>
-                </div>
+                <p className="text-sm text-steel-600 dark:text-steel-400">{t("backend.setupDescription")}</p>
                 <div className="mt-6 flex gap-3">
                   <button type="button" onClick={() => setStep(1)} className="flex items-center justify-center border-2 border-steel-300 bg-white px-6 py-4 text-sm font-bold uppercase tracking-wider text-ink-900 transition-colors hover:border-ink-900 dark:border-steel-700 dark:bg-black dark:text-white dark:hover:border-white">Back</button>
                   <button type="button" onClick={() => setStep(3)} className="flex flex-1 items-center justify-center border-2 border-ink-900 bg-ink-900 px-4 py-4 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-loop-600 hover:border-loop-600 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500 dark:hover:border-loop-500 dark:hover:text-white">

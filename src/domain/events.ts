@@ -3,7 +3,7 @@
  * capacity engine; these utilities cover reading and presentation order.
  */
 
-import type { DomainEvent, GreenLoopDataset } from "./types";
+import type { DomainEvent, GreenLoopDataset } from "./types.ts";
 
 /** Newest first — the default for activity feeds. */
 export function eventsNewestFirst(dataset: GreenLoopDataset): DomainEvent[] {

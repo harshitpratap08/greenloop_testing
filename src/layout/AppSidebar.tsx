@@ -485,8 +485,8 @@ const AppSidebar: React.FC = () => {
                     "flex w-full items-center px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-800",
                     user.activeWorkspace === 'provider' ? "text-loop-600 font-semibold dark:text-loop-500" : "text-ink-900 dark:text-white"
                   )}
-                  onClick={() => {
-                    setActiveWorkspace('provider');
+                  onClick={async () => {
+                    if (!await setActiveWorkspace('provider')) return;
                     setSwitcherOpen(false);
                     navigate('/app/explore');
                   }}
@@ -500,8 +500,8 @@ const AppSidebar: React.FC = () => {
                     "flex w-full items-center px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-800",
                     user.activeWorkspace === 'receiver' ? "text-loop-600 font-semibold dark:text-loop-500" : "text-ink-900 dark:text-white"
                   )}
-                  onClick={() => {
-                    setActiveWorkspace('receiver');
+                  onClick={async () => {
+                    if (!await setActiveWorkspace('receiver')) return;
                     setSwitcherOpen(false);
                     navigate('/app/receiver/overview');
                   }}

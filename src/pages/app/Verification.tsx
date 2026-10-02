@@ -162,7 +162,7 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
               </div>
               <div className="flex flex-1 items-center justify-center px-4">
                 <span className="ledger-numeral rounded-sm border border-steel-200 px-3 py-1 font-bold text-ink-900 dark:border-steel-700 dark:text-white">
-                  {receiver?.distanceKm ?? 0} km Route
+                  {receiver?.distanceKnown === false ? "\u2014" : `${receiver?.distanceKm ?? 0} km`} Route
                 </span>
               </div>
               <div className="min-w-0 flex-1 md:text-right">

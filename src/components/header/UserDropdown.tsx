@@ -96,9 +96,9 @@ export default function UserDropdown() {
             <li>
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   const target = user.activeWorkspace === 'receiver' ? 'provider' : 'receiver';
-                  setActiveWorkspace(target);
+                  if (!await setActiveWorkspace(target)) return;
                   closeDropdown();
                   navigate('/app');
                 }}
@@ -275,8 +275,8 @@ export default function UserDropdown() {
         </ul>
         <button
           type="button"
-          onClick={() => {
-            logout();
+          onClick={async () => {
+            if (!await logout()) return;
             closeDropdown();
             navigate("/sign-in");
           }}

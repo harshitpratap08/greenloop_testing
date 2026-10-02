@@ -30,7 +30,7 @@ export default function MarketDemand() {
   const [offerError, setOfferError] = useState("");
   const myOffers = dataset.offers?.filter((offer) => offer.providerId === providerId) ?? [];
 
-  const handleOffer = (e: React.FormEvent) => {
+  const handleOffer = async (e: React.FormEvent) => {
     e.preventDefault();
     const quantity = Number(offerQuantity);
     const passport = dataset.materials.find((item) => item.id === selectedPassportId);
@@ -43,13 +43,14 @@ export default function MarketDemand() {
       return;
     }
     setOfferError("");
-    addOfferAction({
+    const saved = await addOfferAction({
       demandId: demand.id,
       providerId,
       passportId: selectedPassportId,
       offeredQuantityT: quantity,
     });
     
+    if (!saved) return;
     setSelectedDemandId(null);
     setSelectedPassportId("");
     setOfferQuantity("");

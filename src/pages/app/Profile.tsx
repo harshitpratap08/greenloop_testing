@@ -26,11 +26,11 @@ export default function Profile() {
     }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSuccess(false);
-    updateUser({
+    const saved = await updateUser({
       name: formData.fullName.trim(),
       organization: formData.companyName.trim(),
       phone: formData.phone.trim(),
@@ -38,7 +38,7 @@ export default function Profile() {
       vat: formData.vat.trim(),
     });
     setIsSaving(false);
-    setSuccess(true);
+    setSuccess(saved);
   };
 
   return (
@@ -114,7 +114,7 @@ export default function Profile() {
                 required
                 className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white"
               />
-              <p id="account-email-note" className="mt-1 text-xs text-steel-500">Email is the sign-in identifier for this local demo account.</p>
+              <p id="account-email-note" className="mt-1 text-xs text-steel-500">Email is the sign-in identifier for your account.</p>
             </div>
 
             <div>

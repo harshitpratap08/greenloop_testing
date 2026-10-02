@@ -12,7 +12,7 @@ import { formatDate } from "@/utils";
 export default function ReceiverDeliveries() {
   const { dataset, receiveLoadAction } = useGreenLoopStore();
   const { user } = useAuth();
-  const receiverId = user?.receiverId ?? "R-001";
+  const receiverId = user?.receiverId ?? "";
   
   // Confirmed bookings that don't have a verification record yet
   const expectedDeliveries = dataset.bookings.filter((booking) =>
@@ -111,12 +111,12 @@ export default function ReceiverDeliveries() {
                           <Button
                             size="sm"
                             disabled={!actualT || !Number.isFinite(Number(actualT)) || Number(actualT) < 0}
-                            onClick={() => {
-                              receiveLoadAction(booking.id, Number(actualT), [{
+                            onClick={async () => {
+                              if (!await receiveLoadAction(booking.id, Number(actualT), [{
                                 kind: "weighbridge-ticket",
                                 label: `Manual entry`,
                                 recordedAt: new Date().toISOString()
-                              }]);
+                              }])) return;
                               setReceivingId(null);
                             }}
                           >

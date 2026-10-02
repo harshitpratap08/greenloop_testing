@@ -1,6 +1,5 @@
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { computeMatch } from "@/domain/capacity";
-import { STORY } from "@/domain/demoData";
+import { STORY, demoDataset } from "@/domain/demoData";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { useRef } from "react";
 import MiniLedger from "@/components/site/MiniLedger";
@@ -121,7 +120,7 @@ function StagePanel({ step, children }: { step: number; children: ReactNode }) {
 
 /** 01 SURVEY — a real passport card from the dataset. */
 function SurveyPanel() {
-  const { dataset } = useGreenLoopStore();
+  const dataset = demoDataset();
   const material = dataset.materials.find((m) => m.id === STORY.materialAId);
   if (!material) return null;
   const project = dataset.projects.find((p) => p.id === material.projectId);
@@ -162,7 +161,7 @@ function SurveyPanel() {
 
 /** 02 MATCH — live engine scoring for the scenario material. */
 function MatchPanel() {
-  const { dataset } = useGreenLoopStore();
+  const dataset = demoDataset();
   const candidates = computeMatch(dataset, STORY.materialBId);
   const receiverName = (id: string) => dataset.receivers.find((r) => r.id === id)?.name ?? id;
   const requestT =
@@ -202,7 +201,7 @@ function MatchPanel() {
 
 /** 03 RESERVE — the live ledger mid-scenario. */
 function ReservePanel() {
-  const { dataset } = useGreenLoopStore();
+  const dataset = demoDataset();
   return (
     <div className="space-y-4">
       <PanelFrame route="/app/bookings" title="Reservation ledger — Sep 24">
@@ -218,7 +217,7 @@ function ReservePanel() {
 
 /** 04 VERIFY — the seeded reconciliation record. */
 function VerifyPanel() {
-  const { dataset } = useGreenLoopStore();
+  const dataset = demoDataset();
   const verification = dataset.verifications[0];
   if (!verification) return null;
   const acceptedPct = Math.round((verification.acceptedT / verification.actualT) * 100);

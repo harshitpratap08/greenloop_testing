@@ -164,7 +164,7 @@ export default function Explore() {
   const recentEvents = project ? eventsForSubjects(dataset, [project.id]).slice(0, 5) : [];
   const incomingBookings = dataset.bookings.filter((booking) => booking.status !== "cancelled").slice(0, 3);
   const primaryMaterial = unmatchedMaterials[0];
-  const candidates = primaryMaterial ? computeMatch(dataset, primaryMaterial.id).slice(0, 3) : [];
+  const candidates = primaryMaterial ? computeMatch(dataset, primaryMaterial.id, new Date().toISOString().slice(0, 10)).slice(0, 3) : [];
   const openDemand = dataset.demands.find((demand) => demand.status === "OPEN" || demand.status === "PARTIALLY_COVERED");
   const demandNote = openDemand ? `${openDemand.requiredT.toFixed(1)} t of ${openDemand.materialType} demand is open in the network` : null;
   const materialMatched = dataset.materials.length > 0 && matchedCount === dataset.materials.length;
@@ -357,7 +357,7 @@ export default function Explore() {
                             <StatusChip status={status} label={label} />
                           </div>
                           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
-                            <span>{candidate.distanceKm} km away</span>
+                            <span>{candidate.distanceKnown === false ? "\u2014" : `${candidate.distanceKm} km`} away</span>
                             <span className="ledger-numeral">{candidate.availableT.toFixed(1)} t available</span>
                             <span>Accepts {TYPE_LABEL[primaryMaterial.type]}</span>
                           </div>

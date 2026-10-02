@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
@@ -22,39 +23,41 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function Demand() {
+  const { t } = useTranslation();
   const { dataset, addDemandAction, acceptOfferAction, declineOfferAction } = useGreenLoopStore();
   const { user } = useAuth();
-  const receiverId = user?.receiverId ?? "R-001";
+  const receiverId = user?.receiverId ?? "";
   
   const [isAdding, setIsAdding] = useState(false);
   const [type, setType] = useState<MaterialTypeKey>("concrete");
   const [requiredT, setRequiredT] = useState("");
   const [period, setPeriod] = useState("");
   const [error, setError] = useState("");
-  const [location, setLocation] = useState("Riverstone Aggregates");
+  const [location, setLocation] = useState(user?.location || user?.organization || "");
   const [notes, setNotes] = useState("");
   const [sentMessage, setSentMessage] = useState("");
 
   const receiverDemands = dataset.demands?.filter((d) => d.receiverId === receiverId) ?? [];
 
-  const handleAddDemand = (e: React.FormEvent) => {
+  const handleAddDemand = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!requiredT || !Number.isFinite(Number(requiredT)) || Number(requiredT) <= 0 || !period) {
       setError("Enter a positive quantity and needed-by date.");
       return;
     }
     setError("");
-    addDemandAction({
+    const demand = await addDemandAction({
       receiverId,
       materialType: type,
       requiredT: Number(requiredT),
       period: period || "Q4 2026",
-      location: location || "Riverstone Aggregates",
+      location: location || user?.organization || "Receiving facility",
       notes: notes,
     });
     
+    if (!demand) return;
     setIsAdding(false);
-    setSentMessage("Request sent. Providers near you are notified.");
+    setSentMessage(t("backend.requestPublished"));
     setRequiredT("");
     setPeriod("");
     setNotes("");
@@ -261,7 +264,8 @@ export default function Demand() {
                         const eligibleSlots = dataset.slots.filter((slot) => slot.receiverId === demand.receiverId && slot.materialType === demand.materialType && slotMatchesDemandPeriod(slot, demand.period));
                         const hasCapacity = eligibleSlots.length > 0;
                         const photo = passport ? materialMedia(passport)[0] : undefined;
-                        const receiverDistanceKm = dataset.receivers.find((item) => item.id === demand.receiverId)?.distanceKm;
+                        const offerReceiver = dataset.receivers.find((item) => item.id === demand.receiverId);
+                        const receiverDistanceKm = offerReceiver?.distanceKnown === false ? undefined : offerReceiver?.distanceKm;
                         return (
                           <div key={offer.id} className="flex flex-col gap-3 border border-steel-100 bg-white p-4 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-gray-900 dark:hover:border-white sm:flex-row sm:items-start sm:justify-between">
                             <div className="flex min-w-0 gap-3">

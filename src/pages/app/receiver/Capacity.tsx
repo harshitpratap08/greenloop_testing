@@ -13,7 +13,7 @@ import { materialMediaFor, ambientVideo } from "@/config/appMedia";
 export default function Capacity() {
   const { dataset, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
   const { user } = useAuth();
-  const receiverId = user?.receiverId ?? "R-001";
+  const receiverId = user?.receiverId ?? "";
   const [isAdding, setIsAdding] = useState(false);
   const [materialType, setMaterialType] = useState<MaterialTypeKey>("concrete");
   const [date, setDate] = useState("");
@@ -23,7 +23,7 @@ export default function Capacity() {
   const [editedCapacity, setEditedCapacity] = useState("");
   const [editError, setEditError] = useState("");
 
-  const handleAddCapacity = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddCapacity = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const capacity = Number(capacityT);
     if (!date || !Number.isFinite(capacity) || capacity <= 0) {
@@ -39,7 +39,7 @@ export default function Capacity() {
       setFormError("No receiving facility is configured for this workspace.");
       return;
     }
-    addCapacityAction({ receiverId, date, materialType, capacityT: capacity });
+    if (!await addCapacityAction({ receiverId, date, materialType, capacityT: capacity })) return;
     setDate("");
     setCapacityT("");
     setIsAdding(false);
@@ -183,9 +183,9 @@ export default function Capacity() {
                   </div>
                   <details className="mt-3 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-2 block">Receiving slot ID: {s.id} · {reserved.toFixed(1)} t reserved · {percent.toFixed(0)}% used</span></details>
                   {editingSlotId === s.id ? (
-                    <form className="mt-3 flex flex-wrap items-center gap-2" onSubmit={(event) => {
+                    <form className="mt-3 flex flex-wrap items-center gap-2" onSubmit={async (event) => {
                       event.preventDefault();
-                      if (!updateCapacityAction(s.id, Number(editedCapacity))) {
+                      if (!await updateCapacityAction(s.id, Number(editedCapacity))) {
                         setEditError("Capacity must be positive and cannot be lower than booked tonnes.");
                         return;
                       }

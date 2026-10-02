@@ -51,7 +51,7 @@ export default function MaterialPassport() {
   const receiver = allocation ? dataset.receivers.find((r) => r.id === allocation.receiverId) : null;
   const booking = dataset.bookings.find((b) => b.allocationId === allocation?.id && b.status !== "cancelled");
   const verification = dataset.verifications.find((v) => v.bookingId === booking?.id);
-  const candidates = computeMatch(dataset, material.id).slice(0, 3);
+  const candidates = computeMatch(dataset, material.id, new Date().toISOString().slice(0, 10)).slice(0, 3);
   const ledger = allocation ? slotLedger(dataset, allocation.slotId) : undefined;
   const events = eventsForSubjects(dataset, [material.id, project.id]);
   const media = materialMedia(material);
@@ -192,6 +192,9 @@ export default function MaterialPassport() {
               <h2 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">Evidence</h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Site photos and survey records attached to this passport.</p>
               <EvidenceGallery items={evidenceItems} className="mt-4" />
+              <ul className="mt-4 space-y-2">
+                {material.evidence.filter(item => item.ref?.startsWith("/api/uploads/")).map((item, index) => <li key={index}><a href={item.ref} target="_blank" rel="noopener noreferrer" className="text-sm text-loop-600 underline dark:text-loop-400">{item.label}</a></li>)}
+              </ul>
             </section>
           </RevealItem>
 
@@ -207,7 +210,7 @@ export default function MaterialPassport() {
                   <img src={receiverMediaFor(receiver.id).src} alt={receiverMediaFor(receiver.id).alt} loading="lazy" className="size-16 border border-steel-200 object-cover dark:border-steel-800" />
                   <div className="min-w-0">
                     <p className="font-semibold text-ink-900 dark:text-white">{receiver.name}</p>
-                    <p className="ledger-numeral text-theme-xs text-gray-500 dark:text-gray-400">{receiver.distanceKm} km · {receiver.location}</p>
+                    <p className="ledger-numeral text-theme-xs text-gray-500 dark:text-gray-400">{receiver.distanceKnown === false ? "\u2014" : `${receiver.distanceKm} km`} · {receiver.location}</p>
                     <Link to="/app/allocations" className="mt-1 inline-block text-sm font-semibold text-ink-900 underline underline-offset-4 hover:text-loop-600 dark:text-white">View match details</Link>
                   </div>
                 </div>
@@ -219,7 +222,7 @@ export default function MaterialPassport() {
                       <li key={candidate.receiverId} className="flex items-center justify-between gap-3 border border-steel-200 p-3 dark:border-steel-800">
                         <span>
                           <span className="block text-theme-sm font-semibold text-ink-900 dark:text-white">{candidateReceiver?.name ?? candidate.receiverId}</span>
-                          <span className="ledger-numeral block text-theme-xs text-gray-500 dark:text-gray-400">{candidate.distanceKm} km · {candidate.availableT.toFixed(1)} t free · {Math.round(candidate.suitability * 100)}% suitable</span>
+                          <span className="ledger-numeral block text-theme-xs text-gray-500 dark:text-gray-400">{candidate.distanceKnown === false ? "\u2014" : `${candidate.distanceKm} km`} · {candidate.availableT.toFixed(1)} t free · {Math.round(candidate.suitability * 100)}% suitable</span>
                         </span>
                         {index === 0 && candidate.recommended && <StatusChip status="available" label="Best fit" />}
                       </li>

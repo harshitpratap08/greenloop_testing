@@ -133,7 +133,7 @@ export default function Allocations() {
                         {Math.round(candidate.demand * 100)}%
                       </TableCell>
                       <TableCell mono className="px-6 py-4 text-end text-sm font-medium text-steel-700 dark:text-gray-300">
-                        {candidate.distanceKm} km
+                        {candidate.distanceKnown === false ? "\u2014" : `${candidate.distanceKm} km`}
                       </TableCell>
                       <TableCell mono className="px-6 py-4 text-end text-sm font-medium text-steel-700 dark:text-gray-300">
                         {candidate.availableT.toFixed(1)} t

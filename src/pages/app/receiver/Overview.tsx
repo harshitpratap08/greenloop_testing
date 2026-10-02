@@ -52,7 +52,7 @@ export default function Overview() {
   const { dataset } = useGreenLoopStore();
   const { user } = useAuth();
   const greeting = useGreeting();
-  const receiverId = user?.receiverId ?? "R-001";
+  const receiverId = user?.receiverId ?? "";
   const receiverData = dataset.receivers.find((r) => r.id === receiverId);
 
   // Capacity across every slot this receiver manages.
@@ -60,7 +60,7 @@ export default function Overview() {
   const totalCapacityT = receiverSlots.reduce((sum, s) => sum + s.capacityT, 0);
   const totalReservedT = receiverSlots.reduce((sum, s) => sum + (slotLedger(dataset, s.id)?.reserved ?? 0), 0);
   const totalHeldT = receiverSlots.reduce((sum, s) => sum + (slotLedger(dataset, s.id)?.heldT ?? 0), 0);
-  const availableCapacityT = Math.max(0, totalCapacityT - totalReservedT - totalHeldT);
+  const availableCapacityT = Math.max(0, totalCapacityT - totalReservedT);
 
   const receiverBookings = dataset.bookings.filter((b) => b.receiverId === receiverId);
   const activeBookings = receiverBookings.filter((b) => b.status === "confirmed");

@@ -11,7 +11,7 @@ import { materialMediaFor } from "@/config/appMedia";
 export default function IncomingRequests() {
   const { dataset, acceptRequestAction, rejectRequestAction, rescheduleRequestAction } = useGreenLoopStore();
   const { user } = useAuth();
-  const receiverId = user?.receiverId ?? "R-001";
+  const receiverId = user?.receiverId ?? "";
   
   const requests = dataset.bookings.filter((booking) => booking.receiverId === receiverId &&
     ((booking.status === "hold") || (booking.status === "confirmed" && !booking.receiverAcceptedAt && !booking.loadRef && !dataset.verifications.some((item) => item.bookingId === booking.id))));
@@ -132,8 +132,8 @@ export default function IncomingRequests() {
                               );
                             })}
                           </select>
-                          <Button size="sm" disabled={!selectedSlotId} onClick={() => {
-                            rescheduleRequestAction(booking.id, selectedSlotId);
+                          <Button size="sm" disabled={!selectedSlotId} onClick={async () => {
+                            if (!await rescheduleRequestAction(booking.id, selectedSlotId)) return;
                             setReschedulingId(null);
                           }}>
                             Confirm new date

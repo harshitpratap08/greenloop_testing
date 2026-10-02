@@ -22,9 +22,9 @@ export default function RoleSelection() {
 
   const chooseRoles = (roles: Role[]) => setSelected(roles);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selected.length === 0) return;
-    addWorkspaces(selected);
+    if (!await addWorkspaces(selected)) return;
     navigate('/app');
   };
 

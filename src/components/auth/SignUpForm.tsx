@@ -1,12 +1,15 @@
+import { useTranslation } from "react-i18next";
+import { api } from "@/lib/api";
 import Label from "@/components/form/Label";
 import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "@/context/AuthContext";
 
 export default function SignUpForm() {
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [name, setName] = useState("");
@@ -15,55 +18,22 @@ export default function SignUpForm() {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState("");
-  const [socialMessage, setSocialMessage] = useState("");
-  const { createAccount, login, simulateGoogleLogin } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const { createAccount } = useAuth();
   const navigate = useNavigate();
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  useEffect(() => { api<{ googleEnabled: boolean }>("/config").then(config => setGoogleEnabled(config.googleEnabled)).catch(() => {}); }, []);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError("");
-    if (!name.trim() || !organization.trim() || !email.trim() || !password) {
-      setError("Complete your name, organization, email, and password.");
-      return;
-    }
-    if (password !== confirmation) {
-      setError("The password confirmation does not match.");
-      return;
-    }
-    if (!termsAccepted) {
-      setError("Accept the Terms and Conditions and Privacy Policy to continue.");
-      return;
-    }
-
-    try {
-      const created = createAccount({ email, name, organization }, password);
-      if (!created) {
-        if (!login(email, password, true)) {
-          setError("Enter an email address to continue.");
-          return;
-        }
-        let hasWorkspace = false;
-        try {
-          const roles: unknown = JSON.parse(localStorage.getItem(`gl_workspaces_${email.trim().toLowerCase()}`) || "[]");
-          hasWorkspace = Array.isArray(roles) && roles.length > 0;
-        } catch {
-          hasWorkspace = false;
-        }
-        navigate(hasWorkspace ? "/app" : "/onboarding");
-        return;
-      }
-      navigate("/onboarding");
-    } catch (cause) {
-      if (cause instanceof DOMException && cause.name === "QuotaExceededError") {
-        setError("Browser storage is full. Free up space and try creating your account again.");
-      } else if (cause instanceof DOMException && cause.name === "SecurityError") {
-        setError("Browser storage is unavailable. Check your privacy settings and allow site storage.");
-      } else if (cause instanceof Error && cause.message) {
-        setError(`Account creation failed: ${cause.message}`);
-      } else {
-        setError("Account could not be saved in this browser. Check browser storage permissions and try again.");
-      }
-    }
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); if (submitting) return; setError("");
+    if (!name.trim() || !organization.trim() || !email.trim()) { setError(t("backend.accountDetailsRequired")); return; }
+    if (password.length < 8) { setError(t("backend.passwordLength")); return; }
+    if (password !== confirmation) { setError("The password confirmation does not match."); return; }
+    if (!termsAccepted) { setError("Accept the Terms and Conditions and Privacy Policy to continue."); return; }
+    setSubmitting(true);
+    try { await createAccount({ email, name, organization }, password); navigate("/onboarding"); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : t("backend.signupFailed")); }
+    finally { setSubmitting(false); }
   };
 
   return (
@@ -79,22 +49,13 @@ export default function SignUpForm() {
           <div className="mb-8">
             <h1 className="mb-2 font-archivo text-4xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">Create Account</h1>
             <p className="text-steel-600 dark:text-gray-400">Survey materials, match receivers, reserve capacity and verify loads.</p>
-            <p className="mt-4 border-s-2 border-loop-500 ps-3 text-xs text-steel-500 dark:text-gray-500">Local demo only: account details and password are stored in this browser, not sent to a server. Do not use a real password.</p>
           </div>
           <div className="grid grid-cols-1 gap-3">
-            <button type="button" onClick={() => {
-              if (!simulateGoogleLogin()) {
-                setSocialMessage("Google demo sign-in could not start in this browser.");
-                return;
-              }
-              const savedRoles = localStorage.getItem("gl_workspaces_google-user@example.com");
-              navigate(savedRoles && savedRoles !== "[]" ? "/app" : "/onboarding");
-            }} className="inline-flex w-full items-center justify-center gap-3 border-2 border-steel-300 bg-white px-5 py-4 text-sm font-bold uppercase tracking-wider text-ink-900 transition-colors hover:border-ink-900 dark:border-steel-700 dark:bg-black dark:text-white dark:hover:border-white">
+            <button type="button" disabled={!googleEnabled} title={googleEnabled ? "Continue with Google" : t("backend.googleUnavailable")} onClick={() => { window.location.href = "/api/auth/google"; }} className="inline-flex w-full items-center justify-center gap-3 border-2 border-steel-300 bg-white px-5 py-4 text-sm font-bold uppercase tracking-wider text-ink-900 transition-colors hover:border-ink-900 dark:border-steel-700 dark:bg-black dark:text-white dark:hover:border-white">
               <span aria-hidden="true" className="font-semibold text-blue-600">G</span>
               Continue with Google
             </button>
           </div>
-          {socialMessage && <p role="status" className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">{socialMessage}</p>}
           <div className="relative py-3 sm:py-5">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-800"></div></div>
             <div className="relative flex justify-center text-sm"><span className="bg-gray-25 p-2 text-gray-500 sm:px-5 sm:py-2 dark:bg-gray-dark dark:text-gray-400">Or register with email</span></div>
@@ -128,7 +89,7 @@ export default function SignUpForm() {
               </div>
               <Checkbox id="terms-accepted" className="h-5 w-5" checked={termsAccepted} onChange={setTermsAccepted} label="I agree to the Terms and Conditions and Privacy Policy" />
               {error && <p role="alert" className="text-sm text-error-500">{error}</p>}
-              <button type="submit" className="flex w-full items-center justify-center border-2 border-ink-900 bg-ink-900 px-4 py-4 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-loop-600 hover:border-loop-600 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500 dark:hover:border-loop-500 dark:hover:text-white">Create account</button>
+              <button type="submit" disabled={submitting} className="flex w-full items-center justify-center border-2 border-ink-900 bg-ink-900 px-4 py-4 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-loop-600 hover:border-loop-600 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500 dark:hover:border-loop-500 dark:hover:text-white">Create account</button>
             </div>
           </form>
           <div className="mt-5">
