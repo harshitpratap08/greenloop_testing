@@ -68,13 +68,13 @@ const providerNavItems: NavItem[] = [
   },
   {
     icon: <ListIcon fontSize={24} />,
-    name: "Who Needs Material",
+    name: "Active Demand",
     key: "marketDemand",
     path: "/app/market-demand",
   },
   {
     icon: <BoxTapped fontSize={24} />,
-    name: "Find a receiver",
+    name: "Find a Receiver",
     key: "receivers",
     path: "/app/receivers",
   },
@@ -128,7 +128,7 @@ const providerOthersItems: NavItem[] = [
 const receiverNavItems: NavItem[] = [
   {
     icon: <GridIcon fontSize={24} />,
-    name: "Overview",
+    name: "Home",
     path: "/app/receiver/overview",
   },
   {
@@ -190,13 +190,13 @@ const AccountSidebarWidget: React.FC<{
 }> = ({ render }) => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   return (
-    <div className="border-t border-steel-200 pt-4 dark:border-steel-800">
+    <div className="border-t border-white/10 pt-4">
       {isExpanded || isHovered || isMobileOpen ? (
-        <h2 className="mb-4 flex text-xs leading-5 text-gray-400 uppercase justify-start">
+        <h2 className="mb-3 flex text-[10px] font-semibold leading-5 uppercase tracking-[0.16em] text-white/40 justify-start">
           Account
         </h2>
       ) : (
-        <h2 className="mb-4 flex justify-center">
+        <h2 className="mb-3 flex justify-center text-white/40">
           <HorizontaLDots className="size-6" />
         </h2>
       )}
@@ -423,7 +423,7 @@ const AppSidebar: React.FC = () => {
   return (
     <aside
       className={cn(
-        "fixed inset-s-0 top-0 z-50 flex h-screen flex-col border-e border-steel-200 bg-gray-25 px-5 text-ink-900 transition-all duration-300 ease-in-out xl:translate-x-0 xl:rtl:translate-x-0 dark:border-steel-800 dark:bg-gray-900",
+        "fixed inset-s-0 top-0 z-50 flex h-screen flex-col border-e border-[#294437] bg-[#173528] px-4 text-[#f4f2ed] transition-all duration-300 ease-in-out xl:translate-x-0 xl:rtl:translate-x-0",
         isExpanded || isMobileOpen ? "w-72.5" : isHovered ? "w-72.5" : "w-22.5",
         isMobileOpen
           ? "translate-x-0"
@@ -434,28 +434,16 @@ const AppSidebar: React.FC = () => {
     >
       <div
         className={cn(
-          "flex py-8",
+          "flex items-start py-6",
           !isExpanded && !isHovered ? "xl:justify-center" : "justify-start",
         )}
       >
         <Link to="/">
           {isExpanded || isHovered || isMobileOpen ? (
-            <>
-              <img
-                className="dark:hidden"
-                src="/images/logo/logo.svg"
-                alt="Logo"
-                width={150}
-                height={40}
-              />
-              <img
-                className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
-                alt="Logo"
-                width={150}
-                height={40}
-              />
-            </>
+            <span className="flex flex-col gap-1">
+              <img src="/images/logo/logo-dark.svg" alt="GreenLoop" width={150} height={36} />
+              <span className="ps-10 text-[10px] leading-3 text-[#b4c5b9]">Materials Recovery Network</span>
+            </span>
           ) : (
             <img
               src="/images/logo/logo-icon.svg"
@@ -468,13 +456,13 @@ const AppSidebar: React.FC = () => {
       </div>
 
       {(isExpanded || isHovered || isMobileOpen) && user && (
-        <div className="px-5 mb-6 relative">
+        <div className="relative mb-5 px-1">
           <button 
-            className="dropdown-toggle flex w-full items-center justify-between rounded-lg border border-steel-200 bg-white p-3 text-sm font-medium text-ink-900 hover:bg-gray-25 dark:border-steel-800 dark:bg-gray-dark dark:text-white dark:hover:bg-gray-800"
+            className="dropdown-toggle flex w-full items-center justify-between rounded-lg border border-white/15 bg-white/[0.06] p-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
             onClick={() => setSwitcherOpen(!isSwitcherOpen)}
           >
             <span>{user.activeWorkspace === 'receiver' ? 'Material Receiver' : 'Material Provider'}</span>
-            <ChevronDownIcon className="size-4 text-gray-500" />
+            <ChevronDownIcon className="size-4 text-white/55" />
           </button>
           
           <Dropdown isOpen={isSwitcherOpen} onClose={() => setSwitcherOpen(false)} className="w-[calc(100%-2.5rem)] top-full mt-2">
@@ -514,12 +502,12 @@ const AppSidebar: React.FC = () => {
         </div>
       )}
 
-      <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
+      <div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto duration-300 ease-linear">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             <div>
               <h2
-                className={`mb-4 flex text-xs leading-5 text-gray-400 uppercase ${
+                className={`mb-3 flex text-[10px] font-semibold leading-5 uppercase tracking-[0.16em] text-white/40 ${
                   !isExpanded && !isHovered
                     ? "xl:justify-center"
                     : "justify-start"
@@ -536,7 +524,7 @@ const AppSidebar: React.FC = () => {
 
             <div>
               <h2
-                className={`mb-4 flex text-xs leading-5 text-gray-400 uppercase ${
+                className={`mb-3 flex text-[10px] font-semibold leading-5 uppercase tracking-[0.16em] text-white/40 ${
                   !isExpanded && !isHovered
                     ? "xl:justify-center"
                     : "justify-start"

@@ -408,7 +408,7 @@ export interface MaterialMediaItem {
 
 export function materialMedia(material: MaterialPassport): MaterialMediaItem[] {
   return material.evidence
-    .filter((e) => e.kind === "site-photo" && e.ref)
+    .filter((e) => e.kind === "site-photo" && e.ref && (e.ref.startsWith("/") || e.ref.startsWith("data:image/") || e.ref.startsWith("https://") || e.ref.startsWith("http://")))
     .map((e, idx) => ({
       id: `${material.id}-ev-${idx}`,
       kind: "photo",

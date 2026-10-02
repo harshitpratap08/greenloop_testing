@@ -16,12 +16,14 @@ export default function VideoBackground({
   video,
   overlayClassName,
   className,
+  videoClassName,
   objectPosition = "center",
 }: {
   video: { src: string; poster: string; alt: string };
   /** Gradient/scrim layer stacked above the video, below section content. */
   overlayClassName?: string;
   className?: string;
+  videoClassName?: string;
   /** object-position tuning, e.g. "center bottom" for tall machinery. */
   objectPosition?: string;
 }) {
@@ -79,6 +81,7 @@ export default function VideoBackground({
         ref={videoRef}
         className={cn(
           "size-full object-cover transition-opacity duration-700",
+          videoClassName,
           ready ? "opacity-100" : "opacity-0",
         )}
         style={{ objectPosition }}

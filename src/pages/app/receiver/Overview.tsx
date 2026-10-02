@@ -1,31 +1,14 @@
-/**
- * Overview — Receiver Home.
- *
- * "I NEED MATERIAL." The mirror of the provider home: what the yard needs,
- * what providers have offered, how much intake capacity remains, what trucks
- * are inbound, and what verification awaits. Same system, opposite priorities.
- */
-
-import { Link } from "react-router";
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import type { ReactNode } from "react";
 import PageMeta from "@/components/common/PageMeta";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { slotLedger } from "@/domain/capacity";
-import { useAuth } from "@/context/AuthContext";
+import { PageMotion, RevealItem } from "@/components/greenloop/kit";
 import { useGreeting } from "@/components/greenloop/AppExploration";
-import { formatDate } from "@/utils";
-import { motion } from "motion/react";
-import {
-  PageMotion,
-  RevealItem,
-  MediaPanel,
-  VideoPanel,
-  StatusChip,
-  JourneyStrip,
-  Counter,
-  type KitStatus,
-} from "@/components/greenloop/kit";
-import { materialMediaFor, receiverMediaFor, ambientVideo, ambientMedia } from "@/config/appMedia";
-import type { DemandRecord, MaterialOffer } from "@/domain/types";
+import { useAuth } from "@/context/AuthContext";
+import { useGreenLoopStore } from "@/store/GreenLoopStore";
+import { ambientMedia, materialMediaFor } from "@/config/appMedia";
+import { BoxMoving, CheckCircleIcon, SearchIcon, TaskIcon, TruckDelivery } from "@/icons";
+import type { MaterialPassport } from "@/domain/types";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -36,448 +19,147 @@ const TYPE_LABEL: Record<string, string> = {
   glass: "Glass",
 };
 
-function demandChip(status: DemandRecord["status"]): KitStatus {
-  if (status === "COVERED") return "verified";
-  if (status === "PARTIALLY_COVERED") return "active";
-  return "available";
+type HomeCard = {
+  title: string;
+  description: string;
+  action: string;
+  to: string;
+  image: { src: string; alt: string };
+};
+
+function ActivityCard({ icon, label, value, detail, to }: { icon: ReactNode; label: string; value: string; detail: string; to: string }) {
+  return (
+    <Link to={to} className="group min-w-0 rounded-xl border border-[#e6e4dc] bg-white p-4 transition-colors hover:border-[#4b8b67] dark:border-white/10 dark:bg-[#17241b] dark:hover:border-[#79a88a] sm:p-5">
+      <span className="flex size-9 items-center justify-center rounded-lg bg-[#edf3ee] text-[#477e5d] dark:bg-[#263c2e] dark:text-[#a6c7ad]" aria-hidden="true">{icon}</span>
+      <p className="mt-4 font-archivo text-2xl font-bold tracking-tight text-[#1e2922] dark:text-white sm:text-3xl">{value}</p>
+      <p className="mt-1 text-sm font-semibold text-[#39443c] dark:text-[#e2e7e1]">{label}</p>
+      <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#4b805e] group-hover:text-[#2f6948]">{detail}<span aria-hidden="true">→</span></span>
+    </Link>
+  );
 }
 
-function offerChip(status: MaterialOffer["status"]): KitStatus {
-  if (status === "accepted") return "confirmed";
-  if (status === "declined") return "cancelled";
-  return "attention";
+function ShortcutCard({ title, description, action, to, image }: HomeCard) {
+  return (
+    <Link to={to} className="group min-w-0 overflow-hidden rounded-xl border border-[#e6e4dc] bg-white transition-colors hover:border-[#4b8b67] dark:border-white/10 dark:bg-[#17241b] dark:hover:border-[#79a88a]">
+      <div className="aspect-[16/9] overflow-hidden bg-[#e5e4dc]">
+        <img src={image.src} alt={image.alt} loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transform-none" />
+      </div>
+      <div className="p-4 sm:p-5">
+        <h3 className="font-archivo text-lg font-bold text-[#243229] dark:text-white">{title}</h3>
+        <p className="mt-1 min-h-10 text-sm leading-5 text-[#667168] dark:text-gray-300">{description}</p>
+        <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#477e5d]">{action}<span aria-hidden="true">→</span></span>
+      </div>
+    </Link>
+  );
+}
+
+function MaterialResult({ material }: { material: MaterialPassport }) {
+  return (
+    <Link to={`/app/materials/${material.id}`} className="flex items-center gap-3 p-3 transition-colors hover:bg-[#f5f6f2] dark:hover:bg-white/5">
+      <img src={materialMediaFor(material.type).src} alt="" className="size-12 shrink-0 rounded-md object-cover" loading="lazy" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-[#243229] dark:text-white">{TYPE_LABEL[material.type] ?? material.type}</span>
+        <span className="mt-0.5 block truncate text-xs text-[#748078] dark:text-gray-400">{material.id} · {material.quantityT.toFixed(1)} t · {material.condition} condition</span>
+      </span>
+      <span className="text-xs font-semibold text-[#477e5d]">Open <span aria-hidden="true">→</span></span>
+    </Link>
+  );
 }
 
 export default function Overview() {
   const { dataset } = useGreenLoopStore();
   const { user } = useAuth();
   const greeting = useGreeting();
-  const receiverId = user?.receiverId ?? "";
-  const receiverData = dataset.receivers.find((r) => r.id === receiverId);
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+  const receiverId = user?.receiverId;
+  const receiverDemandIds = useMemo(() => new Set((dataset.demands ?? []).filter((demand) => demand.receiverId === receiverId).map((demand) => demand.id)), [dataset.demands, receiverId]);
+  const activeRequests = (dataset.demands ?? []).filter((demand) => demand.receiverId === receiverId && demand.status !== "PAUSED" && demand.status !== "COVERED").length;
+  const pendingOffers = (dataset.offers ?? []).filter((offer) => offer.status === "pending" && receiverDemandIds.has(offer.demandId)).length;
+  const dispatchedIds = new Set(dataset.events.filter((event) => event.kind === "load.dispatched").flatMap((event) => event.subjectIds));
+  const receiverUpcomingDeliveries = dataset.bookings.filter((booking) => booking.receiverId === receiverId && booking.status === "confirmed" && !dispatchedIds.has(booking.id));
+  const materialSourcedT = dataset.verifications.filter((verification) => verification.receiverId === receiverId && verification.status === "verified").reduce((total, verification) => total + verification.acceptedT, 0);
+  const normalizedQuery = query.trim().toLowerCase();
+  const searchResults = useMemo(() => {
+    if (!normalizedQuery) return [];
+    return dataset.materials.filter((material) => {
+      if (material.status === "verified" || material.status === "cancelled") return false;
+      const project = dataset.projects.find((item) => item.id === material.projectId);
+      const values = [TYPE_LABEL[material.type] ?? material.type, material.id, material.condition, project?.name ?? ""];
+      if (material.type === "timber") values.push("wood");
+      return values.some((value) => value.toLowerCase().includes(normalizedQuery));
+    }).slice(0, 5);
+  }, [dataset.materials, dataset.projects, normalizedQuery]);
+  const firstName = user?.name?.trim().split(/\s+/)[0];
 
-  // Capacity across every slot this receiver manages.
-  const receiverSlots = dataset.slots.filter((s) => s.receiverId === receiverId).sort((a, b) => a.date.localeCompare(b.date));
-  const totalCapacityT = receiverSlots.reduce((sum, s) => sum + s.capacityT, 0);
-  const totalReservedT = receiverSlots.reduce((sum, s) => sum + (slotLedger(dataset, s.id)?.reserved ?? 0), 0);
-  const totalHeldT = receiverSlots.reduce((sum, s) => sum + (slotLedger(dataset, s.id)?.heldT ?? 0), 0);
-  const availableCapacityT = Math.max(0, totalCapacityT - totalReservedT);
+  const shortcuts: HomeCard[] = [
+    { title: "Find Materials", description: "Search recorded passports for material that fits your project.", action: "Browse materials", to: "/app/materials", image: materialMediaFor("brick") },
+    { title: "My Requests", description: "Manage material requests and review provider offers.", action: "View requests", to: "/app/receiver/demand", image: ambientMedia.sortingFacility },
+    { title: "Deliveries", description: "Follow booked and arriving loads at your facility.", action: "Track deliveries", to: "/app/receiver/deliveries", image: ambientMedia.authTruck },
+    { title: "Impact", description: "Review recorded recovery and accepted material.", action: "View reports", to: "/app/reports", image: ambientMedia.inspectionWorker },
+  ];
 
-  const receiverBookings = dataset.bookings.filter((b) => b.receiverId === receiverId);
-  const activeBookings = receiverBookings.filter((b) => b.status === "confirmed");
-  const inTransit = activeBookings.filter(
-    (b) => b.loadRef && dataset.events.some((e) => e.kind === "load.dispatched" && e.subjectIds.includes(b.id)),
-  );
-  const deliveredIds = new Set(dataset.verifications.map((v) => v.bookingId));
-  const awaitingCheck = inTransit.filter((b) => !deliveredIds.has(b.id));
-
-  const demands = (dataset.demands ?? []).filter((d) => d.receiverId === receiverId);
-  const openDemands = demands.filter((d) => d.status !== "PAUSED" && d.status !== "COVERED");
-  const pendingOffers = (dataset.offers ?? []).filter((o) => o.status === "pending");
-  const verifiedT = dataset.verifications.filter((v) => v.receiverId === receiverId && v.status === "verified").reduce((s, v) => s + v.acceptedT, 0);
-  const receivedT = dataset.verifications.filter((v) => v.receiverId === receiverId).reduce((s, v) => s + v.actualT, 0);
-  const acceptedT = dataset.verifications.filter((v) => v.receiverId === receiverId).reduce((s, v) => s + v.acceptedT, 0);
-  const latestVerification = [...dataset.verifications].sort((a, b) => (b.verifiedAt ?? "").localeCompare(a.verifiedAt ?? ""))[0];
-
-  const reduce = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (searchResults[0]) navigate(`/app/materials/${searchResults[0].id}`);
+  };
 
   return (
-    <PageMotion className="mx-auto max-w-[1200px] pb-24">
-      <PageMeta title="Receiver Home | GreenLoop" description="Demands, provider offers, yard capacity, inbound loads and verification — the receiving side of the network." />
+    <PageMotion className="mx-auto max-w-[1440px] pb-12">
+      <PageMeta title="Home | GreenLoop" description="Find recovered construction materials, manage requests, and follow deliveries to your facility." />
 
-      {/* ============================================================ */}
-      {/* HERO — the receiving yard in operation                        */}
-      {/* ============================================================ */}
       <RevealItem>
-        <header className="grid overflow-hidden border border-steel-200 bg-ink-950 shadow-sm dark:border-steel-800 lg:grid-cols-[1fr_1.45fr]">
-          <div className="flex flex-col justify-center gap-6 p-6 sm:p-8">
-            <div>
-              <p className="eyebrow-label text-loop-400">Receiving operations · {receiverData?.name ?? "Facility"}</p>
-              <h1 className="mt-3 font-archivo text-3xl font-bold uppercase leading-[1.05] tracking-tight text-white sm:text-4xl">
-                Material wanted
-              </h1>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70">
-                {greeting}{user?.name ? `, ${user.name.split(" ")[0]}` : ""} — what the yard needs, what providers are offering, and what trucks are due at the gate.
-              </p>
-            </div>
-            <dl className="grid grid-cols-3 gap-4 border-t border-white/15 pt-5">
-              <div>
-                <dd className="ledger-numeral text-2xl font-bold text-white">
-                  <Counter value={availableCapacityT} />
-                  <span className="text-sm font-semibold text-white/60"> t</span>
-                </dd>
-                <dt className="eyebrow-label mt-1 text-white/50">Free intake</dt>
+        <section className="grid overflow-hidden rounded-2xl border border-[#e6e4dc] bg-white dark:border-white/10 dark:bg-[#17241b] lg:grid-cols-[1.08fr_0.92fr]" aria-labelledby="receiver-home-title">
+          <div className="flex flex-col items-start justify-center p-6 sm:p-9 lg:p-11">
+            <p className="text-sm font-semibold text-[#54705c] dark:text-[#a6c7ad]">{greeting}{firstName ? `, ${firstName}` : ""}.</p>
+            <h1 id="receiver-home-title" className="mt-3 max-w-xl font-archivo text-3xl font-bold leading-tight tracking-tight text-[#1e2922] dark:text-white sm:text-4xl lg:text-[2.75rem]">Looking for materials?</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#657168] dark:text-gray-300 sm:text-base">Find the right recovered materials for your next project. Access quality construction materials and make your work more sustainable.</p>
+            <form id="material-search" onSubmit={handleSearch} className="mt-6 flex w-full max-w-xl rounded-lg border border-[#d9ddd7] bg-white p-1 focus-within:border-[#548866] focus-within:ring-2 focus-within:ring-[#548866]/15 dark:border-white/15 dark:bg-[#101913]">
+              <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search materials" placeholder="Search for materials (e.g. bricks, steel, wood...)" className="min-w-0 flex-1 bg-transparent px-3 text-sm text-[#26342b] outline-none placeholder:text-[#8a938b] dark:text-white dark:placeholder:text-gray-500" />
+              <button type="submit" aria-label="Search materials" className="flex size-10 shrink-0 items-center justify-center rounded-md bg-[#33734f] text-white transition-colors hover:bg-[#285e40]"><SearchIcon className="size-5" /></button>
+            </form>
+            {normalizedQuery && (
+              <div className="mt-2 w-full max-w-xl overflow-hidden rounded-lg border border-[#e6e4dc] bg-white dark:border-white/10 dark:bg-[#17241b]" aria-live="polite">
+                {searchResults.length > 0 ? searchResults.map((material) => <MaterialResult key={material.id} material={material} />) : <p className="p-4 text-sm text-[#667168] dark:text-gray-300">No available material passports match that search.</p>}
               </div>
-              <div>
-                <dd className="ledger-numeral text-2xl font-bold text-loop-300">
-                  <Counter value={verifiedT} />
-                  <span className="text-sm font-semibold text-white/60"> t</span>
-                </dd>
-                <dt className="eyebrow-label mt-1 text-white/50">Verified in</dt>
-              </div>
-              <div>
-                <dd className="ledger-numeral text-2xl font-bold text-white">{pendingOffers.length}</dd>
-                <dt className="eyebrow-label mt-1 text-white/50">Offers waiting</dt>
-              </div>
-              <dt className="sr-only">Facility</dt>
-              <dd className="sr-only">{receiverData?.name}</dd>
-            </dl>
-            <div className="flex flex-wrap gap-2">
-              <Link to="/app/receiver/capacity" className="inline-flex min-h-11 items-center border border-white/40 px-4 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-white/10">
-                Manage capacity
-              </Link>
-              <Link to="/app/receiver/demand" className="inline-flex min-h-11 items-center border border-white/40 px-4 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-white/10">
-                Review offers
-              </Link>
-            </div>
-            <p className="ledger-numeral text-xs text-white/50">
-              {receiverData?.location ?? "Yard"} · intake {receiverSlots.length > 0 ? `${formatDate(receiverSlots[0].date)}` : "slots to plan"}
-            </p>
+            )}
+            <Link to="/app/receiver/demand" className="mt-4 text-sm font-semibold text-[#477e5d] underline decoration-[#b7cabb] underline-offset-4 hover:text-[#285e40] dark:text-[#a6c7ad]">Can’t find it? Request material <span aria-hidden="true">→</span></Link>
           </div>
-          <VideoPanel
-            video={ambientVideo.receiving}
-            aspect="min-h-[280px] lg:min-h-[420px] h-full"
-            scrim="bg-gradient-to-t from-ink-950/60 via-ink-950/10 to-ink-950/30"
-            caption={`${receiverData?.name ?? "Receiving yard"} · live intake`}
-          />
-        </header>
-      </RevealItem>
-
-      {/* ============================================================ */}
-      {/* MATERIAL WE NEED — the yard's live demand                     */}
-      {/* ============================================================ */}
-      <RevealItem className="mt-6">
-        <section aria-label="Material we need">
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
-            <div>
-              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Published demand</p>
-              <h2 className="mt-1 font-archivo text-2xl font-bold tracking-tight text-ink-900 dark:text-white">Material we need</h2>
+          <div className="relative min-h-56 bg-[#d8d7cd] sm:min-h-72 lg:min-h-[330px]">
+            <img src={ambientMedia.sortingFacility.src} alt={ambientMedia.sortingFacility.alt} fetchPriority="high" className="absolute inset-0 size-full object-cover" />
+            <span className="absolute inset-0 bg-[#18231c]/15" aria-hidden="true" />
+            <div className="absolute inset-x-4 bottom-4 rounded-lg bg-[#17251d]/85 p-3 text-white sm:inset-x-auto sm:right-5 sm:bottom-5 sm:max-w-64 sm:p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/70">Materials for what’s next</p>
+              <p className="mt-1 text-sm font-medium leading-5">Quality recovered material, ready to find its next project.</p>
             </div>
-            <Link to="/app/receiver/demand" className="text-sm font-semibold text-ink-900 underline underline-offset-4 hover:text-loop-600 dark:text-white">
-              Manage demands
-            </Link>
-          </div>
-          {openDemands.length > 0 ? (
-            <ul className="grid gap-5 lg:grid-cols-2">
-              {openDemands.slice(0, 4).map((demand) => (
-                <li key={demand.id}>
-                  <Link
-                    to="/app/receiver/demand"
-                    className="group grid border border-steel-200 bg-white shadow-sm transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white sm:grid-cols-[0.9fr_1.1fr]"
-                  >
-                    <MediaPanel
-                      media={materialMediaFor(demand.materialType)}
-                      aspect="h-full min-h-[160px]"
-                      scrim="bg-gradient-to-t from-ink-950/60 via-transparent to-transparent"
-                      className="border-0 border-b border-steel-200 sm:border-b-0 sm:border-e dark:border-steel-800"
-                      caption={`${TYPE_LABEL[demand.materialType] ?? demand.materialType} wanted`}
-                    />
-                    <div className="flex flex-col justify-center p-5">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-archivo text-xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">
-                          {TYPE_LABEL[demand.materialType] ?? demand.materialType}
-                        </p>
-                        <StatusChip status={demandChip(demand.status)} label={demand.status === "PARTIALLY_COVERED" ? "Part covered" : "Open"} />
-                      </div>
-                      <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
-                        <span className="ledger-numeral text-2xl font-bold text-loop-700 dark:text-loop-400">{demand.requiredT.toFixed(1)} t</span>
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">needed by {demand.period}</span>
-                      </p>
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">Receiving at {receiverData?.name}</p>
-                      <span className="mt-3 text-xs font-bold uppercase tracking-wider text-ink-900 underline underline-offset-4 group-hover:text-loop-600 dark:text-white">
-                        View request
-                      </span>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="border border-steel-200 bg-white p-6 text-sm text-gray-500 dark:border-steel-800 dark:bg-white/[0.02] dark:text-gray-400">
-              No open demand — publish what the yard needs to attract provider offers.
-            </p>
-          )}
-        </section>
-      </RevealItem>
-
-      {/* ============================================================ */}
-      {/* OFFERS FROM PROVIDERS                                         */}
-      {/* ============================================================ */}
-      <RevealItem className="mt-12">
-        <section aria-label="Offers from providers">
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
-            <div>
-              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Incoming material</p>
-              <h2 className="mt-1 font-archivo text-2xl font-bold tracking-tight text-ink-900 dark:text-white">Offers from providers</h2>
-            </div>
-            <Link to="/app/receiver/demand" className="text-sm font-semibold text-ink-900 underline underline-offset-4 hover:text-loop-600 dark:text-white">
-              Review offers
-            </Link>
-          </div>
-          {pendingOffers.length > 0 ? (
-            <ul className="grid gap-5 lg:grid-cols-2">
-              {pendingOffers.slice(0, 4).map((offer) => {
-                const passport = dataset.materials.find((m) => m.id === offer.passportId);
-                const project = passport ? dataset.projects.find((p) => p.id === passport.projectId) : undefined;
-                return (
-                  <li key={offer.id}>
-                    <div className="grid border border-steel-200 bg-white shadow-sm dark:border-steel-800 dark:bg-white/[0.02] sm:grid-cols-[0.9fr_1.1fr]">
-                      <MediaPanel
-                        media={materialMediaFor(passport?.type ?? "")}
-                        aspect="h-full min-h-[160px]"
-                        scrim="bg-gradient-to-t from-ink-950/60 via-transparent to-transparent"
-                        className="border-0 border-b border-steel-200 sm:border-b-0 sm:border-e dark:border-steel-800"
-                        caption={passport ? `${TYPE_LABEL[passport.type] ?? passport.type} offered` : "Material offered"}
-                      />
-                      <div className="flex flex-col justify-center p-5">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="ledger-numeral text-2xl font-bold text-ink-900 dark:text-white">{offer.offeredQuantityT.toFixed(1)} t</p>
-                          <StatusChip status={offerChip(offer.status)} label="Pending review" />
-                        </div>
-                        <p className="mt-1 font-archivo text-base font-bold uppercase text-ink-900 dark:text-white">
-                          {TYPE_LABEL[passport?.type ?? ""] ?? passport?.type ?? "Material"}
-                        </p>
-                        <p className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-                          {project?.name ?? "Provider project"} · {passport ? `${passport.condition} condition` : "passport on file"}
-                        </p>
-                        <div className="mt-4 flex items-center gap-3">
-                          <Link
-                            to="/app/receiver/demand"
-                            className="inline-flex min-h-9 items-center bg-ink-900 px-4 text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-loop-700 dark:bg-white dark:text-ink-900"
-                          >
-                            Review offer
-                          </Link>
-                          {passport && (
-                            <Link to={`/app/materials/${passport.id}`} className="text-xs font-bold uppercase tracking-wider text-ink-900 underline underline-offset-4 hover:text-loop-600 dark:text-white">
-                              View passport
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="border border-steel-200 bg-white p-6 text-sm text-gray-500 dark:border-steel-800 dark:bg-white/[0.02] dark:text-gray-400">
-              No offers waiting — open demand is visible to providers across the network.
-            </p>
-          )}
-        </section>
-      </RevealItem>
-
-      {/* ============================================================ */}
-      {/* CAPACITY — the yard ledger                                    */}
-      {/* ============================================================ */}
-      <RevealItem className="mt-12">
-        <section aria-label="Yard capacity">
-          <div className="grid border border-steel-200 bg-white shadow-sm dark:border-steel-800 dark:bg-white/[0.02] lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="p-6 sm:p-8">
-              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Intake ledger</p>
-              <h2 className="mt-1 font-archivo text-2xl font-bold tracking-tight text-ink-900 dark:text-white">Receiving capacity</h2>
-              <div className="mt-5 flex flex-wrap items-baseline gap-x-8 gap-y-3">
-                <div>
-                  <p className="ledger-numeral text-4xl font-bold text-ink-900 dark:text-white">
-                    <Counter value={totalCapacityT} />
-                    <span className="text-sm font-semibold text-steel-500"> t total</span>
-                  </p>
-                  <p className="eyebrow-label mt-1 text-steel-500 dark:text-steel-400">Across {receiverSlots.length} planned slots</p>
-                </div>
-                <div>
-                  <p className="ledger-numeral text-4xl font-bold text-loop-600 dark:text-loop-400">
-                    <Counter value={availableCapacityT} />
-                    <span className="text-sm font-semibold text-steel-500"> t free</span>
-                  </p>
-                  <p className="eyebrow-label mt-1 text-steel-500 dark:text-steel-400">{totalHeldT > 0 ? `${totalHeldT.toFixed(1)} t held for review` : "Nothing on hold"}</p>
-                </div>
-              </div>
-              <div className="mt-6 space-y-5">
-                {receiverSlots.slice(0, 3).map((slot) => {
-                  const ledger = slotLedger(dataset, slot.id);
-                  return (
-                    <div key={slot.id}>
-                      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-bold text-ink-900 dark:text-white">
-                          {formatDate(slot.date)} · {TYPE_LABEL[slot.materialType] ?? slot.materialType}
-                        </p>
-                        <span className="ledger-numeral text-xs text-gray-500 dark:text-gray-400">
-                          {ledger?.available.toFixed(1) ?? "0.0"} t free of {slot.capacityT.toFixed(1)} t
-                        </span>
-                      </div>
-                      <div className="h-2.5 w-full overflow-hidden rounded-sm bg-steel-100 dark:bg-steel-900">
-                        <motion.div
-                          className="h-full bg-loop-600 dark:bg-loop-400"
-                          initial={reduce ? false : { width: 0 }}
-                          animate={{ width: `${Math.min(100, (((ledger?.reserved ?? 0) + (ledger?.heldT ?? 0)) / Math.max(slot.capacityT, 0.0001)) * 100)}%` }}
-                          transition={{ duration: 0.7 }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <Link to="/app/receiver/capacity" className="mt-6 inline-block text-sm font-semibold text-ink-900 underline underline-offset-4 hover:text-loop-600 dark:text-white">
-                Manage intake slots
-              </Link>
-            </div>
-            <MediaPanel
-              media={receiverMediaFor(receiverId)}
-              aspect="min-h-[240px] lg:min-h-[320px] h-full"
-              scrim="bg-gradient-to-t from-ink-950/55 via-transparent to-transparent"
-              className="border-0 border-t border-steel-200 lg:border-s lg:border-t-0 dark:border-steel-800"
-              caption={`${receiverData?.name ?? "The yard"} · stockpiles and intake bays`}
-            />
           </div>
         </section>
       </RevealItem>
 
-      {/* ============================================================ */}
-      {/* INBOUND — what trucks are arriving                            */}
-      {/* ============================================================ */}
-      <RevealItem className="mt-12">
-        <section aria-label="Inbound loads">
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
-            <div>
-              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Due at the gate</p>
-              <h2 className="mt-1 font-archivo text-2xl font-bold tracking-tight text-ink-900 dark:text-white">Inbound loads</h2>
-            </div>
-            <Link to="/app/receiver/deliveries" className="text-sm font-semibold text-ink-900 underline underline-offset-4 hover:text-loop-600 dark:text-white">
-              Delivery board
-            </Link>
+      <RevealItem className="mt-7">
+        <section aria-labelledby="receiver-activity-title">
+          <div className="mb-3">
+            <h2 id="receiver-activity-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Your Activity</h2>
+            <p className="mt-1 text-xs text-[#748078] dark:text-gray-400">Requests and deliveries for your receiving workspace.</p>
           </div>
-          {activeBookings.length > 0 ? (
-            <ul className="grid gap-5 lg:grid-cols-3">
-              {activeBookings.slice(0, 3).map((booking) => {
-                const dispatched = inTransit.some((b) => b.id === booking.id);
-                const verified = deliveredIds.has(booking.id);
-                const material = dataset.materials.find((m) => m.id === booking.materialId);
-                const project = dataset.projects.find((p) => p.id === material?.projectId);
-                const chip: KitStatus = verified ? "verified" : dispatched ? "active" : "confirmed";
-                return (
-                  <li key={booking.id}>
-                    <Link
-                      to={dispatched && !verified ? "/app/receiver/verification" : "/app/receiver/deliveries"}
-                      className="group block border border-steel-200 bg-white p-5 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-archivo text-base font-bold uppercase text-ink-900 dark:text-white">
-                          <span className="ledger-numeral me-2 text-xs text-steel-400">{booking.id}</span>
-                          {booking.tonnesT.toFixed(1)} t {TYPE_LABEL[material?.type ?? ""] ?? material?.type}
-                        </p>
-                        <StatusChip status={chip} label={verified ? "Received" : dispatched ? "In transit" : "Booked"} />
-                      </div>
-                      <p className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-                        From {project?.name ?? "provider project"} · {booking.slotId.includes("-") ? booking.slotId.split("-").slice(-2).join(" ") : booking.slotId}
-                      </p>
-                      <div className="mt-4">
-                        <JourneyStrip current={verified ? 4 : dispatched ? 2 : 1} />
-                      </div>
-                      <p className="mt-3 text-xs font-bold uppercase tracking-wider text-ink-900 underline underline-offset-4 group-hover:text-loop-600 dark:text-white">
-                        {dispatched && !verified ? "Check delivery" : "Open delivery"}
-                      </p>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="border border-steel-200 bg-white p-6 text-sm text-gray-500 dark:border-steel-800 dark:bg-white/[0.02] dark:text-gray-400">
-              Nothing inbound yet — accept a request or an offer to fill the yard.
-            </p>
-          )}
-          {awaitingCheck.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-signal-300 bg-signal-50 p-4 dark:border-signal-500/40 dark:bg-signal-500/10">
-              <p className="text-sm font-semibold text-signal-800 dark:text-signal-200">
-                {awaitingCheck.length} load{awaitingCheck.length === 1 ? "" : "s"} arrived and awaiting weighbridge check.
-              </p>
-              <Link to="/app/receiver/verification" className="inline-flex min-h-10 items-center bg-ink-900 px-4 text-xs font-bold uppercase tracking-wide text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">
-                Check &amp; accept
-              </Link>
-            </div>
-          )}
-        </section>
-      </RevealItem>
-
-      {/* ============================================================ */}
-      {/* VERIFICATION — the latest receiving record                    */}
-      {/* ============================================================ */}
-      <RevealItem className="mt-12">
-        <section aria-label="Verification">
-          <div className="grid border border-steel-200 bg-white shadow-sm dark:border-steel-800 dark:bg-white/[0.02] lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="p-6 sm:p-8">
-              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Check &amp; accept</p>
-              <h2 className="mt-1 font-archivo text-2xl font-bold tracking-tight text-ink-900 dark:text-white">Latest verification</h2>
-              {latestVerification ? (
-                <>
-                  <dl className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-4">
-                    {[
-                      { label: "Expected", value: latestVerification.plannedT },
-                      { label: "Received", value: latestVerification.actualT },
-                      { label: "Accepted", value: latestVerification.acceptedT },
-                      { label: "Variance", value: latestVerification.actualT - latestVerification.acceptedT },
-                    ].map((row) => (
-                      <div key={row.label}>
-                        <dd className="ledger-numeral text-2xl font-bold text-ink-900 dark:text-white">
-                          <Counter value={row.value} />
-                          <span className="text-sm font-semibold text-steel-500"> t</span>
-                        </dd>
-                        <dt className="eyebrow-label mt-1 text-steel-500 dark:text-steel-400">{row.label}</dt>
-                      </div>
-                    ))}
-                  </dl>
-                  <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-                    {latestVerification.loadRef} · {TYPE_LABEL[dataset.materials.find((m) => m.id === latestVerification.materialId)?.type ?? ""] ?? "material"} · {latestVerification.status === "verified" ? "verified recovery" : latestVerification.status}
-                  </p>
-                  <Link to="/app/receiver/verification" className="mt-5 inline-block text-sm font-semibold text-ink-900 underline underline-offset-4 hover:text-loop-600 dark:text-white">
-                    Open check &amp; accept
-                  </Link>
-                </>
-              ) : (
-                <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">No verification records yet — they appear as loads arrive at the weighbridge.</p>
-              )}
-            </div>
-            <MediaPanel
-              media={ambientMedia.inspectionWorker}
-              aspect="min-h-[240px] lg:min-h-[320px] h-full"
-              scrim="bg-gradient-to-t from-ink-950/55 via-transparent to-transparent"
-              className="border-0 border-t border-steel-200 lg:border-s lg:border-t-0 dark:border-steel-800"
-              caption="Every load inspected before acceptance"
-            />
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <ActivityCard icon={<TaskIcon className="size-5" />} label="Active Requests" value={String(activeRequests)} detail="Manage requests" to="/app/receiver/demand" />
+            <ActivityCard icon={<BoxMoving className="size-5" />} label="Offers to Review" value={String(pendingOffers)} detail="Review offers" to="/app/receiver/demand" />
+            <ActivityCard icon={<TruckDelivery className="size-5" />} label="Upcoming Deliveries" value={String(receiverUpcomingDeliveries.length)} detail="Track loads" to="/app/receiver/deliveries" />
+            <ActivityCard icon={<CheckCircleIcon className="size-5" />} label="Material Sourced" value={`${materialSourcedT.toFixed(1)} t`} detail="View impact" to="/app/reports" />
           </div>
         </section>
       </RevealItem>
 
-      {/* ============================================================ */}
-      {/* RECEIVING PERFORMANCE                                         */}
-      {/* ============================================================ */}
-      <RevealItem className="mt-12">
-        <section aria-label="Receiving performance" className="bg-ink-950 p-6 sm:p-8 dark:bg-black/40">
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <div>
-              <p className="eyebrow-label text-loop-400">Receiving performance</p>
-              <h2 className="mt-1 font-archivo text-2xl font-bold tracking-tight text-white">What the yard has taken in</h2>
-            </div>
-            <Link to="/app/reports" className="text-sm font-semibold text-loop-300 underline underline-offset-4 hover:text-loop-200">
-              Open reports
-            </Link>
+      <RevealItem className="mt-8">
+        <section aria-labelledby="receiver-shortcuts-title">
+          <div className="mb-4">
+            <h2 id="receiver-shortcuts-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Explore GreenLoop</h2>
+            <p className="mt-1 text-xs text-[#748078] dark:text-gray-400">Find material, keep requests moving, and follow each delivery.</p>
           </div>
-          <dl className="mt-6 grid grid-cols-2 gap-6 border-t border-white/15 pt-6 sm:grid-cols-4">
-            {[
-              { label: "Received", value: receivedT, reached: receivedT > 0 },
-              { label: "Accepted", value: acceptedT, reached: acceptedT > 0 },
-              { label: "Awaiting check", value: awaitingCheck.reduce((s, b) => s + b.tonnesT, 0), reached: awaitingCheck.length > 0 },
-              { label: "Verified recovery", value: verifiedT, reached: verifiedT > 0 },
-            ].map((stage) => (
-              <div key={stage.label} className={`border-t-2 pt-3 ${stage.reached ? "border-loop-400" : "border-white/15"}`}>
-                <dd className={`ledger-numeral text-2xl font-bold ${stage.reached ? "text-white" : "text-white/40"}`}>
-                  <Counter value={stage.value} />
-                  <span className="text-sm font-semibold text-white/60"> t</span>
-                </dd>
-                <dt className={`eyebrow-label mt-1 ${stage.reached ? "text-white/70" : "text-white/40"}`}>{stage.label}</dt>
-              </div>
-            ))}
-          </dl>
-          <p className="mt-6 text-xs text-white/50">The provider sees the same tonnage — one shared ledger across the network.</p>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {shortcuts.map((shortcut) => <ShortcutCard key={shortcut.title} {...shortcut} />)}
+          </div>
         </section>
       </RevealItem>
     </PageMotion>

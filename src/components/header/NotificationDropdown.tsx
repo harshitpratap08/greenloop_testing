@@ -58,7 +58,7 @@ export default function NotificationDropdown() {
   return (
     <div className="relative">
       <button
-        className="dropdown-toggle relative flex h-11 w-11 items-center justify-center rounded-md border border-steel-200 bg-white text-gray-500 transition-colors hover:bg-gray-100 hover:text-ink-900 dark:border-steel-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+        className="dropdown-toggle relative flex h-8 w-8 items-center justify-center rounded-lg border border-[#deded5] bg-white text-[#526157] transition-colors hover:bg-[#e9eee8] sm:h-9 sm:w-9 xl:h-10 xl:w-10"
         onClick={handleClick}
         aria-label="Activity"
       >
