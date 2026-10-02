@@ -2,7 +2,6 @@ import CapacityBar from "@/components/greenloop/CapacityBar";
 import EventLog from "@/components/greenloop/EventLog";
 import RecoveryFlow from "@/components/greenloop/RecoveryFlow";
 import StatusBadge from "@/components/greenloop/StatusBadge";
-import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
 import Badge from "@/components/ui/badge/Badge";
 import { reservedT, slotLedger } from "@/domain/capacity";
@@ -10,7 +9,9 @@ import { STORY } from "@/domain/demoData";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { Link } from "react-router";
 import { formatDate } from "@/utils";
-import { ProjectSiteMedia, materialMedia } from "@/components/greenloop/AppExploration";
+import { ProjectStatusChip, materialMedia } from "@/components/greenloop/AppExploration";
+import { ambientMedia, projectMediaFor } from "@/config/appMedia";
+import { cn } from "@/utils";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -28,220 +29,301 @@ export default function Operations() {
   const upcomingBookings = dataset.bookings.filter((b) => b.status !== "cancelled").slice(0, 6);
   const readyToSend = dataset.bookings.filter((booking) => booking.status === "confirmed" && booking.receiverAcceptedAt && !booking.loadRef);
   const unassignedMaterials = dataset.materials.filter((material) => material.status !== "verified" && material.status !== "dispatched" && !dataset.allocations.some((allocation) => allocation.materialId === material.id && allocation.status !== "cancelled"));
-  
+
   const attentionTasks: Array<{ id: string; title: string; action: string; to: string; materialId?: string }> = [
     ...unassignedMaterials.map((material) => ({ id: material.id, title: `${material.quantityT.toFixed(1)} t ${material.type} needs a receiver`, action: "Find receiver", to: "/app/receivers", materialId: material.id })),
     ...readyToSend.map((booking) => ({ id: booking.id, title: `${booking.tonnesT.toFixed(1)} t booking is ready to dispatch`, action: "Send load", to: "/app/deliveries" })),
     ...holdBookings.map((booking) => ({ id: booking.id, title: `${booking.tonnesT.toFixed(1)} t request is waiting on capacity`, action: "Review booking", to: "/app/bookings" })),
   ];
 
-  // Pick the most active project
   const activeProject = dataset.projects[0];
   const projectMaterials = dataset.materials.filter((m) => m.projectId === activeProject?.id);
-
+  const surveyedTotal = dataset.materials.reduce((total, material) => total + material.quantityT, 0);
+  const verifiedTotal = dataset.verifications.filter((record) => record.status === "verified").reduce((total, record) => total + record.acceptedT, 0);
+  const dispatchedBookingIds = new Set(
+    dataset.events.filter((event) => event.kind === "load.dispatched").flatMap((event) => event.subjectIds.filter((id) => dataset.bookings.some((booking) => booking.id === id))),
+  );
+  const dispatchedTotal = dataset.bookings.filter((booking) => dispatchedBookingIds.has(booking.id)).reduce((total, booking) => total + booking.tonnesT, 0);
+  const activeBookingCount = dataset.bookings.filter((booking) => booking.status === "confirmed" || booking.status === "hold" || booking.status === "pending").length;
   const scenarioLedger = slotLedger(dataset, STORY.concreteSlotSept24);
   const nextSlotLedger = slotLedger(dataset, STORY.concreteSlotSept28);
   const receiverName = (id: string) => dataset.receivers.find((r) => r.id === id)?.name ?? id;
-  const materialName = (id: string) => dataset.materials.find((m) => m.id === id)?.type ?? id;
+  const materialName = (id: string) => TYPE_LABEL[dataset.materials.find((m) => m.id === id)?.type ?? ""] ?? dataset.materials.find((m) => m.id === id)?.type ?? id;
   const projectName = (id: string) => dataset.projects.find((p) => p.id === id)?.name ?? id;
   const materialProject = (materialId: string) => dataset.materials.find((m) => m.id === materialId)?.projectId ?? "";
 
   return (
-    <div className="mx-auto max-w-[1200px] pb-24 space-y-12">
+    <div className="mx-auto max-w-[1200px] space-y-4 pb-16">
       <PageMeta
         title="Operations | GreenLoop"
         description="GreenLoop circular material recovery operations dashboard."
       />
-      <PageBreadCrumb pageTitle="Operations console" />
 
-      {/* 1. Priority Action */}
-      <section className="bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-900/50 p-6 shadow-sm">
-        <h2 className="font-archivo text-2xl font-bold uppercase tracking-tight text-ink-900 dark:text-amber-500 mb-4">Needs Attention</h2>
+      <header className="relative min-h-40 overflow-hidden rounded-xl border border-[#e5e1d8] bg-[#17291e] sm:min-h-44 dark:border-steel-800">
+        <img src={ambientMedia.surveyHero.src} alt={ambientMedia.surveyHero.alt} className="absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/95 via-[#17291e]/75 to-[#17291e]/20" aria-hidden="true" />
+        <div className="relative flex min-h-40 max-w-3xl flex-col justify-end px-5 py-5 text-white sm:min-h-44 sm:px-7 sm:py-6">
+          <p className="eyebrow-label text-loop-300">Operations console</p>
+          <h1 className="mt-1 font-archivo text-3xl font-bold tracking-tight sm:text-4xl">Operations console</h1>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/85">
+            Get a real-time view of your projects, materials, deliveries and recovery operations.
+          </p>
+        </div>
+      </header>
+
+      <section className="border border-amber-200 bg-amber-50/80 p-3 dark:border-amber-900/50 dark:bg-amber-900/10 sm:p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="flex size-6 items-center justify-center border border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-300" aria-hidden="true">
+            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3 21 19H3L12 3Z" /><path d="M12 9v4M12 16.5h.01" /></svg>
+          </span>
+          <h2 className="font-archivo text-sm font-bold uppercase tracking-wide text-amber-950 dark:text-amber-200">Needs Attention</h2>
+          {attentionTasks.length > 0 && <span className="ledger-numeral text-xs font-semibold text-amber-800 dark:text-amber-300">{attentionTasks.length}</span>}
+        </div>
         {attentionTasks.length ? (
-          <ul className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            {attentionTasks.slice(0, 3).map((task) => (
-              <li key={task.id} className="flex flex-col justify-between gap-4 bg-white dark:bg-white/[0.02] border border-amber-200 dark:border-amber-900/50 p-5 shadow-sm">
-                <p className="font-semibold text-ink-900 dark:text-white">{task.title}</p>
-                <Link to={task.to} state={task.materialId ? { materialId: task.materialId } : {}} className="inline-flex w-fit items-center bg-ink-900 px-6 py-2 text-sm font-bold uppercase tracking-wide text-white hover:bg-amber-500 dark:bg-white dark:text-ink-900">
-                  {task.action}
-                </Link>
-              </li>
-            ))}
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {attentionTasks.map((task) => {
+              const material = task.materialId ? dataset.materials.find((item) => item.id === task.materialId) : undefined;
+              const media = material ? materialMedia(material)[0] : undefined;
+              return (
+                <li key={task.id} className="flex min-w-0 items-center gap-3 border border-amber-200 bg-white p-2.5 dark:border-amber-900/50 dark:bg-white/[0.03]">
+                  {media ? (
+                    <img src={media.src} alt={media.caption} className="size-12 shrink-0 border border-steel-200 object-cover dark:border-steel-800" />
+                  ) : (
+                    <span className="flex size-12 shrink-0 items-center justify-center border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 7h11v11H3zM14 11h4l3 3v4h-7z" /><circle cx="7.5" cy="18" r="1.5" /><circle cx="17.5" cy="18" r="1.5" /></svg>
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold leading-snug text-ink-900 dark:text-white">{task.title}</p>
+                    <Link to={task.to} state={task.materialId ? { materialId: task.materialId } : {}} className="mt-1.5 inline-flex min-h-7 items-center bg-ink-900 px-2.5 text-[10px] font-bold uppercase tracking-wide text-white transition-colors hover:bg-loop-700 dark:bg-white dark:text-ink-900">
+                      {task.action} <span className="ml-1" aria-hidden="true">→</span>
+                    </Link>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : (
-          <p className="text-steel-600 dark:text-amber-200/70 font-medium">All operations are running smoothly. Nothing needs immediate action.</p>
+          <p className="border border-amber-200/80 bg-white/70 px-3 py-2 text-sm font-medium text-steel-700 dark:border-amber-900/50 dark:bg-white/[0.02] dark:text-amber-200/80">All operations are running smoothly. Nothing needs immediate action.</p>
         )}
       </section>
 
-      {/* 2. Active Recovery / Project */}
       {activeProject && (
-        <section>
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <p className="eyebrow-label text-steel-500">Active Recovery Project</p>
-              <h2 className="font-archivo text-3xl font-bold uppercase tracking-tight text-ink-900 dark:text-white mt-1">{activeProject.name}</h2>
+        <section className="grid gap-3 lg:grid-cols-[1.45fr_1fr]">
+          <article className="overflow-hidden rounded-lg border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02]">
+            <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-4 sm:px-5">
+              <div className="min-w-0">
+                <p className="eyebrow-label text-steel-500 dark:text-steel-400">Active recovery project</p>
+                <h2 className="mt-0.5 truncate font-archivo text-lg font-bold uppercase tracking-tight text-ink-900 dark:text-white sm:text-xl">{activeProject.name}</h2>
+              </div>
+              <Link to="/app/projects" className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-loop-800 hover:text-loop-600 dark:text-loop-300 dark:hover:text-loop-200 sm:text-xs">
+                View all projects <span aria-hidden="true">→</span>
+              </Link>
             </div>
-            <Link to="/app/projects" className="font-bold uppercase text-sm tracking-wider underline underline-offset-4 hover:text-loop-600">All Projects</Link>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <div className="border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
-                <ProjectSiteMedia projectId={activeProject.id} />
-                <div className="mt-6 flex flex-wrap gap-8">
-                  <div>
-                    <p className="eyebrow-label text-steel-500 mb-1">Location</p>
-                    <p className="font-medium text-ink-900 dark:text-gray-300">{activeProject.location}</p>
-                  </div>
-                  <div>
-                    <p className="eyebrow-label text-steel-500 mb-1">Surveyed Volume</p>
-                    <p className="ledger-numeral font-bold text-ink-900 dark:text-white text-xl">
-                      {projectMaterials.reduce((acc, m) => acc + m.quantityT, 0).toFixed(1)} <span className="text-sm text-steel-500">t</span>
-                    </p>
-                  </div>
-                </div>
+            <div className="relative mx-4 h-36 overflow-hidden border border-steel-200 sm:mx-5 sm:h-40 dark:border-steel-800">
+              <img src={projectMediaFor(activeProject).src} alt={projectMediaFor(activeProject).alt} className="size-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#13251b]/80 via-transparent to-transparent" aria-hidden="true" />
+              <div className="absolute bottom-2.5 left-2.5 right-2.5 flex flex-wrap items-end justify-between gap-2">
+                <span className="border border-white/25 bg-[#17291e]/85 px-2.5 py-1 text-xs font-medium text-white">{activeProject.location}</span>
+                <ProjectStatusChip status={activeProject.status} />
               </div>
             </div>
-            <div className="border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02] flex flex-col">
-              <h3 className="font-archivo text-xl font-bold uppercase tracking-tight text-ink-900 dark:text-white mb-6">Current Stage</h3>
-              <RecoveryFlow dataset={dataset} />
-              <div className="mt-auto pt-6 border-t border-steel-100 dark:border-steel-800/50">
-                <Link to="/app/materials/new" className="block text-center border-2 border-ink-900 px-4 py-3 font-bold uppercase tracking-wide hover:bg-ink-900 hover:text-white dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-ink-900">
-                  New Survey
-                </Link>
-              </div>
+            <div className="grid grid-cols-2 gap-3 px-4 py-3 sm:grid-cols-3 sm:px-5">
+              <ProjectMetric label="Surveyed volume" value={`${projectMaterials.reduce((acc, material) => acc + material.quantityT, 0).toFixed(1)} t`} />
+              <ProjectMetric label="Material types" value={String(new Set(projectMaterials.map((material) => material.type)).size)} />
+              <ProjectMetric label="Passports" value={String(projectMaterials.length)} />
             </div>
-          </div>
+          </article>
+
+          <article className="flex flex-col rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div>
+                <p className="eyebrow-label text-steel-500 dark:text-steel-400">Project workflow</p>
+                <h2 className="mt-0.5 font-archivo text-base font-bold uppercase tracking-wide text-ink-900 dark:text-white">Current stage</h2>
+              </div>
+              <span className="text-[10px] font-medium text-steel-500 dark:text-steel-400">Live passports</span>
+            </div>
+            <RecoveryFlow dataset={dataset} />
+            <div className="mt-auto border-t border-steel-100 pt-3 dark:border-steel-800">
+              <Link to="/app/materials/new" className="inline-flex min-h-10 w-full items-center justify-center gap-2 bg-[#315c3d] px-4 text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#254a30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-loop-600">
+                <span aria-hidden="true" className="text-base leading-none">+</span> New Survey
+              </Link>
+            </div>
+          </article>
         </section>
       )}
 
-      {/* 3. Materials Needing Action & 4. Receiver Capacity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <section>
-          <div className="flex items-end justify-between mb-4">
-            <h3 className="font-archivo text-2xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">Recent Passports</h3>
-            <Link to="/app/materials" className="font-bold uppercase text-sm tracking-wider underline underline-offset-4 hover:text-loop-600">All Materials</Link>
-          </div>
-          <div className="space-y-4">
-            {dataset.materials.slice(0, 3).map(material => {
+      <section className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4" aria-label="Operations summary">
+        <KpiCard label="Material surveyed" value={surveyedTotal.toFixed(1)} suffix=" t" hint={`${dataset.materials.length} live passports`} icon="materials" />
+        <KpiCard label="Verified recovery" value={verifiedTotal.toFixed(1)} suffix=" t" hint={`${dataset.verifications.length} verifications logged`} icon="verified" positive />
+        <KpiCard label="Dispatched" value={dispatchedTotal.toFixed(1)} suffix=" t" hint="Loads en route or received" icon="dispatch" />
+        <KpiCard label="Bookings placed" value={String(dataset.bookings.length)} hint={`${activeBookingCount} active now`} icon="bookings" />
+      </section>
+
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_1.2fr_1fr]">
+        <section className="rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02]">
+          <SectionHeading title="Recent Passports" to="/app/materials" action="All materials" />
+          <ul className="mt-3 space-y-2">
+            {dataset.materials.slice(0, 3).map((material) => {
               const media = materialMedia(material);
               return (
-                <div key={material.id} className="flex border border-steel-200 bg-white shadow-sm hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white transition-colors group">
-                  <div className="w-32 shrink-0 border-r border-steel-200 dark:border-steel-800 bg-steel-100 dark:bg-steel-900">
-                    {media[0] ? <img src={media[0].src} className="size-full object-cover" alt="material" /> : <div className="flex size-full items-center justify-center text-xs text-steel-400">No media</div>}
-                  </div>
-                  <div className="p-4 flex flex-col flex-1 justify-center">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-archivo font-bold text-lg uppercase text-ink-900 dark:text-white">{TYPE_LABEL[material.type] ?? material.type}</h4>
-                      <StatusBadge status={material.status} />
-                    </div>
-                    <div className="mt-2 flex gap-4 text-sm">
-                      <span className="text-steel-600 dark:text-steel-400"><span className="ledger-numeral font-bold text-ink-900 dark:text-gray-200">{material.quantityT.toFixed(1)}</span> t</span>
-                      <span className="text-steel-600 dark:text-steel-400 capitalize">{material.condition}</span>
-                    </div>
-                    <Link to={`/app/materials/${material.id}`} className="mt-3 text-xs font-bold uppercase tracking-wider text-ink-900 underline underline-offset-4 dark:text-white hover:text-loop-600 group-hover:text-loop-600">View Passport</Link>
-                  </div>
-                </div>
+                <li key={material.id}>
+                  <Link to={`/app/materials/${material.id}`} className="group flex min-w-0 items-center gap-2.5 border border-steel-200 p-2 transition-colors hover:border-loop-500 dark:border-steel-800 dark:hover:border-loop-500">
+                    <span className="size-11 shrink-0 overflow-hidden border border-steel-200 bg-steel-100 dark:border-steel-800 dark:bg-steel-900">
+                      {media[0] ? <img src={media[0].src} className="size-full object-cover" alt={media[0].caption} /> : null}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-archivo text-xs font-bold uppercase text-ink-900 dark:text-white">{TYPE_LABEL[material.type] ?? material.type}</span>
+                      <span className="mt-0.5 block text-[10px] text-steel-600 dark:text-steel-400"><span className="ledger-numeral font-semibold text-ink-900 dark:text-gray-200">{material.quantityT.toFixed(1)} t</span> · <span className="capitalize">{material.condition}</span></span>
+                    </span>
+                    <StatusBadge status={material.status} />
+                    <span className="text-steel-400 transition-transform group-hover:translate-x-0.5" aria-hidden="true">›</span>
+                  </Link>
+                </li>
               );
             })}
-          </div>
+            {dataset.materials.length === 0 && <li className="border border-dashed border-steel-300 px-3 py-6 text-center text-xs text-steel-500 dark:border-steel-700">No material passports recorded.</li>}
+          </ul>
         </section>
 
-        <section>
-          <div className="flex items-end justify-between mb-4">
-            <h3 className="font-archivo text-2xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">Network Capacity</h3>
-            <Link to="/app/receivers" className="font-bold uppercase text-sm tracking-wider underline underline-offset-4 hover:text-loop-600">Find Receivers</Link>
-          </div>
-          <div className="border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02] h-[calc(100%-2rem)]">
-            <h4 className="font-bold text-ink-900 dark:text-white mb-2">{receiverName(STORY.receiverId)}</h4>
-            <p className="text-sm text-steel-600 dark:text-steel-400 mb-6">Real-time receiving capacity for tracked facilities.</p>
-            
-            {scenarioLedger && nextSlotLedger && (
-              <div className="space-y-6">
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="font-medium text-ink-900 dark:text-white/90">
-                      {formatDate(scenarioLedger.slot.date)} Intake
-                    </p>
+        <section className="rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02]">
+          <SectionHeading title="Network Capacity" to="/app/receivers" action="Find receivers" />
+          <p className="mt-1 text-[11px] text-steel-600 dark:text-steel-400">Real-time receiving capacity for tracked facilities.</p>
+          <div className="mt-3">
+            <h3 className="text-xs font-bold text-ink-900 dark:text-white">{receiverName(STORY.receiverId)}</h3>
+            {scenarioLedger && nextSlotLedger ? (
+              <div className="mt-2 space-y-3">
+                <div className="border border-steel-100 p-2.5 dark:border-steel-800">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-ink-900 dark:text-white/90">{formatDate(scenarioLedger.slot.date)} intake</p>
                     <Badge color="warning" size="sm">Limited</Badge>
                   </div>
                   <CapacityBar
                     capacityT={scenarioLedger.slot.capacityT}
-                    reservedT={reservedT(dataset.bookings.filter((b) => b.slotId === scenarioLedger.slot.id))}
+                    reservedT={reservedT(dataset.bookings.filter((booking) => booking.slotId === scenarioLedger.slot.id))}
                     heldT={scenarioLedger.heldT}
                   />
                 </div>
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="font-medium text-ink-900 dark:text-white/90">
-                      {formatDate(nextSlotLedger.slot.date)} Intake
-                    </p>
+                <div className="border border-steel-100 p-2.5 dark:border-steel-800">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-ink-900 dark:text-white/90">{formatDate(nextSlotLedger.slot.date)} intake</p>
                     <Badge color="success" size="sm">Available</Badge>
                   </div>
                   <CapacityBar
                     capacityT={nextSlotLedger.slot.capacityT}
-                    reservedT={reservedT(dataset.bookings.filter((b) => b.slotId === nextSlotLedger.slot.id))}
+                    reservedT={reservedT(dataset.bookings.filter((booking) => booking.slotId === nextSlotLedger.slot.id))}
                     heldT={nextSlotLedger.heldT}
                   />
                 </div>
               </div>
-            )}
-            
-            {holdBookings.length > 0 && (
-              <div className="mt-8 border-t border-amber-200 pt-6">
-                <p className="eyebrow-label text-amber-600 mb-2">On Hold Due to Capacity</p>
-                <div className="bg-amber-50 dark:bg-amber-900/10 p-3 border border-amber-200 dark:border-amber-900/50">
-                  <p className="font-bold text-sm text-ink-900 dark:text-amber-100">{holdBookings[0].tonnesT.toFixed(1)} t {materialName(holdBookings[0].materialId)}</p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">Cannot reserve slot. Choose another date.</p>
-                  <Link to="/app/bookings" className="mt-2 block w-fit text-xs font-bold uppercase underline underline-offset-4">Manage Booking</Link>
-                </div>
-              </div>
+            ) : (
+              <p className="border border-dashed border-steel-300 px-3 py-6 text-center text-xs text-steel-500 dark:border-steel-700">No capacity slots available.</p>
             )}
           </div>
+          {holdBookings.length > 0 && (
+            <div className="mt-3 border-s-2 border-amber-500 bg-amber-50 px-3 py-2 dark:bg-amber-900/10">
+              <p className="eyebrow-label text-amber-700 dark:text-amber-300">On hold due to capacity</p>
+              <p className="mt-1 text-xs font-semibold text-ink-900 dark:text-amber-100">{holdBookings[0].tonnesT.toFixed(1)} t {materialName(holdBookings[0].materialId)}</p>
+              <Link to="/app/bookings" className="mt-1 inline-flex text-[10px] font-bold uppercase tracking-wide text-ink-900 underline underline-offset-2 dark:text-white">Manage booking</Link>
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02]">
+          <SectionHeading title="Upcoming Deliveries" to="/app/deliveries" action="All deliveries" />
+          <ul className="mt-3 space-y-2">
+            {upcomingBookings.slice(0, 3).map((booking) => {
+              const material = dataset.materials.find((item) => item.id === booking.materialId);
+              const media = material ? materialMedia(material) : [];
+              return (
+                <li key={booking.id} className="flex items-center gap-2.5 border border-steel-200 p-2 dark:border-steel-800">
+                  <span className="size-11 shrink-0 overflow-hidden border border-steel-200 bg-steel-100 dark:border-steel-800 dark:bg-steel-900">
+                    {media[0] ? <img src={media[0].src} className="size-full object-cover" alt={media[0].caption} /> : null}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[10px] font-medium text-steel-500 dark:text-steel-400">{projectName(materialProject(booking.materialId))}</p>
+                    <p className="truncate text-xs font-bold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t {materialName(booking.materialId)}</p>
+                    <p className="mt-0.5 truncate text-[10px] text-steel-600 dark:text-steel-400">To: {receiverName(booking.receiverId)} · {booking.slotId}</p>
+                  </div>
+                  <StatusBadge status={booking.status} />
+                </li>
+              );
+            })}
+            {upcomingBookings.length === 0 && <li className="border border-dashed border-steel-300 px-3 py-6 text-center text-xs text-steel-500 dark:border-steel-700">No upcoming deliveries.</li>}
+          </ul>
         </section>
       </div>
 
-      {/* 5. Upcoming Bookings & Deliveries */}
-      <section>
-        <div className="flex items-end justify-between mb-4">
-          <h3 className="font-archivo text-2xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">Upcoming Deliveries</h3>
-          <Link to="/app/deliveries" className="font-bold uppercase text-sm tracking-wider underline underline-offset-4 hover:text-loop-600">All Deliveries</Link>
+      <section className="rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02] sm:p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Operations log</p>
+            <h2 className="mt-0.5 font-archivo text-base font-bold uppercase tracking-wide text-ink-900 dark:text-white">Recent Activity</h2>
+          </div>
+          <span className="text-[10px] font-medium text-steel-500 dark:text-steel-400">Latest events</span>
         </div>
-        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {upcomingBookings.slice(0, 3).map(booking => {
-            const material = dataset.materials.find(m => m.id === booking.materialId);
-            const media = material ? materialMedia(material) : [];
-            return (
-              <div key={booking.id} className="border border-steel-200 bg-white p-5 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <p className="eyebrow-label text-steel-500 mb-1">{projectName(materialProject(booking.materialId))}</p>
-                    <p className="font-bold text-ink-900 dark:text-white text-lg">{booking.tonnesT.toFixed(1)} t {materialName(booking.materialId)}</p>
-                  </div>
-                  <StatusBadge status={booking.status} />
-                </div>
-                <div className="flex gap-4 items-center">
-                  <div className="size-12 shrink-0 border border-steel-200 dark:border-steel-800 bg-steel-100 dark:bg-steel-900">
-                    {media[0] ? <img src={media[0].src} className="size-full object-cover" alt="" /> : null}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-ink-900 dark:text-gray-300">To: {receiverName(booking.receiverId)}</p>
-                    <p className="text-xs text-steel-500 mt-1">Slot: {booking.slotId}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <EventLog events={dataset.events} limit={6} />
       </section>
+    </div>
+  );
+}
 
-      {/* 6. Recent Activity */}
-      <section>
-        <h3 className="font-archivo text-2xl font-bold uppercase tracking-tight text-ink-900 dark:text-white mb-6">Recent Activity</h3>
-        <div className="border border-steel-200 bg-white p-6 shadow-sm dark:border-steel-800 dark:bg-white/[0.02]">
-          <EventLog events={dataset.events} limit={6} />
-        </div>
-      </section>
+function ProjectMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 border-s-2 border-steel-200 pl-2.5 dark:border-steel-700">
+      <p className="eyebrow-label truncate text-steel-500 dark:text-steel-400">{label}</p>
+      <p className="ledger-numeral mt-0.5 truncate text-sm font-bold text-ink-900 dark:text-white">{value}</p>
+    </div>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  suffix = "",
+  hint,
+  icon,
+  positive = false,
+}: {
+  label: string;
+  value: string;
+  suffix?: string;
+  hint: string;
+  icon: "materials" | "verified" | "dispatch" | "bookings";
+  positive?: boolean;
+}) {
+  return (
+    <article className={cn("flex min-w-0 items-center gap-3 rounded-lg border bg-white px-3 py-3 dark:bg-white/[0.02]", positive ? "border-loop-200 dark:border-loop-700/50" : "border-[#e5e1d8] dark:border-steel-800")}>
+      <span className={cn("flex size-9 shrink-0 items-center justify-center border", positive ? "border-loop-200 bg-loop-50 text-loop-800 dark:border-loop-700/50 dark:bg-loop-900/30 dark:text-loop-300" : "border-steel-200 bg-steel-50 text-ink-800 dark:border-steel-700 dark:bg-white/[0.03] dark:text-steel-300")}>
+        <KpiIcon kind={icon} />
+      </span>
+      <div className="min-w-0">
+        <p className="eyebrow-label truncate text-steel-500 dark:text-steel-400">{label}</p>
+        <p className="ledger-numeral mt-0.5 text-xl font-bold leading-none text-ink-900 dark:text-white">{value}{suffix}</p>
+        <p className="mt-1 truncate text-[10px] text-steel-500 dark:text-gray-400">{hint}</p>
+      </div>
+    </article>
+  );
+}
+
+function KpiIcon({ kind }: { kind: "materials" | "verified" | "dispatch" | "bookings" }) {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+      {kind === "materials" && <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4.3 7.6 7.7 4.3 7.7-4.3M12 12v9" /></>}
+      {kind === "verified" && <><path d="M12 3 20 6v5.5c0 4.6-3.1 7.8-8 9.5-4.9-1.7-8-4.9-8-9.5V6l8-3Z" /><path d="m8.5 12 2.2 2.2 4.8-4.8" /></>}
+      {kind === "dispatch" && <><path d="M3 7h11v11H3zM14 11h4l3 3v4h-7z" /><circle cx="7.5" cy="18" r="1.5" /><circle cx="17.5" cy="18" r="1.5" /></>}
+      {kind === "bookings" && <><path d="M6 3.5h12v17H6zM9 7.5h6M9 11.5h6M9 15.5h3" /><path d="M9 3.5v-1M15 3.5v-1" /></>}
+    </svg>
+  );
+}
+
+function SectionHeading({ title, to, action }: { title: string; to: string; action: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <h2 className="font-archivo text-sm font-bold uppercase tracking-wide text-ink-900 dark:text-white">{title}</h2>
+      <Link to={to} className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-loop-800 hover:text-loop-600 dark:text-loop-300 dark:hover:text-loop-200 sm:text-[10px]">
+        {action} <span aria-hidden="true">→</span>
+      </Link>
     </div>
   );
 }
