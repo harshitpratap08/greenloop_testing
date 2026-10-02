@@ -9,7 +9,7 @@ const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
   return (
-    <div className="relative min-h-screen xl:flex bg-[#F6F6F3] text-ink-900 transition-colors duration-300 dark:bg-[#0B0F15] dark:text-gray-100">
+    <div className="relative min-h-screen bg-[#f6f5f0] text-[#26342b] transition-colors duration-300 dark:bg-[#101913] dark:text-[#f2f3ef] xl:flex">
       <div className="relative z-10 flex min-h-screen w-full xl:flex">
         <AppSidebar />
       <Backdrop />
@@ -22,7 +22,7 @@ const LayoutContent: React.FC = () => {
         )}
       >
         <AppHeader />
-        <main className="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
+        <main className="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6 xl:p-7">
           <Outlet />
         </main>
       </div>

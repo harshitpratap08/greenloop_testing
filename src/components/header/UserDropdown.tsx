@@ -50,15 +50,18 @@ export default function UserDropdown() {
     <div className="relative">
       <button
         onClick={toggleDropdown}
-        className="dropdown-toggle flex items-center text-gray-700 dark:text-gray-400"
+        className="dropdown-toggle flex items-center rounded-full text-[#344339] transition-colors hover:bg-[#e9eee8] xl:rounded-lg xl:px-2 xl:py-1"
       >
-        <span className="me-3 h-11 w-11 overflow-hidden rounded-full">
-          <img src="/images/user/owner.png" alt="User" />
+        <span className="me-2 size-8 shrink-0 overflow-hidden rounded-full border border-[#dfe3dc] sm:size-9 xl:size-10">
+          <img src="/images/user/owner.png" alt="" className="size-full object-cover" />
         </span>
 
-        <span className="me-1 block text-theme-sm font-medium">{user?.name || user?.email || "Site Manager"}</span>
+        <span className="me-1 hidden text-start md:block">
+          <span className="block text-xs font-semibold leading-4 text-[#28342b]">{user?.name || user?.email || "Site Manager"}</span>
+          <span className="block text-[10px] leading-4 text-[#748078]">{user?.activeWorkspace === "receiver" ? "Receiver" : "Provider"}</span>
+        </span>
         <svg
-          className={`stroke-gray-500 transition-transform duration-200 dark:stroke-gray-400 ${
+          className={`hidden stroke-[#718075] transition-transform duration-200 xl:block ${
             isOpen ? "rotate-180" : ""
           }`}
           width="18"
@@ -84,10 +87,10 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block text-theme-sm font-medium text-gray-700 no-underline dark:text-gray-400">
-            {user?.email || "Site Manager"}
+            {user?.name || user?.email || "Site Manager"}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 no-underline dark:text-gray-400">
-            {user?.activeWorkspace === 'receiver' ? "Receiver Workspace" : "Provider Workspace"}
+            {user?.activeWorkspace === 'receiver' ? "Receiver" : "Provider"}
           </span>
         </div>
 
