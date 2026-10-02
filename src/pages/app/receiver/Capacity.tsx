@@ -8,7 +8,8 @@ import Button from "@/components/ui/button/Button";
 import type { MaterialTypeKey } from "@/domain/types";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
-import { materialMediaFor, ambientVideo } from "@/config/appMedia";
+import { materialMediaFor, ambientMedia } from "@/config/appMedia";
+import { CalenderIcon } from "@/icons";
 
 export default function Capacity() {
   const { dataset, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
@@ -45,7 +46,7 @@ export default function Capacity() {
     setIsAdding(false);
     setFormError("");
   };
-  
+
   const slots = dataset.slots
     .filter(s => s.receiverId === receiverId)
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -62,25 +63,22 @@ export default function Capacity() {
         action={{ label: isAdding ? "Close form" : "Add capacity", onClick: () => setIsAdding((open) => !open) }}
       />
 
-      {/* Yard ambience — the intake operations these slots schedule */}
-      <figure className="relative mb-8 h-28 w-full overflow-hidden border border-steel-200 sm:h-36 dark:border-steel-800">
-        <video
+      {/* Intake operations — the yard these slots schedule */}
+      <figure className="relative mb-8 h-40 w-full overflow-hidden border border-steel-200 sm:h-56 lg:h-64 dark:border-steel-800">
+        <img
+          src={ambientMedia.sortingFacility.src}
+          alt={ambientMedia.sortingFacility.alt}
           className="size-full object-cover"
-          src={ambientVideo.materialHandling.src}
-          poster={ambientVideo.materialHandling.poster}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          tabIndex={-1}
         />
-        <div className="absolute inset-0 bg-ink-950/55" aria-hidden="true" />
-        <figcaption className="absolute bottom-4 left-5 font-archivo text-lg font-bold uppercase tracking-wide text-white">Intake operations · {nextOpenSlot ? formatDate(nextOpenSlot.date) : "schedule ahead"}</figcaption>
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-950/75 via-ink-950/20 to-ink-950/5" aria-hidden="true" />
+        <figcaption className="absolute inset-x-0 bottom-0 px-6 pb-5 sm:px-8 sm:pb-6">
+          <p className="font-archivo text-lg font-bold uppercase tracking-wide text-white sm:text-xl">Intake operations · Schedule ahead</p>
+          <p className="mt-1 text-sm text-white/80">Set accurate capacity to keep your site running smoothly.</p>
+        </figcaption>
       </figure>
 
       {isAdding && (
-        <form onSubmit={handleAddCapacity} className="mb-6 grid gap-4 rounded-sm border border-steel-200 bg-white p-6 shadow-sm sm:grid-cols-4 dark:border-steel-800 dark:bg-white/[0.02]">
+        <form onSubmit={handleAddCapacity} className="mb-6 grid gap-4 rounded-sm border border-steel-200 bg-white p-6 shadow-xs sm:grid-cols-4 dark:border-steel-800 dark:bg-white/[0.02]">
           <label className="text-sm font-medium text-steel-700 dark:text-gray-300">Material type
             <select value={materialType} onChange={(event) => setMaterialType(event.target.value as MaterialTypeKey)} className="mt-1 block w-full rounded-sm border-steel-300 dark:border-steel-700 dark:bg-black dark:text-white">
               {["concrete", "brick", "steel", "timber", "plasterboard", "glass"].map((type) => <option key={type} value={type}>{type}</option>)}
@@ -111,79 +109,81 @@ export default function Capacity() {
           {slots.map((slot, i) => {
             const ledger = slotLedger(dataset, slot.id);
             if (!ledger) return null;
-            
+
             const { available, reserved, slot: s } = ledger;
             const percent = Math.min(100, (reserved / s.capacityT) * 100);
+            const media = materialMediaFor(s.materialType);
 
             return (
-              <motion.article 
+              <motion.article
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={slot.id}
-                className="flex flex-col justify-between border border-steel-200 bg-white p-6 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
+                className="flex flex-col overflow-hidden rounded-lg border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600"
               >
+                {/* Material imagery — the commodity this slot accepts */}
                 <img
-                  src={materialMediaFor(slot.materialType).src}
-                  alt=""
+                  src={media.src}
+                  alt={media.alt}
                   loading="lazy"
-                  className="mb-4 h-24 w-full border border-steel-200 object-cover dark:border-steel-800"
+                  className="h-32 w-full border-b border-steel-200 object-cover sm:h-36 dark:border-steel-800"
                 />
-                <div>
+
+                <div className="flex flex-1 flex-col p-5 sm:p-6">
+                  {/* Date, material, status */}
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400">
-                        {s.date}
-                      </p>
-                      <h3 className="mt-1 font-archivo text-xl font-bold capitalize text-ink-900 dark:text-white">
-                        {s.materialType}
-                      </h3>
+                      <p className="ledger-numeral text-sm font-semibold text-steel-500 dark:text-steel-400">{formatDate(s.date)}</p>
+                      <h3 className="mt-1 font-archivo text-xl font-bold capitalize tracking-tight text-ink-900 dark:text-white sm:text-2xl">{s.materialType}</h3>
                     </div>
                     {available === 0 ? (
-                      <span className="rounded bg-signal-100 px-2 py-1 text-xs font-bold uppercase tracking-wider text-signal-700 dark:bg-signal-900/30 dark:text-signal-400">
-                        FULL
+                      <span className="shrink-0 rounded bg-signal-50 px-2.5 py-1 font-mono text-xs font-medium uppercase tracking-[0.06em] text-signal-700 dark:bg-signal-500/15 dark:text-signal-300">
+                        Full
                       </span>
                     ) : reserved > 0 ? (
-                      <span className="rounded bg-loop-100 px-2 py-1 text-xs font-bold uppercase tracking-wider text-loop-700 dark:bg-loop-900/30 dark:text-loop-400">
-                        PARTIAL
+                      <span className="shrink-0 rounded bg-signal-50 px-2.5 py-1 font-mono text-xs font-medium uppercase tracking-[0.06em] text-signal-700 dark:bg-signal-500/15 dark:text-signal-300">
+                        Partial
                       </span>
                     ) : (
-                      <span className="rounded bg-steel-100 px-2 py-1 text-xs font-bold uppercase tracking-wider text-steel-700 dark:bg-white/10 dark:text-steel-300">
-                        AVAILABLE
+                      <span className="shrink-0 rounded bg-loop-50 px-2.5 py-1 font-mono text-xs font-medium uppercase tracking-[0.06em] text-loop-700 dark:bg-loop-500/15 dark:text-loop-300">
+                        Available
                       </span>
                     )}
                   </div>
-                  
-                  <div className="mt-6 grid grid-cols-2 gap-4 border-t border-steel-100 pt-4 dark:border-steel-800">
+
+                  {/* Headline metrics */}
+                  <div className="mt-5 grid grid-cols-2 gap-4 border-t border-steel-100 pt-5 dark:border-steel-800/60">
                     <div>
-                      <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Total Capacity</p>
-                      <p className="ledger-numeral mt-1 text-lg font-bold text-ink-900 dark:text-white">
-                        {s.capacityT.toFixed(1)} <span className="text-sm text-steel-500">t</span>
+                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Total capacity</p>
+                      <p className="ledger-numeral mt-1.5 text-2xl font-bold tracking-tight text-ink-900 dark:text-white">
+                        {s.capacityT.toFixed(1)} <span className="text-base font-bold text-steel-400">t</span>
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Available</p>
-                      <p className={cn("ledger-numeral mt-1 text-lg font-bold", available > 0 ? "text-loop-600 dark:text-loop-400" : "text-signal-600 dark:text-signal-400")}>
-                        {available.toFixed(1)} <span className="text-sm text-steel-500">t</span>
+                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Available</p>
+                      <p className={cn("ledger-numeral mt-1.5 text-2xl font-bold tracking-tight", available > 0 ? "text-loop-600 dark:text-loop-400" : "text-signal-600 dark:text-signal-400")}>
+                        {available.toFixed(1)} <span className="text-base font-bold text-steel-400">t</span>
                       </p>
                     </div>
                   </div>
                 </div>
-                
-                <div className="mt-6 border-t border-steel-100 pt-4 dark:border-steel-800">
-                  <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-steel-600 dark:text-gray-400">{reserved.toFixed(1)} t reserved</span>
-                    <span className="text-steel-500">{percent.toFixed(0)}%</span>
+
+                {/* Reservation progress + management */}
+                <div className="mt-auto border-t border-steel-100 p-5 sm:p-6 dark:border-steel-800/60">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-steel-600 dark:text-gray-400">{reserved.toFixed(1)} t reserved</span>
+                    <span className="ledger-numeral font-bold text-ink-900 dark:text-white">{percent.toFixed(0)}%</span>
                   </div>
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-steel-100 dark:bg-steel-800">
-                    <div 
-                      className={cn("h-full", percent === 100 ? "bg-signal-500" : "bg-loop-500")} 
-                      style={{ width: `${percent}%` }} 
+                  <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-steel-100 dark:bg-steel-800" role="img" aria-label={`${percent.toFixed(0)}% of this slot reserved`}>
+                    <div
+                      className={cn("h-full rounded-full transition-all", available === 0 ? "bg-signal-500" : "bg-loop-500")}
+                      style={{ width: `${percent}%` }}
                     />
                   </div>
-                  <details className="mt-3 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-2 block">Receiving slot ID: {s.id} · {reserved.toFixed(1)} t reserved · {percent.toFixed(0)}% used</span></details>
+
                   {editingSlotId === s.id ? (
-                    <form className="mt-3 flex flex-wrap items-center gap-2" onSubmit={(event) => {
+                    <form className="mt-4 flex flex-wrap items-center gap-2" onSubmit={(event) => {
                       event.preventDefault();
                       if (!updateCapacityAction(s.id, Number(editedCapacity))) {
                         setEditError("Capacity must be positive and cannot be lower than booked tonnes.");
@@ -198,11 +198,38 @@ export default function Capacity() {
                       <Button size="sm" variant="outline" type="button" onClick={() => { setEditingSlotId(null); setEditError(""); }}>Cancel</Button>
                       {editError && <p role="alert" className="basis-full text-xs text-error-500">{editError}</p>}
                     </form>
-                  ) : <button type="button" onClick={() => { setEditingSlotId(s.id); setEditedCapacity(s.capacityT.toString()); setEditError(""); }} className="mt-3 text-xs font-semibold text-loop-600 underline dark:text-loop-400">Replan capacity</button>}
+                  ) : (
+                    <Button
+                      size="md"
+                      variant="outline"
+                      className="mt-4 w-full"
+                      onClick={() => { setEditingSlotId(s.id); setEditedCapacity(s.capacityT.toString()); setEditError(""); }}
+                    >
+                      Manage capacity
+                    </Button>
+                  )}
                 </div>
               </motion.article>
             );
           })}
+        </div>
+      )}
+
+      {/* Empty-state guidance — always actionable, never a blank wall */}
+      {slots.length > 0 && !nextOpenSlot && (
+        <div className="mt-10 flex flex-col items-start gap-5 rounded-lg border border-loop-200/70 bg-loop-50/60 p-6 sm:flex-row sm:items-center sm:justify-between dark:border-loop-500/20 dark:bg-loop-500/5 sm:p-7">
+          <div className="flex items-start gap-4">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-loop-200 dark:bg-white/10 dark:ring-loop-500/30">
+              <CalenderIcon className="size-5 text-loop-600 dark:text-loop-400" />
+            </span>
+            <div>
+              <h2 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">No upcoming capacity slots</h2>
+              <p className="mt-1 max-w-xl text-sm text-steel-600 dark:text-gray-400">
+                You don't have any capacity slots scheduled. Add capacity to let providers know when your facility can receive materials.
+              </p>
+            </div>
+          </div>
+          <Button size="md" className="w-full shrink-0 bg-ink-900 hover:bg-ink-800 sm:w-auto dark:bg-white dark:text-ink-900 dark:hover:bg-gray-200" onClick={() => setIsAdding(true)}>Add capacity</Button>
         </div>
       )}
     </div>

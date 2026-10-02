@@ -6,16 +6,17 @@ import Button from "@/components/ui/button/Button";
 import { slotLedger, slotMatchesDemandPeriod } from "@/domain/capacity";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
-import { materialMediaFor } from "@/config/appMedia";
+import { materialMediaFor, ambientMedia } from "@/config/appMedia";
+import { InboxAltIcon } from "@/icons";
 
 export default function IncomingRequests() {
   const { dataset, acceptRequestAction, rejectRequestAction, rescheduleRequestAction } = useGreenLoopStore();
   const { user } = useAuth();
   const receiverId = user?.receiverId ?? "R-001";
-  
+
   const requests = dataset.bookings.filter((booking) => booking.receiverId === receiverId &&
     ((booking.status === "hold") || (booking.status === "confirmed" && !booking.receiverAcceptedAt && !booking.loadRef && !dataset.verifications.some((item) => item.bookingId === booking.id))));
-  
+
   const [reschedulingId, setReschedulingId] = useState<string | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
 
@@ -28,12 +29,30 @@ export default function IncomingRequests() {
         status={`${requests.length} request${requests.length === 1 ? "" : "s"} waiting for your decision`}
       />
 
+      {/* Provider requests — the yard gate these bookings arrive at */}
+      <figure className="relative mb-8 h-40 w-full overflow-hidden rounded-lg border border-steel-200 sm:h-52 lg:h-60 dark:border-steel-800">
+        <img
+          src={ambientMedia.authYard.src}
+          alt={ambientMedia.authYard.alt}
+          className="size-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-950/75 via-ink-950/25 to-ink-950/10" aria-hidden="true" />
+        <figcaption className="absolute inset-x-0 bottom-0 px-6 pb-5 sm:px-8 sm:pb-6">
+          <p className="font-archivo text-lg font-bold uppercase tracking-wide text-white sm:text-xl">Provider requests</p>
+          <p className="mt-1 text-sm text-white/80">Review and confirm requests to keep your facility running efficiently.</p>
+        </figcaption>
+      </figure>
+
       {requests.length === 0 ? (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-sm border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01]">
-          <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">No incoming requests</h2>
+        <div className="flex min-h-[42vh] flex-col items-center justify-center rounded-lg border border-steel-200 bg-white/70 px-6 py-14 text-center dark:border-steel-800 dark:bg-white/[0.02]">
+          <span className="flex size-16 items-center justify-center rounded-full bg-loop-50 dark:bg-loop-500/10">
+            <InboxAltIcon className="size-8 text-loop-600 dark:text-loop-400" />
+          </span>
+          <h2 className="mt-5 font-archivo text-2xl font-bold text-ink-900 dark:text-white">No incoming requests</h2>
           <p className="mt-2 max-w-md text-steel-600 dark:text-gray-400">
             When a provider requests receiving capacity and it requires manual approval, requests will appear here.
           </p>
+          <Button size="md" className="mt-6" startIcon={<InboxAltIcon className="size-4" />}>Learn more</Button>
         </div>
       ) : (
         <div className="grid gap-6">
@@ -53,10 +72,10 @@ export default function IncomingRequests() {
               const confirmableT = Math.max(0, Math.min(ledger?.available ?? 0, materialRemainingT, demandRemainingT));
 
               const isRescheduling = reschedulingId === booking.id;
-              
+
               // Find alternative slots for this material
               const alternativeSlots = dataset.slots.filter(s => s.receiverId === receiverId && s.materialType === material?.type && s.id !== slot?.id && (!demand || slotMatchesDemandPeriod(s, demand.period)) && (slotLedger(dataset, s.id)?.available ?? 0) >= booking.tonnesT);
-              
+
               return (
                 <motion.article
                   layout
@@ -64,62 +83,63 @@ export default function IncomingRequests() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   key={booking.id}
-                  className="border border-steel-200 bg-white p-6 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
+                  className="overflow-hidden rounded-lg border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600"
                 >
-                  <div className="grid gap-6 md:grid-cols-[1fr_auto]">
-                    <div className="md:grid md:grid-cols-[9rem_1fr] md:gap-5">
+                  <div className="p-5 sm:p-6">
+                    <div className="grid gap-6 md:grid-cols-[10rem_1fr]">
                       <img
                         src={materialMediaFor(material?.type ?? "concrete").src}
                         alt=""
                         loading="lazy"
-                        className="hidden h-28 w-full border border-steel-200 object-cover md:block dark:border-steel-800"
+                        className="h-28 w-full rounded-md border border-steel-200 object-cover md:h-full md:min-h-28 dark:border-steel-800"
                       />
                       <div>
-                      <div className="flex items-center gap-3">
-                        <span className="rounded-sm border border-signal-200 bg-signal-50 px-2 py-0.5 text-xs font-bold tracking-wider text-signal-700 dark:border-signal-500/30 dark:bg-signal-500/10 dark:text-signal-400">
-                          {booking.status === "hold" ? "Waiting on Capacity" : "Needs your approval"}
-                        </span>
-                        <p className="text-sm font-semibold text-ink-900 dark:text-white">{project?.name ?? "Provider"} wants {booking.tonnesT.toFixed(1)} t {material?.type ?? "material"} {slot?.date ? `on ${slot.date}` : ""}.</p>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="shrink-0 rounded-sm bg-signal-50 px-2.5 py-1 font-mono text-xs font-medium uppercase tracking-[0.06em] text-signal-700 dark:bg-signal-500/15 dark:text-signal-300">
+                            {booking.status === "hold" ? "Waiting on Capacity" : "Needs your approval"}
+                          </span>
+                          <p className="text-sm font-semibold text-ink-900 dark:text-white">{project?.name ?? "Provider"} wants {booking.tonnesT.toFixed(1)} t {material?.type ?? "material"} {slot?.date ? `on ${slot.date}` : ""}.</p>
+                        </div>
+
+                        <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+                          <div>
+                            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material</p>
+                            <p className="mt-1.5 font-semibold text-ink-900 dark:text-white capitalize">{material?.type}</p>
+                            <details className="mt-1 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Material Passport ID: {material?.id} · Request ID: {booking.id}</span></details>
+                          </div>
+                          <div>
+                            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Project</p>
+                            <p className="mt-1.5 font-semibold text-ink-900 dark:text-white">{project?.name}</p>
+                          </div>
+                          <div>
+                            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Requested slot</p>
+                            <p className="mt-1.5 font-semibold text-ink-900 dark:text-white">{slot?.date}</p>
+                            {booking.holdReason && <p className="mt-0.5 text-sm text-signal-600 dark:text-signal-400">{booking.holdReason.replaceAll("HOLD", "Waiting on Capacity")}</p>}
+                          </div>
+                          <div>
+                            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Requested quantity</p>
+                            <p className="ledger-numeral mt-1.5 text-2xl font-bold tracking-tight text-ink-900 dark:text-white">
+                              {booking.tonnesT.toFixed(1)} <span className="text-sm font-bold text-steel-400">t</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        {ledger && (
+                          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md bg-steel-50 px-4 py-3 text-sm dark:bg-white/5">
+                            <span className="font-medium text-steel-700 dark:text-gray-300">Capacity on {slot?.date}:</span>
+                            <span className="font-bold text-ink-900 dark:text-white">{ledger.available.toFixed(1)} t free</span>
+                            <span className="text-steel-500">/</span>
+                            <span className="text-steel-600 dark:text-gray-400">{ledger.reserved.toFixed(1)} t reserved</span>
+                            {booking.status === "hold" && ledger.available < booking.tonnesT && <span className="basis-full text-signal-700 dark:text-signal-300">You have {ledger.available.toFixed(1)} t free; this request is for {booking.tonnesT.toFixed(1)} t.</span>}
+                          </div>
+                        )}
                       </div>
-                      
-                      <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <div>
-                          <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Material</p>
-                          <p className="mt-1 font-semibold text-ink-900 dark:text-white capitalize">{material?.type}</p>
-                          <details className="mt-1 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Material Passport ID: {material?.id} · Request ID: {booking.id}</span></details>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Project</p>
-                          <p className="mt-1 font-semibold text-ink-900 dark:text-white">{project?.name}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Requested Slot</p>
-                          <p className="mt-1 font-semibold text-ink-900 dark:text-white">{slot?.date}</p>
-                          {booking.holdReason && <p className="mt-0.5 text-sm text-signal-600 dark:text-signal-400">{booking.holdReason.replaceAll("HOLD", "Waiting on Capacity")}</p>}
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Requested Quantity</p>
-                          <p className="ledger-numeral mt-1 text-2xl font-bold text-ink-900 dark:text-white">
-                            {booking.tonnesT.toFixed(1)} <span className="text-sm text-steel-500">t</span>
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {ledger && (
-                        <div className="mt-6 flex items-center gap-4 rounded bg-steel-50 px-4 py-3 text-sm dark:bg-white/5">
-                          <span className="font-medium text-steel-700 dark:text-gray-300">Capacity on {slot?.date}:</span>
-                          <span className="font-bold text-ink-900 dark:text-white">{ledger.available.toFixed(1)} t free</span>
-                          {booking.status === "hold" && ledger.available < booking.tonnesT && <span className="basis-full text-signal-700 dark:text-signal-300">You have {ledger.available.toFixed(1)} t free; this request is for {booking.tonnesT.toFixed(1)} t.</span>}
-                          <span className="text-steel-500">/</span>
-                          <span className="text-steel-600 dark:text-gray-400">{ledger.reserved.toFixed(1)} t reserved</span>
-                        </div>
-                      )}
                     </div>
-                    
-                    <div className="flex flex-col gap-3 border-t border-steel-100 pt-6 md:w-48 md:border-l md:border-t-0 md:pl-6 md:pt-0 dark:border-steel-800">
+
+                    <div className="mt-6 flex flex-col gap-3 border-t border-steel-100 pt-5 md:mt-0 md:border-t-0 dark:border-steel-800/60">
                       {isRescheduling ? (
                         <div className="flex flex-col gap-3">
-                          <select 
+                          <select
                             className="block w-full rounded-sm border-steel-300 text-sm shadow-sm focus:border-loop-500 focus:ring-loop-500 dark:border-steel-700 dark:bg-black dark:text-white"
                             value={selectedSlotId}
                             onChange={e => setSelectedSlotId(e.target.value)}
@@ -143,7 +163,7 @@ export default function IncomingRequests() {
                           </Button>
                         </div>
                       ) : (
-                        <>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
                           {booking.receiverAcceptedAt ? (
                             <p className="text-sm font-medium text-steel-600 dark:text-gray-400">Offer accepted. Waiting on capacity.</p>
                           ) : (
@@ -157,10 +177,9 @@ export default function IncomingRequests() {
                           <Button size="sm" variant="outline" onClick={() => rejectRequestAction(booking.id)}>
                             Decline
                           </Button>
-                        </>
+                        </div>
                       )}
                     </div>
-                      </div>
                   </div>
                 </motion.article>
               );

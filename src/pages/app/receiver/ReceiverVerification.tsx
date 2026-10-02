@@ -7,6 +7,8 @@ import StatusBadge from "@/components/greenloop/StatusBadge";
 import { cn } from "@/utils";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { ambientMedia } from "@/config/appMedia";
+import { CheckCircleIcon, DocsIcon } from "@/icons";
 
 export default function ReceiverVerification() {
   const { dataset, verifyLoadAction } = useGreenLoopStore();
@@ -30,11 +32,29 @@ export default function ReceiverVerification() {
         description="Compare the expected amount with the Weighbridge Ticket. Enter how much you accept; the provider is notified when you confirm."
         status={`${pendingVerifications.length} load${pendingVerifications.length === 1 ? "" : "s"} waiting for a check`}
       />
+
+      <figure className="relative mb-7 h-48 w-full overflow-hidden rounded-lg border border-steel-200 sm:h-56 lg:h-72 dark:border-steel-800">
+        <img
+          src={ambientMedia.weighbridge.src}
+          alt={ambientMedia.weighbridge.alt}
+          className="size-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-950/80 via-ink-950/20 to-transparent" aria-hidden="true" />
+        <figcaption className="absolute inset-x-0 bottom-0 px-6 pb-5 sm:px-8 sm:pb-6">
+          <p className="font-archivo text-lg font-bold uppercase tracking-wide text-white sm:text-xl">Check &amp; Accept</p>
+          <p className="mt-1 text-sm text-white/85">Verify deliveries and confirm received quantities.</p>
+        </figcaption>
+      </figure>
+
       {successMessage && <p role="status" className="mb-5 border-l-4 border-loop-500 bg-loop-50 px-4 py-3 text-sm font-medium text-loop-800 dark:bg-loop-500/10 dark:text-loop-200">{successMessage}</p>}
 
       {pendingVerifications.length === 0 ? (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-sm border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01]">
-          <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">No loads pending verification</h2>
+        <div className="flex min-h-[300px] flex-col items-center justify-center rounded-lg border border-steel-200 bg-white/55 px-6 py-12 text-center dark:border-steel-800 dark:bg-white/[0.02] sm:min-h-[340px]">
+          <span className="relative mb-5 flex size-16 items-center justify-center text-loop-800 dark:text-loop-300" aria-hidden="true">
+            <DocsIcon className="size-12" />
+            <CheckCircleIcon className="absolute -bottom-1 -end-2 size-7 rounded-full bg-white text-loop-700 dark:bg-ink-950 dark:text-loop-300" />
+          </span>
+          <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white sm:text-2xl">No loads pending verification</h2>
           <p className="mt-2 max-w-md text-steel-600 dark:text-gray-400">
             When you receive material deliveries, they will appear here for final reconciliation.
           </p>
