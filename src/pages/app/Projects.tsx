@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
 import {
   materialMedia,
@@ -8,15 +9,45 @@ import {
   currentStepIndex,
   EmptyState,
 } from "@/components/greenloop/AppExploration";
-import type { Project } from "@/domain/types";
+import type { Project, ProjectStatus } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { Link } from "react-router";
-import { projectMediaFor } from "@/config/appMedia";
+import { ambientMedia, projectMediaFor } from "@/config/appMedia";
+
+type ProjectFilter = "all" | ProjectStatus;
+
+const filters: { id: ProjectFilter; label: string }[] = [
+  { id: "all", label: "All Projects" },
+  { id: "active", label: "Active" },
+  { id: "demolition", label: "Demolition" },
+  { id: "complete", label: "Completed" },
+];
+
+const materialLabels: Record<string, string> = {
+  concrete: "Concrete",
+  brick: "Brick",
+  steel: "Steel",
+  timber: "Timber",
+  plasterboard: "Plasterboard",
+  glass: "Glass",
+};
+
+function MetricIcon({ kind }: { kind: "projects" | "material" | "loads" | "complete" }) {
+  const paths = {
+    projects: <><rect x="3.5" y="4.5" width="17" height="15" rx="2" /><path d="M8 4.5V3m8 1.5V3M7.5 9h9m-9 4h5" /></>,
+    material: <><path d="m4 7 8-4 8 4-8 4-8-4Z" /><path d="M4 7v10l8 4 8-4V7M12 11v10" /></>,
+    loads: <><path d="M3 6h11v11H3zM14 10h4l3 3v4h-7z" /><circle cx="7.5" cy="18" r="1.5" /><circle cx="17.5" cy="18" r="1.5" /></>,
+    complete: <><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16.5 9" /></>,
+  };
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-5">{paths[kind]}</svg>;
+}
 
 export default function Projects() {
   const { dataset } = useGreenLoopStore();
+  const [filter, setFilter] = useState<ProjectFilter>("all");
+  const [query, setQuery] = useState("");
 
-  const rows = dataset.projects.map((project: Project) => {
+  const rows = useMemo(() => dataset.projects.map((project: Project) => {
     const materials = dataset.materials.filter((material) => material.projectId === project.id);
     const materialIds = new Set(materials.map((material) => material.id));
     const surveyedT = materials.reduce((total, material) => total + material.quantityT, 0);
@@ -38,105 +69,199 @@ export default function Projects() {
       verifiedT,
       recoveryRate: surveyedT > 0 ? Math.round((verifiedT / surveyedT) * 100) : 0,
       stageLabel: complete ? "Complete" : STEP_LABELS[stageIndex] ?? "Complete",
+      progress: Math.min(100, Math.round((stageIndex / STEP_LABELS.length) * 100)),
       complete,
       next,
       materialTypes,
       media: materials.flatMap(materialMedia),
     };
-  });
+  }), [dataset]);
+
+  const visibleRows = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return rows.filter(({ project }) => {
+      const matchesFilter = filter === "all" || project.status === filter;
+      const matchesQuery = !normalizedQuery || [project.name, project.location, project.id]
+        .some((value) => value.toLowerCase().includes(normalizedQuery));
+      return matchesFilter && matchesQuery;
+    });
+  }, [filter, query, rows]);
+
+  const activeProjects = dataset.projects.filter((project) => project.status !== "complete").length;
+  const surveyedTotal = rows.reduce((total, row) => total + row.surveyedT, 0);
+  const dispatchedBookingIds = new Set(dataset.events
+    .filter((event) => event.kind === "load.dispatched")
+    .flatMap((event) => event.subjectIds));
+  const loadsScheduled = dataset.bookings.filter((booking) => {
+    if (booking.status !== "confirmed" || dispatchedBookingIds.has(booking.id)) return false;
+    const material = dataset.materials.find((item) => item.id === booking.materialId);
+    return Boolean(material && dataset.projects.some((project) => project.id === material.projectId));
+  }).length;
+  const completedProjects = dataset.projects.filter((project) => project.status === "complete").length;
+
+  const metrics = [
+    { label: "Active Projects", value: activeProjects.toLocaleString(), note: "In progress", kind: "projects" as const },
+    { label: "Material Surveyed", value: `${surveyedTotal.toFixed(1)} t`, note: "Across all projects", kind: "material" as const },
+    { label: "Loads Scheduled", value: loadsScheduled.toLocaleString(), note: "Awaiting dispatch", kind: "loads" as const },
+    { label: "Projects Completed", value: completedProjects.toLocaleString(), note: "Recovery complete", kind: "complete" as const },
+  ];
 
   return (
-    <div className="mx-auto max-w-[1200px] pb-24">
+    <div className="mx-auto max-w-[1320px] pb-16">
       <PageMeta
-        title="Projects | GreenLoop"
-        description="Demolition and construction projects on the GreenLoop recovery platform."
+        title="Recovery Projects | GreenLoop"
+        description="Monitor active demolition and construction projects, track material recovery progress, and coordinate logistics."
       />
 
-      {/* Hero Header */}
-      <header className="mb-12">
-        <p className="eyebrow-label text-steel-500 dark:text-steel-400">GreenLoop Operations</p>
-        <h1 className="mt-2 font-archivo text-4xl font-bold tracking-tight text-ink-900 dark:text-white uppercase">
-          Recovery Projects
-        </h1>
-        <p className="mt-3 text-lg text-steel-600 dark:text-gray-400">
-          Monitor active demolition and construction projects, track material recovery progress, and coordinate logistics.
-        </p>
-      </header>
-
-      <div className="space-y-6">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-steel-200 pb-4 dark:border-steel-800">
-          <div>
-            <h2 className="font-archivo text-2xl font-bold tracking-tight text-ink-900 dark:text-white uppercase">Active Projects</h2>
-          </div>
-          <p className="ledger-numeral text-sm font-medium text-steel-500 dark:text-gray-400">
-            {rows.length} projects · {rows.reduce((sum, row) => sum + row.surveyedT, 0).toFixed(1)} t surveyed
+      <section className="mb-7 grid overflow-hidden rounded-2xl border border-[#e5e1d8] bg-[#f7f5ef] dark:border-steel-800 dark:bg-[#1b2921] md:min-h-[230px] md:grid-cols-[1.02fr_0.98fr]">
+        <div className="flex flex-col justify-center px-6 py-7 sm:px-9 md:py-9">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#65806e] dark:text-[#a5bba9]">GreenLoop Operations</p>
+          <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-[#1d2c23] dark:text-white sm:text-4xl">Recovery Projects</h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-[#647168] dark:text-gray-300 sm:text-base">
+            Monitor active demolition and construction projects, track material recovery progress, and coordinate logistics.
           </p>
+          <div className="mt-5 flex items-center gap-2 text-xs font-medium text-[#486b53] dark:text-[#b4d0bc]">
+            <span className="size-2 rounded-full bg-[#568365]" />
+            {activeProjects} active {activeProjects === 1 ? "project" : "projects"} in your recovery pipeline
+          </div>
+        </div>
+        <div className="relative min-h-44 overflow-hidden md:min-h-[230px]">
+          <img src={ambientMedia.surveyHero.src} alt={ambientMedia.surveyHero.alt} className="absolute inset-0 size-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#f7f5ef] via-[#f7f5ef]/35 to-transparent md:from-[#f7f5ef]/25 md:via-transparent md:to-transparent dark:from-[#1b2921]/40" />
+          <div className="absolute bottom-4 right-4 rounded-lg border border-white/25 bg-[#172c21]/75 px-3 py-2 text-[10px] font-medium uppercase tracking-[0.12em] text-white backdrop-blur-sm">
+            Recovery in progress
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Project summary" className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="flex min-h-[112px] items-start gap-3 rounded-xl border border-[#e7e3da] bg-white p-4 shadow-[0_2px_10px_rgba(26,42,31,0.035)] dark:border-steel-800 dark:bg-[#17251d] sm:p-5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#edf3ed] text-[#487454] dark:bg-[#284233] dark:text-[#b6d1bd]"><MetricIcon kind={metric.kind} /></span>
+            <div className="min-w-0">
+              <p className="font-archivo text-xl font-bold leading-6 text-[#1d2c23] dark:text-white sm:text-2xl">{metric.value}</p>
+              <p className="mt-1 text-xs font-semibold text-[#38483e] dark:text-gray-200 sm:text-sm">{metric.label}</p>
+              <p className="mt-0.5 text-[10px] text-[#828b83] dark:text-gray-400 sm:text-xs">{metric.note}</p>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section aria-label="Project list">
+        <div className="mb-4 flex flex-col gap-4 border-b border-[#e5e1d8] pb-4 dark:border-steel-800 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="font-archivo text-2xl font-bold tracking-tight text-[#1d2c23] dark:text-white">Your Projects</h2>
+            <p className="mt-1 text-sm text-[#778078] dark:text-gray-400">{visibleRows.length} of {rows.length} projects</p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <label className="relative block sm:w-64">
+              <span className="sr-only">Search projects</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#818a82]"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.2 4.2" /></svg>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search projects…"
+                className="h-10 w-full rounded-lg border border-[#e1ded6] bg-white pl-9 pr-3 text-sm text-[#26362c] outline-none transition focus:border-[#64866d] focus:ring-2 focus:ring-[#64866d]/15 dark:border-steel-700 dark:bg-[#17251d] dark:text-white"
+              />
+            </label>
+            <div role="group" aria-label="Filter projects" className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-[#e5e1d8] bg-[#f6f4ee] p-1 dark:border-steel-800 dark:bg-[#17251d]">
+              {filters.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={filter === item.id}
+                  onClick={() => setFilter(item.id)}
+                  className={`shrink-0 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${filter === item.id ? "bg-white text-[#315c3d] shadow-sm dark:bg-[#314b39] dark:text-white" : "text-[#758078] hover:text-[#315c3d] dark:text-gray-400 dark:hover:text-white"}`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <div className="grid gap-6">
-          {rows.map((row) => (
-            <Link
-              key={row.project.id}
-              to="/app/explore"
-              state={{ projectId: row.project.id }}
-              className="group flex flex-col lg:flex-row overflow-hidden border border-steel-200 bg-white shadow-sm transition-all hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
-            >
-              <div className="flex flex-1 flex-col sm:flex-row p-6 lg:p-8 gap-6 lg:gap-8">
-                {/* Media — project photography with per-project fallback */}
-                <div className="w-full sm:w-48 shrink-0 overflow-hidden border border-steel-200 dark:border-steel-800">
-                  <img
-                    src={row.media[0]?.src ?? projectMediaFor(row.project).src}
-                    alt={row.media[0]?.caption ?? projectMediaFor(row.project).alt}
-                    loading="lazy"
-                    className="h-32 sm:h-full w-full object-cover opacity-90 transition-all duration-500 group-hover:scale-[1.04] group-hover:opacity-100"
-                  />
+        <div className="grid gap-4">
+          {visibleRows.map((row) => {
+            const projectImage = row.media[0] ?? projectMediaFor(row.project);
+            return (
+              <article key={row.project.id} className="group grid overflow-hidden rounded-xl border border-[#e6e2d9] bg-white shadow-[0_2px_12px_rgba(26,42,31,0.035)] transition hover:border-[#b9c8ba] hover:shadow-[0_6px_20px_rgba(26,42,31,0.07)] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957] lg:grid-cols-[210px_minmax(0,1fr)_236px]">
+                <div className="relative min-h-44 overflow-hidden lg:min-h-[220px]">
+                  <img src={projectImage.src} alt={row.media[0]?.caption ?? row.project.name} loading="lazy" className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
+                  <span className="absolute left-3 top-3 rounded-md border border-white/40 bg-[#182b20]/75 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">{row.project.id}</span>
                 </div>
-                
-                {/* Info */}
-                <div className="flex-1 flex flex-col justify-center">
-                  <div className="flex flex-wrap items-center gap-3 mb-2">
-                    <h3 className="font-archivo text-2xl font-bold uppercase tracking-tight text-ink-900 dark:text-white">
-                      {row.project.name}
-                    </h3>
+
+                <div className="flex min-w-0 flex-col p-5 sm:p-6">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <h3 className="font-archivo text-xl font-bold tracking-tight text-[#203027] dark:text-white sm:text-2xl">{row.project.name}</h3>
                     <ProjectStatusChip status={row.project.status} />
                   </div>
-                  <p className="text-theme-sm text-steel-600 dark:text-gray-400 mb-4">
-                    {row.project.location} · {row.project.id}
-                  </p>
-                  
-                  <div className="flex flex-wrap items-center gap-6 mt-auto">
+                  <p className="mt-1.5 text-sm text-[#778078] dark:text-gray-400">{row.project.location}</p>
+                  {row.materialTypes.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5" aria-label="Surveyed materials">
+                      {row.materialTypes.map((type) => (
+                        <span key={type} className="rounded-md bg-[#f2f3ed] px-2 py-1 text-[10px] font-medium text-[#617065] dark:bg-white/[0.06] dark:text-gray-300">{materialLabels[type] ?? type}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-auto grid grid-cols-2 gap-x-4 gap-y-4 pt-5 sm:grid-cols-3">
                     <div>
-                      <p className="eyebrow-label text-steel-500 mb-1">Volume</p>
-                      <p className="ledger-numeral text-lg font-bold text-ink-900 dark:text-white">{row.surveyedT.toFixed(1)} t</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#899189]">Volume</p>
+                      <p className="mt-1 font-archivo text-lg font-bold text-[#26372c] dark:text-white">{row.surveyedT.toFixed(1)} t</p>
                     </div>
                     <div>
-                      <p className="eyebrow-label text-steel-500 mb-1">Current Stage</p>
-                      <p className="font-archivo text-lg font-bold text-ink-900 dark:text-gray-200 uppercase">{row.stageLabel}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#899189]">Current Stage</p>
+                      <p className="mt-1 truncate text-sm font-semibold text-[#35473a] dark:text-gray-200">{row.stageLabel}</p>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#899189]">Progress</p>
+                        <span className="text-xs font-semibold text-[#426b4c] dark:text-[#b2ceb9]">{row.progress}%</span>
+                      </div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e9ece6] dark:bg-white/10">
+                        <div className="h-full rounded-full bg-[#5c8967] transition-all" style={{ width: `${row.progress}%` }} />
+                      </div>
+                      {row.verifiedT > 0 && <p className="mt-1 text-[10px] text-[#899189]">{row.verifiedT.toFixed(1)} t recovered</p>}
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Action Area */}
-              <div className="flex lg:w-72 shrink-0 flex-col justify-center border-t border-steel-200 bg-gray-50 p-6 lg:border-l lg:border-t-0 dark:border-steel-800 dark:bg-black/20">
-                <p className="eyebrow-label text-steel-500 dark:text-steel-400 mb-2">Next Action</p>
-                <p className="font-archivo text-xl font-bold text-ink-900 dark:text-white uppercase mb-2">{row.next.label}</p>
-                <span className="mt-auto inline-flex items-center text-sm font-bold text-ink-900 dark:text-white uppercase tracking-wider group-hover:underline underline-offset-4">
-                  Open Project →
-                </span>
-              </div>
-            </Link>
-          ))}
+                <div className="flex flex-col justify-between gap-4 border-t border-[#eeeae2] bg-[#f8f7f2] p-5 dark:border-steel-800 dark:bg-[#1c2b22] sm:flex-row sm:items-center lg:flex-col lg:items-stretch lg:border-l lg:border-t-0 lg:p-5">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a938b]">Next Action</p>
+                    <p className="mt-1.5 font-archivo text-base font-bold text-[#2c3e31] dark:text-white">{row.next.label}</p>
+                    <p className="mt-1 text-xs leading-5 text-[#7a837b] dark:text-gray-400">{row.next.reason}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 sm:shrink-0 lg:flex-col lg:items-stretch">
+                    <Link to="/app/explore" state={{ projectId: row.project.id }} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#315c3d] px-4 text-sm font-semibold text-white transition hover:bg-[#254a30] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315c3d] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#1c2b22]">
+                      Open Project <span aria-hidden="true">→</span>
+                    </Link>
+                    <Link to={row.next.to} state={{ projectId: row.project.id }} className="inline-flex min-h-9 items-center justify-center rounded-lg px-3 text-xs font-semibold text-[#496b51] transition hover:bg-[#e9eee7] dark:text-[#b8d0bd] dark:hover:bg-white/[0.06]">
+                      Take next step <span aria-hidden="true" className="ml-1">↗</span>
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
 
         {rows.length === 0 && (
-          <EmptyState 
+          <EmptyState
             title="No active projects"
             body="You haven't added any recovery projects yet. Start by adding material from a project."
             action={{ label: "Add Material", to: "/app/materials/new" }}
           />
         )}
-      </div>
+        {rows.length > 0 && visibleRows.length === 0 && (
+          <div className="rounded-xl border border-dashed border-[#d8ddd5] bg-white/60 px-6 py-12 text-center dark:border-steel-700 dark:bg-white/[0.02]">
+            <h3 className="font-archivo text-lg font-bold text-[#2c3e31] dark:text-white">No matching projects</h3>
+            <p className="mt-1 text-sm text-[#7a837b] dark:text-gray-400">Try another name, location, or project status.</p>
+            <button type="button" onClick={() => { setQuery(""); setFilter("all"); }} className="mt-4 text-sm font-semibold text-[#416d4b] underline underline-offset-4 dark:text-[#b8d0bd]">Clear search and filters</button>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
