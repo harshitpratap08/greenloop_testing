@@ -1,0 +1,130 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve, dirname, basename } from 'node:path';
+import { createBackend } from './server.mjs';
+import { receiverCapacityTotals } from '../src/domain/metrics.ts';
+
+test('persistent provider/receiver workflow, ownership, reservations, uploads and recovery', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'greenloop-test-'));
+  let server = createBackend({ dataDir: directory });
+  const listen = async () => { await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); return `http://127.0.0.1:${server.address().port}`; };
+  let base = await listen();
+  const client = () => {
+    let cookie = '';
+    return async (path, method = 'GET', data, expected = 200) => {
+      const response = await fetch(`${base}/api${path}`, { method, headers: { 'Content-Type': 'application/json', 'X-GreenLoop-Client': 'web', Cookie: cookie }, body: data === undefined ? undefined : JSON.stringify(data) });
+      if (response.headers.get('set-cookie')) cookie = response.headers.get('set-cookie').split(';')[0];
+      const result = (response.headers.get('content-type') ?? '').includes('application/json') ? await response.json() : await response.arrayBuffer();
+      assert.equal(response.status, expected, JSON.stringify(result)); return result;
+    };
+  };
+  const provider = client(); const receiver = client(); const outsider = client(); const second = client();
+  const act = (request, action, ...args) => request('/actions', 'POST', { action, args });
+  try {
+    await provider('/dataset', 'GET', undefined, 401);
+    await provider('/auth/register', 'POST', { email: 'provider@example.com', password: 'password123', name: 'Provider', organization: 'Builder' }, 201);
+    await provider('/auth/register', 'POST', { email: 'provider@example.com', password: 'password123' }, 409);
+    await outsider('/auth/login', 'POST', { email: 'provider@example.com', password: 'wrong-password' }, 401);
+    await provider('/profile', 'PATCH', { workspaces: ['provider'], activeWorkspace: 'provider' });
+    const yard = (await receiver('/auth/register', 'POST', { email: 'receiver@example.com', password: 'password123', organization: 'Reuse Yard' }, 201)).user;
+    const facility = (await receiver('/profile', 'PATCH', { workspaces: ['receiver'], activeWorkspace: 'receiver', location: 'Delhi' })).user.receiverId;
+    assert.ok(facility); assert.notEqual(facility, 'R-001');
+    await outsider('/auth/register', 'POST', { email: 'outsider@example.com', password: 'password123' }, 201);
+    await outsider('/profile', 'PATCH', { workspaces: ['receiver'], receiverId: facility });
+    const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const slot = (await act(receiver, 'addCapacityAction', { receiverId: facility, date, materialType: 'concrete', capacityT: 15 })).result;
+    await outsider('/actions', 'POST', { action: 'updateCapacityAction', args: [slot.id, 20] }, 403);
+    const project = (await act(provider, 'addProjectAction', { name: 'Demolition', location: 'Delhi', status: 'active' })).result;
+    const material = (await act(provider, 'addMaterialAction', { projectId: project.id, type: 'concrete', quantityT: 20, quantityRangeT: [18, 22], condition: 'good', grade: 'A', confidence: 0.9, evidence: [] })).result;
+    await outsider('/actions', 'POST', { action: 'addMaterialAction', args: [{ projectId: project.id }] }, 403);
+    await provider('/actions', 'POST', { action: 'requestCapacityAction', args: [{ materialId: material.id, receiverId: facility, slotId: slot.id, tonnesT: -2 }] }, 400);
+    const reserved = await act(provider, 'requestCapacityAction', { materialId: material.id, receiverId: facility, slotId: slot.id, tonnesT: 10 });
+    const booking = reserved.dataset.bookings[0]; assert.equal(booking.status, 'confirmed');
+    await receiver('/actions', 'POST', { action: 'updateCapacityAction', args: [slot.id, 5] }, 409);
+    await provider('/actions', 'POST', { action: 'dispatchAction', args: [{ bookingId: booking.id }] }, 409);
+    await act(receiver, 'acceptRequestAction', booking.id);
+    await act(provider, 'dispatchAction', { bookingId: booking.id });
+    await provider('/actions', 'POST', { action: 'cancelBookingAction', args: [{ bookingId: booking.id }] }, 409);
+    await act(receiver, 'receiveLoadAction', booking.id, 9.5, [{ kind: 'weighbridge-ticket', label: 'Receipt', recordedAt: new Date().toISOString() }]);
+    const verification = (await receiver('/dataset')).dataset.verifications[0];
+    await receiver('/actions', 'POST', { action: 'verifyLoadAction', args: [verification.id, 8, 0, ''] }, 400);
+    await act(receiver, 'verifyLoadAction', verification.id, 9, 0.5, 'Contamination');
+    assert.equal((await provider('/dataset')).dataset.verifications[0].acceptedT, 9);
+    await receiver('/actions', 'POST', { action: 'verifyLoadAction', args: [verification.id, 9, 0.5, 'Contamination'] }, 409);
+    assert.equal((await outsider('/dataset')).dataset.materials.length, 0);
+    assert.equal((await outsider('/dataset')).dataset.bookings.length, 0);
+    // Competing providers: exactly one can reserve the remaining five tonnes.
+    await second('/auth/register', 'POST', { email: 'second@example.com', password: 'password123' }, 201);
+    await second('/profile', 'PATCH', { workspaces: ['provider'] });
+    const secondProject = (await act(second, 'addProjectAction', { name: 'Second project', location: 'Delhi', status: 'active' })).result;
+    const secondMaterial = (await act(second, 'addMaterialAction', { projectId: secondProject.id, type: 'concrete', quantityT: 8, quantityRangeT: [8, 8], condition: 'good', grade: 'A', confidence: 1, evidence: [] })).result;
+    const [firstRequest, secondRequest] = await Promise.all([
+      act(provider, 'requestCapacityAction', { materialId: material.id, receiverId: facility, slotId: slot.id, tonnesT: 5 }),
+      act(second, 'requestCapacityAction', { materialId: secondMaterial.id, receiverId: facility, slotId: slot.id, tonnesT: 5 }),
+    ]);
+    const all = (await receiver('/dataset')).dataset;
+    assert.equal(all.bookings.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + b.tonnesT, 0), 15);
+    assert.equal(receiverCapacityTotals((await provider('/dataset')).dataset).find(r => r.name === 'Reuse Yard').reserved, 15);
+    assert.equal(all.bookings.filter(b => b.status === 'hold').length, 1);
+    assert.ok(firstRequest.result && secondRequest.result);
+    const cancelled = all.bookings.find(b => b.status === 'confirmed' && b.id !== booking.id);
+    await act(cancelled.materialId === material.id ? provider : second, 'cancelBookingAction', { bookingId: cancelled.id });
+    assert.equal((await receiver('/dataset')).dataset.bookings.filter(b => b.status === 'hold').length, 0);
+    const partialDate = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+    const partialSlot = (await act(receiver, 'addCapacityAction', { receiverId: facility, date: partialDate, materialType: 'concrete', capacityT: 2 })).result;
+    const partlyHeld = (await act(second, 'requestCapacityAction', { materialId: secondMaterial.id, receiverId: facility, slotId: partialSlot.id, tonnesT: 3 })).dataset.bookings.find(b => b.slotId === partialSlot.id);
+    assert.equal(partlyHeld.status, 'hold');
+    await act(receiver, 'acceptRequestAction', partlyHeld.id, 2);
+    const partialBookings = (await receiver('/dataset')).dataset.bookings.filter(b => b.slotId === partialSlot.id);
+    assert.equal(partialBookings.find(b => b.status === 'confirmed').tonnesT, 2);
+    assert.equal(partialBookings.find(b => b.id === partlyHeld.id).status, 'cancelled');
+    const materialCommitted = (await second('/dataset')).dataset.bookings.filter(b => b.materialId === secondMaterial.id && b.status !== 'cancelled').reduce((sum, b) => sum + b.tonnesT, 0);
+    assert.equal(secondMaterial.quantityT - materialCommitted, 1);
+    // Private files are accessible only to their owner or a participating receiver.
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aRZkAAAAASUVORK5CYII=';
+    const upload = await provider('/uploads', 'POST', { name: 'photo.png', data: png }, 201);
+    await outsider(upload.ref.slice(4), 'GET', undefined, 403);
+    await provider('/uploads', 'POST', { name: 'bad.png', data: 'data:image/png;base64,SGVsbG8=' }, 400);
+    const evidenced = (await act(provider, 'addMaterialAction', { projectId: project.id, type: 'concrete', quantityT: 5, quantityRangeT: [5, 5], condition: 'good', grade: 'A', confidence: 1, evidence: [{ kind: 'site-photo', label: 'Photo', ref: upload.ref }] })).result;
+    const nextDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+    await act(receiver, 'addCapacityAction', { receiverId: facility, date: nextDate, materialType: 'concrete', capacityT: 10 });
+    const demand = (await act(receiver, 'addDemandAction', { materialType: 'concrete', requiredT: 5, period: nextDate, location: 'Delhi' })).result;
+    const offerResult = await act(provider, 'addOfferAction', { passportId: evidenced.id, demandId: demand.id, providerId: 'forged', offeredQuantityT: 5 });
+    const offer = offerResult.dataset.offers[0]; assert.equal(offer.providerId, 'provider@example.com');
+    await act(receiver, 'acceptOfferAction', offer.id);
+    assert.equal((await receiver('/dataset')).dataset.demands.find(d => d.id === demand.id).status, 'COVERED');
+    await receiver(upload.ref.slice(4));
+    const support = await act(provider, 'addSupportRequestAction', { subject: 'Question', message: 'Hello' }); assert.ok(support.result.id);
+    assert.equal((await outsider('/dataset')).dataset.supportRequests.length, 0);
+    // A dual-workspace account cannot accidentally view incoming material as its own inventory.
+    await provider('/profile', 'PATCH', { workspaces: ['receiver'] });
+    await provider('/profile', 'PATCH', { activeWorkspace: 'receiver' });
+    assert.equal((await provider('/dataset')).dataset.materials.length, 0);
+    await provider('/profile', 'PATCH', { activeWorkspace: 'provider' });
+    assert.ok((await provider('/dataset')).dataset.materials.some(m => m.id === material.id));
+    await provider('/actions', 'POST', { action: 'addProjectAction', args: [null] }, 400);
+    // Restart preserves both sessions and workflow data.
+    await new Promise(resolve => server.close(resolve)); server = createBackend({ dataDir: directory }); base = await listen();
+    assert.equal((await provider('/dataset')).dataset.projects[0].name, 'Demolition');
+    // Recovery requires a one-time token and invalidates existing sessions.
+    await provider('/auth/forgot-password', 'POST', { email: 'provider@example.com' });
+    const mail = JSON.parse(readFileSync(join(directory, 'mail-outbox.jsonl'), 'utf8').trim().split('\n').at(-1));
+    const token = new URL(mail.text.match(/http\S+/)[0]).searchParams.get('token');
+    await outsider('/auth/reset-password', 'POST', { token, password: 'new-password123' });
+    await outsider('/auth/reset-password', 'POST', { token, password: 'new-password123' }, 400);
+    await provider('/dataset', 'GET', undefined, 401);
+    await provider('/auth/login', 'POST', { email: 'provider@example.com', password: 'password123' }, 401);
+    await provider('/auth/login', 'POST', { email: 'provider@example.com', password: 'new-password123' });
+    await provider('/auth/logout', 'POST', {});
+    assert.equal((await provider('/auth/me')).user, null);
+    assert.ok(yard.id);
+    const csrf = await fetch(`${base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-GreenLoop-Client': 'web', Origin: 'https://attacker.example' }, body: '{}' }); assert.equal(csrf.status, 403);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+    assert.equal(dirname(resolve(directory)), resolve(tmpdir()));
+    assert.match(basename(directory), /^greenloop-test-/);
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

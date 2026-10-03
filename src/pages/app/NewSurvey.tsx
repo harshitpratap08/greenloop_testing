@@ -1,5 +1,7 @@
+import { useTranslation } from "react-i18next";
+import { uploadFile } from "@/lib/api";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import type { MaterialCondition, MaterialGrade, MaterialTypeKey, Evidence, MaterialPassport } from "@/domain/types";
@@ -17,11 +19,14 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function NewSurvey() {
+  const { t } = useTranslation();
   const { dataset, addMaterialAction, addProjectAction } = useGreenLoopStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [params] = useSearchParams();
   
   const [step, setStep] = useState(1);
-  const [projectId, setProjectId] = useState(dataset.projects[0]?.id || "");
+  const [projectId, setProjectId] = useState(location.state?.projectId || params.get("project") || dataset.projects[0]?.id || "");
   const [type, setType] = useState<MaterialTypeKey>("concrete");
   const [quantity, setQuantity] = useState("10");
   const [rangeMin, setRangeMin] = useState("8");
@@ -41,41 +46,32 @@ export default function NewSurvey() {
   const rangeIsValid = Number.isFinite(Number(rangeMin)) && Number.isFinite(Number(rangeMax)) && Number(rangeMin) >= 0 && Number(rangeMax) >= Number(rangeMin) && Number(rangeMin) <= Number(quantity) && Number(rangeMax) >= Number(quantity);
   const estimateRange: [number, number] = rangeIsValid ? [Number(rangeMin), Number(rangeMax)] : [Number(quantity) || 0, Number(quantity) || 0];
 
-  const handleFiles = (files: FileList | null) => {
-    if (!files) return;
-    setUploadError("");
-    const selectedFiles = Array.from(files);
-    const storedBytes = evidence.reduce((total, item) => total + Math.round((item.ref?.length ?? 0) * 0.75), 0);
-    const addedBytes = selectedFiles.reduce((total, file) => total + file.size, 0);
-    if (selectedFiles.some((file) => file.size > 2 * 1024 * 1024) || storedBytes + addedBytes > 4 * 1024 * 1024) {
-      setUploadError("Each file must be no larger than 2 MB, with 4 MB total evidence per passport.");
-      return;
-    }
-    selectedFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
+  const [uploading, setUploading] = useState(false);
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || uploading) return;
+    setUploadError(""); setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const ref = await uploadFile(file);
         const kind: Evidence["kind"] = file.type.startsWith("image/") ? "site-photo" : "survey-sheet";
-        setEvidence((current) => [...current, {
-          kind,
-          label: file.name,
-          ref: typeof reader.result === "string" ? reader.result : undefined,
-          recordedAt: new Date().toISOString(),
-        }]);
-      };
-      reader.readAsDataURL(file);
-    });
+        setEvidence(current => [...current, { kind, label: file.name, ref, recordedAt: new Date().toISOString() }]);
+      }
+    } catch (cause) { setUploadError(cause instanceof Error ? cause.message : t("backend.uploadFailed")); }
+    finally { setUploading(false); }
   };
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!projectName.trim() || !projectLocation.trim()) return;
-    const project = addProjectAction({ name: projectName.trim(), location: projectLocation.trim(), status: "active" });
+    const project = await addProjectAction({ name: projectName.trim(), location: projectLocation.trim(), status: "active" });
+    if (!project) return;
     setProjectId(project.id);
     setProjectName("");
     setProjectLocation("");
     setShowProjectForm(false);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (uploading) return;
     const quantityValue = Number(quantity);
     if (!Number.isFinite(quantityValue) || quantityValue <= 0) {
       setValidationError("Enter a quantity greater than zero.");
@@ -88,7 +84,7 @@ export default function NewSurvey() {
       return;
     }
     setValidationError("");
-    const passport = addMaterialAction({
+    const passport = await addMaterialAction({
       projectId,
       type,
       quantityT: quantityValue,
@@ -99,6 +95,7 @@ export default function NewSurvey() {
       surveyNotes: surveyNotes.trim() || undefined,
       evidence
     });
+    if (!passport) return;
     setCreatedPassport(passport);
     setStep(6);
   };
@@ -251,8 +248,9 @@ export default function NewSurvey() {
               <p className="mt-2 text-steel-600 dark:text-gray-400">Photos help providers and receivers understand what the material looks like. Evidence means the supporting photos or documents attached to its record.</p>
               
               <div className="mt-8 border-2 border-dashed border-steel-300 p-8 text-center dark:border-steel-700">
-                <label className="text-sm font-semibold uppercase text-steel-500">Photos and survey evidence (up to 2 MB each; 4 MB total)</label>
-                <input type="file" multiple accept="image/*,.pdf" onChange={(event) => handleFiles(event.target.files)} className="mt-4 block w-full text-sm text-steel-600 file:me-4 file:border file:border-steel-300 file:bg-white file:px-4 file:py-2 file:font-semibold dark:text-gray-300 dark:file:border-steel-700 dark:file:bg-black" />
+                <label className="text-sm font-semibold uppercase text-steel-500">{t("backend.uploadLimits")}</label>
+                <input type="file" disabled={uploading} multiple accept="image/png,image/jpeg,image/webp,.pdf" onChange={(event) => handleFiles(event.target.files)} className="mt-4 block w-full text-sm text-steel-600 file:me-4 file:border file:border-steel-300 file:bg-white file:px-4 file:py-2 file:font-semibold dark:text-gray-300 dark:file:border-steel-700 dark:file:bg-black" />
+                {uploading && <p role="status" className="mt-2 text-sm text-steel-600 dark:text-steel-400">{t("backend.uploadingEvidence")}</p>}
                 {uploadError && <p role="alert" className="mt-2 text-sm text-error-500">{uploadError}</p>}
                 {evidence.length === 0 && <p className="mt-3 text-xs text-steel-500">No evidence attached yet.</p>}
               </div>
@@ -321,7 +319,7 @@ export default function NewSurvey() {
               {validationError && <p role="alert" className="mt-4 text-sm text-error-500">{validationError}</p>}
               <div className="mt-10 flex justify-between">
                 <button onClick={() => setStep(4)} className="min-h-11 font-semibold text-steel-600 hover:text-ink-900 dark:text-gray-300 dark:hover:text-white">Back</button>
-                <button onClick={handleSubmit} className="bg-loop-600 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-700">Create Material Passport</button>
+                <button onClick={handleSubmit} disabled={uploading} className="bg-loop-600 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-700">Create Material Passport</button>
               </div>
             </motion.div>
           )}

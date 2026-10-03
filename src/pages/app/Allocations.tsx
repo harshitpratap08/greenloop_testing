@@ -95,42 +95,68 @@ export default function Allocations() {
                     </div>
                   )}
 
-                  <div className="hidden max-w-full overflow-x-auto lg:block">
-                    <Table>
-                      <TableHeader className="border-b border-steel-200 bg-[#f8f7f2] dark:border-steel-800 dark:bg-white/[0.02]">
-                        <TableRow className="hover:bg-transparent">
-                          <TableCell isHeader className="whitespace-nowrap px-3 py-2.5 text-start text-[9px] font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400">Receiver</TableCell>
-                          <TableCell isHeader className="whitespace-nowrap px-2 py-2.5 text-end text-[9px] font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400">Suitability</TableCell>
-                          <TableCell isHeader className="whitespace-nowrap px-2 py-2.5 text-end text-[9px] font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400">Demand</TableCell>
-                          <TableCell isHeader className="whitespace-nowrap px-2 py-2.5 text-end text-[9px] font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400">Distance</TableCell>
-                          <TableCell isHeader className="whitespace-nowrap px-2 py-2.5 text-end text-[9px] font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400">Slot free</TableCell>
-                          <TableCell isHeader className="whitespace-nowrap px-2 py-2.5 text-end text-[9px] font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400">Transport</TableCell>
-                          <TableCell isHeader className="whitespace-nowrap px-2 py-2.5 text-end text-[9px] font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400">Handling</TableCell>
-                          <TableCell isHeader className="whitespace-nowrap px-3 py-2.5 text-end text-[9px] font-bold uppercase tracking-wider text-loop-700 dark:text-loop-400">Score</TableCell>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody className="divide-y divide-steel-100 dark:divide-steel-800">
-                        {allocation.candidates.map((candidate) => (
-                          <TableRow key={candidate.receiverId} className={cn("transition-colors hover:bg-steel-50/70 dark:hover:bg-white/[0.03]", candidate.recommended && "bg-loop-50/60 dark:bg-loop-500/5")}>
-                            <TableCell className="px-3 py-2.5 text-start">
-                              <span className="flex min-w-0 items-center gap-2">
-                                <img src={receiverMediaFor(candidate.receiverId).src} alt={receiverMediaFor(candidate.receiverId).alt} loading="lazy" className="size-9 shrink-0 border border-steel-200 object-cover dark:border-steel-800" />
-                                <Link to="/app/receivers" className="min-w-0 truncate text-[11px] font-semibold text-ink-900 hover:text-loop-700 dark:text-white dark:hover:text-loop-400">{receiverName(candidate.receiverId)}</Link>
-                              </span>
-                              {candidate.recommended && <span className="ml-11 mt-1 inline-flex border border-loop-200 bg-loop-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-loop-800 dark:border-loop-700/50 dark:bg-loop-900/20 dark:text-loop-300">Recommended</span>}
-                            </TableCell>
-                            <TableCell mono className="whitespace-nowrap px-2 py-2.5 text-end text-[11px] font-medium text-steel-700 dark:text-gray-300">{Math.round(candidate.suitability * 100)}%</TableCell>
-                            <TableCell mono className="whitespace-nowrap px-2 py-2.5 text-end text-[11px] font-medium text-steel-700 dark:text-gray-300">{Math.round(candidate.demand * 100)}%</TableCell>
-                            <TableCell mono className="whitespace-nowrap px-2 py-2.5 text-end text-[11px] font-medium text-steel-700 dark:text-gray-300">{candidate.distanceKm} km</TableCell>
-                            <TableCell mono className="whitespace-nowrap px-2 py-2.5 text-end text-[11px] font-medium text-steel-700 dark:text-gray-300">{candidate.availableT.toFixed(1)} t</TableCell>
-                            <TableCell mono className="whitespace-nowrap px-2 py-2.5 text-end text-[11px] font-medium text-steel-700 dark:text-gray-300">£{candidate.transportCostPerT.toFixed(2)}/t</TableCell>
-                            <TableCell mono className="whitespace-nowrap px-2 py-2.5 text-end text-[11px] font-medium text-steel-700 dark:text-gray-300">£{candidate.handlingCostPerT.toFixed(2)}/t</TableCell>
-                            <TableCell mono className={cn("whitespace-nowrap px-3 py-2.5 text-end text-sm font-bold", candidate.recommended ? "text-loop-700 dark:text-loop-400" : "text-ink-900 dark:text-gray-200")}>{candidate.score.toFixed(3)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+            {/* Candidate scoring table */}
+            <div className="max-w-full overflow-x-auto">
+              <Table>
+                <TableHeader className="border-b border-steel-200 bg-gray-50/50 dark:border-steel-800 dark:bg-white/[0.01]">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell isHeader className="px-6 py-4 text-start font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400 whitespace-nowrap">Receiver</TableCell>
+                    <TableCell isHeader className="px-6 py-4 text-end font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400 whitespace-nowrap">Suitability</TableCell>
+                    <TableCell isHeader className="px-6 py-4 text-end font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400 whitespace-nowrap">Demand</TableCell>
+                    <TableCell isHeader className="px-6 py-4 text-end font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400 whitespace-nowrap">Distance</TableCell>
+                    <TableCell isHeader className="px-6 py-4 text-end font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400 whitespace-nowrap">Slot free</TableCell>
+                    <TableCell isHeader className="px-6 py-4 text-end font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400 whitespace-nowrap">Transport</TableCell>
+                    <TableCell isHeader className="px-6 py-4 text-end font-bold uppercase tracking-wider text-steel-500 dark:text-steel-400 whitespace-nowrap">Handling</TableCell>
+                    <TableCell isHeader className="px-6 py-4 text-end font-bold uppercase tracking-wider text-loop-600 dark:text-loop-500 whitespace-nowrap">Score</TableCell>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-steel-100 dark:divide-steel-800">
+                  {allocation.candidates.map((candidate) => (
+                    <TableRow key={candidate.receiverId} className={cn("transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03]", candidate.recommended && "bg-loop-50/50 dark:bg-loop-500/5")}>
+                      <TableCell className="px-6 py-4 text-start">
+                        <span className="flex items-center gap-3">
+                          <img
+                            src={receiverMediaFor(candidate.receiverId).src}
+                            alt={receiverMediaFor(candidate.receiverId).alt}
+                            loading="lazy"
+                            className="hidden h-10 w-14 shrink-0 border border-steel-200 bg-steel-100 object-cover sm:block dark:border-steel-800 dark:bg-steel-900"
+                          />
+                        <span className="font-archivo text-base font-semibold text-ink-900 dark:text-white">
+                          {receiverName(candidate.receiverId)}
+                        </span>
+                        </span>
+                        {candidate.recommended && (
+                          <span className="ml-3 inline-flex items-center rounded-sm bg-loop-100 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-loop-700 dark:bg-loop-500/20 dark:text-loop-400">
+                            Recommended
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell mono className="px-6 py-4 text-end text-sm font-medium text-steel-700 dark:text-gray-300">
+                        {Math.round(candidate.suitability * 100)}%
+                      </TableCell>
+                      <TableCell mono className="px-6 py-4 text-end text-sm font-medium text-steel-700 dark:text-gray-300">
+                        {Math.round(candidate.demand * 100)}%
+                      </TableCell>
+                      <TableCell mono className="px-6 py-4 text-end text-sm font-medium text-steel-700 dark:text-gray-300">
+                        {candidate.distanceKm} km
+                      </TableCell>
+                      <TableCell mono className="px-6 py-4 text-end text-sm font-medium text-steel-700 dark:text-gray-300">
+                        {candidate.availableT.toFixed(1)} t
+                      </TableCell>
+                      <TableCell mono className="px-6 py-4 text-end text-sm font-medium text-steel-700 dark:text-gray-300">
+                        £{candidate.transportCostPerT.toFixed(2)}/t
+                      </TableCell>
+                      <TableCell mono className="px-6 py-4 text-end text-sm font-medium text-steel-700 dark:text-gray-300">
+                        £{candidate.handlingCostPerT.toFixed(2)}/t
+                      </TableCell>
+                      <TableCell mono className={cn("px-6 py-4 text-end text-base font-bold", candidate.recommended ? "text-loop-600 dark:text-loop-400" : "text-ink-900 dark:text-gray-200")}>
+                        {candidate.score.toFixed(3)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
                   <ul className="grid gap-2 p-3 lg:hidden sm:grid-cols-2 sm:p-4">
                     {allocation.candidates.map((candidate) => (

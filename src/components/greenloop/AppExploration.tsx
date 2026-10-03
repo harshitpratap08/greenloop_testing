@@ -48,7 +48,7 @@ export function projectSteps(dataset: GreenLoopDataset, projectId: string): Proj
     dataset.events.some((e) => e.kind === "load.dispatched" && e.subjectIds.includes(b.id)),
   );
   const deliver = dispatchedBookings.length > 0;
-  const verify = dataset.verifications.some((v) => dispatchedBookings.some((b) => b.id === v.bookingId));
+  const verify = dataset.verifications.some((v) => v.status !== "pending" && dispatchedBookings.some((b) => b.id === v.bookingId));
 
   return { survey, match, reserve, deliver, verify };
 }
@@ -224,8 +224,7 @@ export function ProjectCard({ project }: { project: Project }) {
 
   return (
     <Link
-      to="/app/explore"
-      state={{ projectId: project.id }}
+      to={`/app/materials?project=${encodeURIComponent(project.id)}`}
       className="group surface-card block p-5 transition-colors hover:border-steel-300 dark:hover:border-steel-600"
     >
       <div className="flex items-start justify-between gap-3">

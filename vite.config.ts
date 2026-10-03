@@ -4,6 +4,7 @@ import svgr from "vite-plugin-svgr";
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: { port: 5173, strictPort: true, proxy: { "/api": `http://127.0.0.1:${process.env.PORT ?? 3001}` } },
   resolve: {
     alias: {
       "@": "/src",

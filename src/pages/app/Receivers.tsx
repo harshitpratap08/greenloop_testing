@@ -4,7 +4,6 @@ import PageMeta from "@/components/common/PageMeta";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { materialMedia } from "@/components/greenloop/AppExploration";
 import { computeMatch, slotLedger } from "@/domain/capacity";
-import { STORY } from "@/domain/demoData";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { cn, formatDate } from "@/utils";
 import { motion, AnimatePresence } from "motion/react";
@@ -29,7 +28,7 @@ const WORKFLOW_STEPS = [
 export default function Receivers() {
   const { dataset, requestCapacityAction } = useGreenLoopStore();
   const location = useLocation();
-  const [materialId, setMaterialId] = useState<string>(location.state?.materialId || STORY.materialAId);
+  const [materialId, setMaterialId] = useState<string>(location.state?.materialId || dataset.materials.find(material => material.projectId === location.state?.projectId)?.id || dataset.materials[0]?.id || "");
   const [receiverId, setReceiverId] = useState<string>("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [requestQuantity, setRequestQuantity] = useState("");
@@ -46,12 +45,12 @@ export default function Receivers() {
   const media = material ? materialMedia(material) : [];
   const materialImageFallback = material ? materialMediaFor(material.type) : ambientMedia.sortingFacility;
   const materialImage = media[0];
-  const matches = material ? computeMatch(dataset, material.id) : [];
+  const matches = material ? computeMatch(dataset, material.id, new Date().toISOString().slice(0, 10)) : [];
   const orderedMatches = [...matches].sort((a, b) => Number(b.recommended) - Number(a.recommended));
   const selectedMatch = orderedMatches.find((candidate) => candidate.receiverId === receiverId) ?? orderedMatches[0];
   const selectedReceiver = selectedMatch && dataset.receivers.find((receiver) => receiver.id === selectedMatch.receiverId);
   const receiverSlots = selectedMatch && material ? dataset.slots
-    .filter((slot) => slot.receiverId === selectedMatch.receiverId && slot.materialType === material.type)
+    .filter((slot) => slot.receiverId === selectedMatch.receiverId && slot.materialType === material.type && slot.date >= new Date().toISOString().slice(0, 10))
     .sort((a, b) => a.date.localeCompare(b.date)) : [];
   const selectedSlot = receiverSlots.find((slot) => slot.id === selectedSlotId) ?? receiverSlots[0];
   const requestedT = requestQuantity ? Number(requestQuantity) : remainingT;
@@ -162,7 +161,7 @@ export default function Receivers() {
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#f6f5f0] px-3.5 py-3 dark:bg-white/[0.04]">
                   <div className="min-w-0 text-xs">
                     <span className="text-[#7c857d] dark:text-gray-400">Project origin: </span>
-                    <Link to="/app/explore" state={{ projectId: material.projectId }} className="font-semibold text-[#34483a] underline decoration-[#bdc8bc] underline-offset-2 hover:text-[#315f3d] dark:text-white">{project?.name ?? material.projectId}</Link>
+                    <Link to={`/app/materials?project=${encodeURIComponent(material.projectId)}`} className="font-semibold text-[#34483a] underline decoration-[#bdc8bc] underline-offset-2 hover:text-[#315f3d] dark:text-white">{project?.name ?? material.projectId}</Link>
                     {project && <span className="text-[#7c857d] dark:text-gray-400"> · {project.location}</span>}
                   </div>
                   <Link to={`/app/materials/${material.id}`} className="shrink-0 text-xs font-semibold text-[#426b4c] hover:underline dark:text-[#b8d0bd]">View passport →</Link>
@@ -217,7 +216,7 @@ export default function Receivers() {
                       <h3 className="font-archivo text-sm font-bold uppercase tracking-wide text-[#2b3c30] dark:text-white sm:text-base">{receiver?.name ?? candidate.receiverId}</h3>
                       {candidate.recommended && <span className="rounded-sm border border-[#c7d9c7] bg-[#eef4ed] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#416b4a] dark:border-loop-500/40 dark:bg-loop-500/10 dark:text-loop-300">Best fit</span>}
                     </div>
-                    <p className="mt-1 text-[10px] text-[#7d867e] dark:text-gray-400"><span className="font-semibold text-[#47594a] dark:text-gray-200">{candidate.distanceKm} km</span> from project · {receiver?.location ?? "—"}</p>
+                    <p className="mt-1 text-[10px] text-[#7d867e] dark:text-gray-400"><span className="font-semibold text-[#47594a] dark:text-gray-200">{candidate.distanceKnown === false ? "\u2014" : `${candidate.distanceKm} km`}</span> from project · {receiver?.location ?? "—"}</p>
                     <div className="mt-3 grid grid-cols-3 gap-2 border-y border-[#efede7] py-2.5 dark:border-white/[0.07]">
                       <PassportMetric label="Free capacity" value={`${candidate.availableT.toFixed(1)} t`} highlight={candidate.recommended} compact />
                       <PassportMetric label="Slot capacity" value={`${(ledger?.slot.capacityT ?? 0).toFixed(1)} t`} compact />
@@ -233,7 +232,7 @@ export default function Receivers() {
                       <div className="mt-1.5 grid gap-1 text-[#778078] dark:text-gray-400 sm:grid-cols-2">
                         <p>Daily intake: {receiver?.dailyIntakeT.toFixed(1) ?? "—"} t</p>
                         <p>Accepts: {receiver?.acceptedTypes.map((type) => TYPE_LABEL[type] ?? type).join(", ") ?? "—"}</p>
-                        <p>Distance: {candidate.distanceKm} km</p>
+                        <p>Distance: {candidate.distanceKnown === false ? "\u2014" : `${candidate.distanceKm} km`}</p>
                         <p>Free of slot capacity: {candidate.availableT.toFixed(1)} / {(ledger?.slot.capacityT ?? 0).toFixed(1)} t</p>
                       </div>
                     </details>
@@ -266,7 +265,7 @@ export default function Receivers() {
               <div className="border-b border-[#eeeae2] px-4 py-4 sm:px-5 dark:border-steel-800">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4b7956] dark:text-[#b8d0bd]">03 · Capacity</p>
                 <h2 id="capacity-heading" className="mt-1 font-archivo text-xl font-bold text-[#26362c] dark:text-white sm:text-2xl">Check free capacity</h2>
-                <p className="mt-1 text-xs text-[#778078] dark:text-gray-400">{selectedReceiver.name} · {requestedT.toFixed(1)} t of {TYPE_LABEL[material.type] ?? material.type} · {selectedMatch.distanceKm} km from project</p>
+                <p className="mt-1 text-xs text-[#778078] dark:text-gray-400">{selectedReceiver.name} · {requestedT.toFixed(1)} t of {TYPE_LABEL[material.type] ?? material.type} · {selectedMatch.distanceKnown === false ? "\u2014" : `${selectedMatch.distanceKm} km`} from project</p>
               </div>
 
               <div className="grid lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -337,8 +336,8 @@ export default function Receivers() {
                       </dl>
                       <p className="mt-3 text-[11px] leading-5 text-signal-800 dark:text-signal-200">{holdState.available > 0 ? `${holdState.available.toFixed(1)} t can currently be received. ${(holdState.requested - holdState.available).toFixed(1)} t still needs another receiving option.` : "This receiver has no available capacity in this intake slot."}</p>
                       <div className="mt-4 grid gap-2">
-                        {holdState.available > 0 && <button type="button" onClick={() => {
-                          requestCapacityAction({ materialId: material.id, receiverId: holdState.receiverId, slotId: holdState.slotId, tonnesT: holdState.available });
+                        {holdState.available > 0 && <button type="button" onClick={async () => {
+                          if (!await requestCapacityAction({ materialId: material.id, receiverId: holdState.receiverId, slotId: holdState.slotId, tonnesT: holdState.available })) return;
                           setHoldState(null);
                         }} className="min-h-10 rounded-lg bg-[#315f3d] px-3 text-xs font-semibold text-white transition hover:bg-[#274d32]">Book {holdState.available.toFixed(1)} t</button>}
                         <button type="button" onClick={() => { setHoldState(null); setReceiverId(""); }} className="min-h-10 rounded-lg border border-[#cbd4ca] bg-white px-3 text-xs font-semibold text-[#3f5946] hover:bg-[#f0f4ef] dark:border-steel-700 dark:bg-transparent dark:text-gray-200">Another receiver</button>
@@ -355,8 +354,8 @@ export default function Receivers() {
                               })}
                             </select>
                           </label>
-                          <button type="button" disabled={!alternateSlotId} onClick={() => {
-                            requestCapacityAction({ materialId: material.id, receiverId: holdState.receiverId, slotId: alternateSlotId, tonnesT: holdState.requested });
+                          <button type="button" disabled={!alternateSlotId} onClick={async () => {
+                            if (!await requestCapacityAction({ materialId: material.id, receiverId: holdState.receiverId, slotId: alternateSlotId, tonnesT: holdState.requested })) return;
                             setHoldState(null);
                             setChooseAnotherDate(false);
                           }} className="min-h-10 w-full rounded-lg bg-[#315f3d] px-3 text-xs font-semibold text-white disabled:opacity-50">Request slot</button>

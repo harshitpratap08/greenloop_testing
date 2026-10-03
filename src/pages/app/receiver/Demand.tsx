@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import PageMeta from "@/components/common/PageMeta";
@@ -23,40 +24,42 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function Demand() {
+  const { t } = useTranslation();
   const { dataset, addDemandAction, acceptOfferAction, declineOfferAction } = useGreenLoopStore();
   const { user } = useAuth();
-  const receiverId = user?.receiverId ?? "R-001";
-
+  const receiverId = user?.receiverId ?? "";
+  
   const [isAdding, setIsAdding] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [type, setType] = useState<MaterialTypeKey>("concrete");
   const [requiredT, setRequiredT] = useState("");
   const [period, setPeriod] = useState("");
   const [error, setError] = useState("");
-  const [location, setLocation] = useState("Riverstone Aggregates");
+  const [location, setLocation] = useState(user?.location || user?.organization || "");
   const [notes, setNotes] = useState("");
   const [sentMessage, setSentMessage] = useState("");
 
   const receiverDemands = dataset.demands?.filter((d) => d.receiverId === receiverId) ?? [];
 
-  const handleAddDemand = (e: React.FormEvent) => {
+  const handleAddDemand = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!requiredT || !Number.isFinite(Number(requiredT)) || Number(requiredT) <= 0 || !period) {
       setError("Enter a positive quantity and needed-by date.");
       return;
     }
     setError("");
-    addDemandAction({
+    const demand = await addDemandAction({
       receiverId,
       materialType: type,
       requiredT: Number(requiredT),
       period: period || "Q4 2026",
-      location: location || "Riverstone Aggregates",
+      location: location || user?.organization || "Receiving facility",
       notes: notes,
     });
-
+    
+    if (!demand) return;
     setIsAdding(false);
-    setSentMessage("Request sent. Providers near you are notified.");
+    setSentMessage(t("backend.requestPublished"));
     setRequiredT("");
     setPeriod("");
     setNotes("");

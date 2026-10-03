@@ -11,9 +11,9 @@ export default function Profile() {
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState(() => ({
-    fullName: user?.name || "Site Manager",
-    companyName: user?.organization || "Harrow Road Demolition",
-    email: user?.email || "manager@harrowdemo.co.uk",
+    fullName: user?.name || "",
+    companyName: user?.organization || "",
+    email: user?.email || "",
     phone: user?.phone || "",
     location: user?.location || "",
     vat: user?.vat || "",
@@ -26,11 +26,11 @@ export default function Profile() {
     }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSuccess(false);
-    updateUser({
+    const saved = await updateUser({
       name: formData.fullName.trim(),
       organization: formData.companyName.trim(),
       phone: formData.phone.trim(),
@@ -38,7 +38,7 @@ export default function Profile() {
       vat: formData.vat.trim(),
     });
     setIsSaving(false);
-    setSuccess(true);
+    setSuccess(saved);
   };
 
   const displayName = user?.name || user?.email || "Your profile";
@@ -138,7 +138,7 @@ export default function Profile() {
                     required
                     className={`${inputClass} cursor-not-allowed bg-steel-50 text-steel-600 dark:bg-white/[0.03] dark:text-gray-400`}
                   />
-                  <p id="account-email-note" className="mt-1 text-[10px] text-steel-500 dark:text-steel-400">Email is the sign-in identifier for this local demo account.</p>
+                  <p id="account-email-note" className="mt-1 text-[10px] text-steel-500 dark:text-steel-400">Email is the sign-in identifier for your account.</p>
                 </ProfileField>
 
                 <ProfileField id="profile-phone" label="Phone Number">

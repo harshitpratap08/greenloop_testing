@@ -188,7 +188,7 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
                   <div className="flex items-center justify-center gap-2 text-xs font-semibold text-steel-500 md:flex-col md:gap-1">
                     <span className="hidden h-px w-12 bg-steel-300 md:block dark:bg-steel-700" aria-hidden="true" />
                     <span className="ledger-numeral border border-steel-200 bg-white px-2.5 py-1.5 text-ink-800 dark:border-steel-700 dark:bg-ink-900 dark:text-white">
-                      {receiver ? `${receiver.distanceKm} km` : "Distance unavailable"}
+                      {receiver && receiver.distanceKnown !== false ? `${receiver.distanceKm} km` : "Distance unavailable"}
                     </span>
                     <span className="hidden h-px w-12 bg-steel-300 md:block dark:bg-steel-700" aria-hidden="true" />
                   </div>

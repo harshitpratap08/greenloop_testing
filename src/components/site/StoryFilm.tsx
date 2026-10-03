@@ -1,13 +1,12 @@
 import { useRef, type MouseEvent } from "react";
 import { Link } from "react-router";
 import { motion, useReducedMotion, useScroll, useTransform, useMotionValue, useSpring } from "motion/react";
-import { STORY } from "@/domain/demoData";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
+import { STORY, demoDataset } from "@/domain/demoData";
 
 export default function StoryFilm() {
   const containerRef = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
-  const { dataset } = useGreenLoopStore();
+  const dataset = demoDataset();
   
   const material = dataset.materials.find((item) => item.id === STORY.materialAId);
   const project = dataset.projects.find((item) => item.id === material?.projectId);

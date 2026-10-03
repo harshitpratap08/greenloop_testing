@@ -105,7 +105,7 @@ export default function MarketDemand() {
     { label: "Materials Matched", value: matchedPassports.toLocaleString(), note: "Accepted provider offers", kind: "matched" as const },
   ];
 
-  const handleOffer = (event: React.FormEvent) => {
+  const handleOffer = async (event: React.FormEvent) => {
     event.preventDefault();
     const quantity = Number(offerQuantity);
     const passport = dataset.materials.find((item) => item.id === selectedPassportId);
@@ -118,12 +118,14 @@ export default function MarketDemand() {
       return;
     }
     setOfferError("");
-    addOfferAction({
+    const saved = await addOfferAction({
       demandId: demand.id,
       providerId,
       passportId: selectedPassportId,
       offeredQuantityT: quantity,
     });
+    
+    if (!saved) return;
     setSelectedDemandId(null);
     setSelectedPassportId("");
     setOfferQuantity("");
@@ -199,7 +201,7 @@ export default function MarketDemand() {
             {filteredDemands.map((demand, index) => {
               const receiver = dataset.receivers.find((item) => item.id === demand.receiverId);
               const isOffering = selectedDemandId === demand.id;
-              const availablePassports = dataset.materials.filter((item) => item.type === demand.materialType && (item.status === "surveyed" || item.status === "passport-ready"));
+              const availablePassports = dataset.materials.filter((item) => item.type === demand.materialType && item.status !== "cancelled" && item.quantityT > dataset.bookings.filter((booking) => booking.materialId === item.id && booking.status !== "cancelled").reduce((sum, booking) => sum + booking.tonnesT, 0));
               const image = materialMediaFor(demand.materialType);
               return (
                 <motion.article key={demand.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.04, 0.2) }} className="overflow-hidden rounded-xl border border-[#e5e2da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] transition hover:border-[#bfccbf] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957]">

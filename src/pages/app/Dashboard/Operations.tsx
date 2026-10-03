@@ -4,8 +4,7 @@ import RecoveryFlow from "@/components/greenloop/RecoveryFlow";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import PageMeta from "@/components/common/PageMeta";
 import Badge from "@/components/ui/badge/Badge";
-import { reservedT, slotLedger } from "@/domain/capacity";
-import { STORY } from "@/domain/demoData";
+import { slotLedger } from "@/domain/capacity";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { Link } from "react-router";
 import { formatDate } from "@/utils";
@@ -38,6 +37,8 @@ export default function Operations() {
 
   const activeProject = dataset.projects[0];
   const projectMaterials = dataset.materials.filter((m) => m.projectId === activeProject?.id);
+
+  const capacitySlots = dataset.slots.filter(slot => slot.date >= new Date().toISOString().slice(0, 10)).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 2);
   const surveyedTotal = dataset.materials.reduce((total, material) => total + material.quantityT, 0);
   const verifiedTotal = dataset.verifications.filter((record) => record.status === "verified").reduce((total, record) => total + record.acceptedT, 0);
   const dispatchedBookingIds = new Set(
@@ -45,8 +46,6 @@ export default function Operations() {
   );
   const dispatchedTotal = dataset.bookings.filter((booking) => dispatchedBookingIds.has(booking.id)).reduce((total, booking) => total + booking.tonnesT, 0);
   const activeBookingCount = dataset.bookings.filter((booking) => booking.status === "confirmed" || booking.status === "hold" || booking.status === "pending").length;
-  const scenarioLedger = slotLedger(dataset, STORY.concreteSlotSept24);
-  const nextSlotLedger = slotLedger(dataset, STORY.concreteSlotSept28);
   const receiverName = (id: string) => dataset.receivers.find((r) => r.id === id)?.name ?? id;
   const materialName = (id: string) => TYPE_LABEL[dataset.materials.find((m) => m.id === id)?.type ?? ""] ?? dataset.materials.find((m) => m.id === id)?.type ?? id;
   const projectName = (id: string) => dataset.projects.find((p) => p.id === id)?.name ?? id;
@@ -190,31 +189,20 @@ export default function Operations() {
           <SectionHeading title="Network Capacity" to="/app/receivers" action="Find receivers" />
           <p className="mt-1 text-[11px] text-steel-600 dark:text-steel-400">Real-time receiving capacity for tracked facilities.</p>
           <div className="mt-3">
-            <h3 className="text-xs font-bold text-ink-900 dark:text-white">{receiverName(STORY.receiverId)}</h3>
-            {scenarioLedger && nextSlotLedger ? (
+            {capacitySlots.length > 0 ? (
               <div className="mt-2 space-y-3">
-                <div className="border border-steel-100 p-2.5 dark:border-steel-800">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-xs font-medium text-ink-900 dark:text-white/90">{formatDate(scenarioLedger.slot.date)} intake</p>
-                    <Badge color="warning" size="sm">Limited</Badge>
-                  </div>
-                  <CapacityBar
-                    capacityT={scenarioLedger.slot.capacityT}
-                    reservedT={reservedT(dataset.bookings.filter((booking) => booking.slotId === scenarioLedger.slot.id))}
-                    heldT={scenarioLedger.heldT}
-                  />
-                </div>
-                <div className="border border-steel-100 p-2.5 dark:border-steel-800">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-xs font-medium text-ink-900 dark:text-white/90">{formatDate(nextSlotLedger.slot.date)} intake</p>
-                    <Badge color="success" size="sm">Available</Badge>
-                  </div>
-                  <CapacityBar
-                    capacityT={nextSlotLedger.slot.capacityT}
-                    reservedT={reservedT(dataset.bookings.filter((booking) => booking.slotId === nextSlotLedger.slot.id))}
-                    heldT={nextSlotLedger.heldT}
-                  />
-                </div>
+                {capacitySlots.map((slot) => {
+                  const ledger = slotLedger(dataset, slot.id);
+                  if (!ledger) return null;
+                  return <div key={slot.id} className="border border-steel-100 p-2.5 dark:border-steel-800">
+                    <h3 className="text-xs font-bold text-ink-900 dark:text-white">{receiverName(slot.receiverId)}</h3>
+                    <div className="mb-2 mt-2 flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-ink-900 dark:text-white/90">{formatDate(slot.date)} intake</p>
+                      <Badge color={ledger.available > 0 ? "success" : "warning"} size="sm">{ledger.available.toFixed(1)} t</Badge>
+                    </div>
+                    <CapacityBar capacityT={slot.capacityT} reservedT={ledger.reserved} heldT={ledger.heldT} />
+                  </div>;
+                })}
               </div>
             ) : (
               <p className="border border-dashed border-steel-300 px-3 py-6 text-center text-xs text-steel-500 dark:border-steel-700">No capacity slots available.</p>

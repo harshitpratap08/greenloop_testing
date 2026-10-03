@@ -1,6 +1,7 @@
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import PageMeta from "@/components/common/PageMeta";
 import type { GreenLoopDataset } from "@/domain/types";
+import { recoveryFlowTotals as computeFlow, receiverCapacityTotals } from "@/domain/metrics";
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/utils";
@@ -112,23 +113,23 @@ export default function Reports() {
         <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.05 }}>
           <CompositionChart dataset={dataset} />
         </motion.div>
-        
+
         <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}>
           <RecoveryFlowChart dataset={dataset} />
         </motion.div>
-        
+
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.15 }}>
           <ReceiverCapacityChart dataset={dataset} />
         </motion.div>
-        
+
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}>
           <ProjectRecoveryChart dataset={dataset} />
         </motion.div>
-        
+
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.25 }}>
           <PlannedActualChart dataset={dataset} />
         </motion.div>
-        
+
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }}>
           <CapacityTimelineChart dataset={dataset} />
         </motion.div>
@@ -296,32 +297,8 @@ function RecoveryFlowChart({ dataset }: { dataset: GreenLoopDataset }) {
   );
 }
 
-function computeFlow(dataset: GreenLoopDataset): Record<string, number> {
-  const surveyed = dataset.materials.reduce((s, m) => s + m.quantityT, 0);
-  const allocatedIds = new Set(dataset.allocations.map((a) => a.materialId));
-  const matched = dataset.materials.filter((m) => allocatedIds.has(m.id)).reduce((s, m) => s + m.quantityT, 0);
-  const activeBookings = dataset.bookings.filter((b) => b.status === "confirmed" || b.status === "hold" || b.status === "pending");
-  const reserved = activeBookings.reduce((s, b) => s + b.tonnesT, 0);
-  const dispatchedBookingIds = new Set(
-    dataset.events.filter((e) => e.kind === "load.dispatched").flatMap((e) => e.subjectIds.filter((id) => dataset.bookings.some((b) => b.id === id))),
-  );
-  const dispatched = dataset.bookings
-    .filter((b) => dispatchedBookingIds.has(b.id))
-    .reduce((s, b) => s + b.tonnesT, 0);
-  const verified = dataset.verifications.filter((v) => v.status === "verified").reduce((s, v) => s + v.acceptedT, 0);
-  return { surveyed, matched, reserved, dispatched, verified };
-}
-
 function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
-  const totals = dataset.receivers.map((r) => {
-    const slots = dataset.slots.filter((s) => s.receiverId === r.id);
-    const capacity = slots.reduce((s, slot) => s + slot.capacityT, 0);
-    const bookings = dataset.bookings.filter(
-      (b) => b.receiverId === r.id && (b.status === "confirmed" || b.status === "hold" || b.status === "pending"),
-    );
-    const reserved = bookings.reduce((s, b) => s + b.tonnesT, 0);
-    return { name: r.name, capacity, reserved, available: capacity - reserved };
-  });
+  const totals = receiverCapacityTotals(dataset);
   const max = Math.max(...totals.map((t) => t.capacity), 1);
 
   return (
@@ -344,19 +321,19 @@ function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
                 </span>
               </div>
               <div className="mt-2 flex h-3 w-full overflow-hidden bg-steel-100 dark:bg-steel-900">
-                <motion.div 
+                <motion.div
                   initial={{ width: 0 }}
                   whileInView={{ width: `${reservedPct}%` }}
                   transition={{ duration: 1, delay: i * 0.1, ease: "easeOut" }}
                   viewport={{ once: true }}
-                  className="h-full bg-loop-600 dark:bg-loop-500" 
+                  className="h-full bg-loop-600 dark:bg-loop-500"
                 />
-                <motion.div 
+                <motion.div
                   initial={{ width: 0 }}
                   whileInView={{ width: `${availablePct}%` }}
                   transition={{ duration: 1, delay: i * 0.1, ease: "easeOut" }}
                   viewport={{ once: true }}
-                  className="h-full bg-steel-300 dark:bg-steel-700" 
+                  className="h-full bg-steel-300 dark:bg-steel-700"
                 />
               </div>
             </div>
@@ -401,19 +378,19 @@ function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
               </span>
             </div>
             <div className="relative mt-2 h-3 w-full overflow-hidden bg-steel-100 dark:bg-steel-900">
-              <motion.div 
+              <motion.div
                 initial={{ width: 0 }}
                 whileInView={{ width: `${(r.surveyed / max) * 100}%` }}
                 transition={{ duration: 1, delay: i * 0.1, ease: "easeOut" }}
                 viewport={{ once: true }}
-                className="h-full bg-steel-300 dark:bg-steel-700" 
+                className="h-full bg-steel-300 dark:bg-steel-700"
               />
-              <motion.div 
+              <motion.div
                 initial={{ width: 0 }}
                 whileInView={{ width: `${(r.verified / max) * 100}%` }}
                 transition={{ duration: 1, delay: i * 0.1 + 0.2, ease: "easeOut" }}
                 viewport={{ once: true }}
-                className="absolute inset-y-0 left-0 h-full bg-loop-600 dark:bg-loop-500" 
+                className="absolute inset-y-0 left-0 h-full bg-loop-600 dark:bg-loop-500"
               />
             </div>
           </div>
@@ -455,12 +432,12 @@ function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
           <div key={r.label} className="flex items-center gap-2.5">
             <span className="w-20 shrink-0 font-archivo text-xs font-bold uppercase tracking-wider text-ink-900 dark:text-gray-200 sm:w-24 sm:text-sm">{r.label}</span>
             <div className="h-4 grow overflow-hidden bg-steel-100 dark:bg-steel-900">
-              <motion.div 
+              <motion.div
                 initial={{ width: 0 }}
                 whileInView={{ width: `${(r.value / max) * 100}%` }}
                 transition={{ duration: 1, delay: i * 0.1, ease: "easeOut" }}
                 viewport={{ once: true }}
-                className={cn("h-full", r.cls)} 
+                className={cn("h-full", r.cls)}
               />
             </div>
             <span className="ledger-numeral w-14 shrink-0 text-right text-sm font-bold text-ink-900 dark:text-white sm:text-base">

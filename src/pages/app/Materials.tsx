@@ -3,7 +3,7 @@ import PageMeta from "@/components/common/PageMeta";
 import { computeMatch } from "@/domain/capacity";
 import type { MaterialTypeKey } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { PageMotion, RevealItem, StatusChip, EmptyState } from "@/components/greenloop/kit";
 import { materialMediaFor, ambientMedia } from "@/config/appMedia";
 
@@ -39,6 +39,9 @@ function MaterialCategoryIcon({ kind }: { kind: "passports" | "volume" }) {
 
 export default function Materials() {
   const { dataset } = useGreenLoopStore();
+  const [params, setParams] = useSearchParams();
+  const selectedProjectId = params.get("project");
+  const selectedProject = dataset.projects.find((project) => project.id === selectedProjectId);
   const [category, setCategory] = useState<MaterialCategory>("all");
   const [query, setQuery] = useState("");
   const projectName = (id: string) => dataset.projects.find((project) => project.id === id)?.name ?? id;
@@ -77,9 +80,9 @@ export default function Materials() {
         material.condition,
         material.grade,
       ].some((value) => value.toLowerCase().includes(normalizedQuery));
-      return matchesCategory && matchesQuery;
+      return matchesCategory && matchesQuery && (!selectedProjectId || material.projectId === selectedProjectId);
     });
-  }, [category, dataset.materials, dataset.projects, query]);
+  }, [category, dataset.materials, dataset.projects, query, selectedProjectId]);
 
   return (
     <PageMotion className="mx-auto max-w-[1320px] pb-16">
@@ -91,7 +94,7 @@ export default function Materials() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/95 via-[#17291e]/72 to-[#17291e]/15" />
           <div className="relative z-10 flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-9 lg:max-w-[720px]">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7d5c8]">GreenLoop Operations</p>
-            <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-white sm:text-4xl">Materials &amp; Passports</h1>
+            <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-white sm:text-4xl">{selectedProject?.name ?? <>Materials &amp; Passports</>}</h1>
             <p className="mt-2 max-w-lg text-sm leading-5 text-white/85 sm:text-base sm:leading-6">Digital records connecting physical material to projects and recovery status.</p>
             <span className="mt-5 inline-flex w-fit items-center rounded-md border border-white/25 bg-[#102118]/45 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.13em] text-white/90 backdrop-blur-sm">Recovered material, recorded and ready to place</span>
           </div>
@@ -104,7 +107,7 @@ export default function Materials() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-[#c9dccd] lg:bg-[#edf3ed] lg:text-[#4d7658] dark:lg:bg-[#294334] dark:lg:text-[#b8d2bf]"><MaterialCategoryIcon kind="volume" /></span>
               <div><p className="font-archivo text-xl font-bold leading-5">{totalT.toFixed(1)} t</p><p className="mt-1 text-[10px] text-white/70 lg:text-[#7d887f] dark:lg:text-gray-400">Total Volume</p></div>
             </div>
-            <Link to="/app/materials/new" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#39714b] px-4 text-sm font-semibold text-white transition hover:bg-[#2f613e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:w-auto lg:min-w-[140px]">
+            <Link to={selectedProjectId ? `/app/materials/new?project=${encodeURIComponent(selectedProjectId)}` : "/app/materials/new"} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#39714b] px-4 text-sm font-semibold text-white transition hover:bg-[#2f613e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:w-auto lg:min-w-[140px]">
               <span aria-hidden="true" className="text-lg leading-none">+</span> Add Material
             </Link>
           </div>
@@ -116,7 +119,7 @@ export default function Materials() {
           <EmptyState
             title="No material passports yet"
             body="Add your material, quantity, location, and photos to create its digital record."
-            action={<Link to="/app/materials/new" className="inline-flex min-h-11 items-center rounded-lg bg-[#315c3d] px-6 text-sm font-semibold text-white hover:bg-[#254a30]">Add Material</Link>}
+            action={<Link to={selectedProjectId ? `/app/materials/new?project=${encodeURIComponent(selectedProjectId)}` : "/app/materials/new"} className="inline-flex min-h-11 items-center rounded-lg bg-[#315c3d] px-6 text-sm font-semibold text-white hover:bg-[#254a30]">Add Material</Link>}
           />
         </RevealItem>
       ) : (
@@ -181,7 +184,7 @@ export default function Materials() {
                             <div className="min-w-0">
                               <h2 className="truncate font-archivo text-lg font-bold tracking-tight text-[#26362c] dark:text-white">{TYPE_LABEL[material.type] ?? material.type}</h2>
                               <p className="mt-0.5 truncate text-[11px] text-[#7d867e] dark:text-gray-400">
-                                <Link to="/app/explore" state={{ projectId: material.projectId }} className="font-medium text-[#435d49] hover:text-[#2f6b3e] dark:text-gray-200 dark:hover:text-loop-300">{projectName(material.projectId)}</Link>
+                                <Link to={`/app/materials?project=${encodeURIComponent(material.projectId)}`} className="font-medium text-[#435d49] hover:text-[#2f6b3e] dark:text-gray-200 dark:hover:text-loop-300">{projectName(material.projectId)}</Link>
                                 <span> · ID {material.id}</span>
                               </p>
                             </div>
@@ -230,7 +233,7 @@ export default function Materials() {
             <div className="rounded-xl border border-dashed border-[#d8ddd5] bg-white/60 px-6 py-12 text-center dark:border-steel-700 dark:bg-white/[0.02]">
               <h2 className="font-archivo text-lg font-bold text-[#2c3e31] dark:text-white">No matching materials</h2>
               <p className="mt-1 text-sm text-[#7a837b] dark:text-gray-400">Try another material name or category.</p>
-              <button type="button" onClick={() => { setQuery(""); setCategory("all"); }} className="mt-4 text-sm font-semibold text-[#416d4b] underline underline-offset-4 dark:text-[#b8d0bd]">Clear search and filters</button>
+              <button type="button" onClick={() => { setQuery(""); setCategory("all"); setParams({}); }} className="mt-4 text-sm font-semibold text-[#416d4b] underline underline-offset-4 dark:text-[#b8d0bd]">Clear search and filters</button>
             </div>
           )}
         </>

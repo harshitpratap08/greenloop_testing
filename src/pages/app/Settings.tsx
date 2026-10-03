@@ -79,8 +79,8 @@ export default function Settings() {
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  logout();
+                onClick={async () => {
+                  if (!await logout()) return;
                   navigate("/sign-in");
                 }}
                 className="rounded-sm border border-signal-300 px-4 py-2 text-sm font-semibold text-signal-700 hover:bg-signal-50 dark:border-signal-500/40 dark:text-signal-300 dark:hover:bg-signal-500/10"

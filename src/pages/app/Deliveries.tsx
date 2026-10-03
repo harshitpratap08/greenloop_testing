@@ -88,27 +88,28 @@ function LoadCard({ booking }: { booking: Booking }) {
     .filter((event) => event.subjectIds.includes(booking.id) || event.subjectIds.includes(booking.allocationId) || event.subjectIds.includes(verification?.id ?? ""))
     .sort((a, b) => a.at.localeCompare(b.at));
   const dispatchEvent = events.find((event) => event.kind === "load.dispatched");
-  const loadRef = verification?.loadRef ?? dispatchEvent?.summary.split(" ")[0] ?? `LOAD-${booking.id.replace("BK-", "10")}`;
-  const currentStatus = verification?.status ?? (dispatchEvent ? "dispatched" : "confirmed");
-  const isEnRoute = Boolean(dispatchEvent) && !verification;
+  const dispatched = Boolean(booking.loadRef || dispatchEvent);
+  const loadRef = verification?.loadRef ?? booking.loadRef ?? "?";
+  const currentStatus = verification?.status ?? (dispatched ? "dispatched" : "confirmed");
+  const isEnRoute = dispatched && !verification;
   const isVerified = verification?.status === "verified";
   const isRejected = verification?.status === "rejected";
-  const stageIndex = verification ? isVerified ? 4 : 3 : dispatchEvent ? 2 : booking.receiverAcceptedAt ? 1 : 0;
+  const stageIndex = verification ? isVerified ? 4 : 3 : dispatched ? 2 : booking.receiverAcceptedAt ? 1 : 0;
   const stages = [
     { label: "Booking ready", detail: formatStamp(booking.createdAt), complete: true },
-    { label: "Dispatched", detail: dispatchEvent ? formatStamp(dispatchEvent.at) : "Awaiting dispatch", complete: Boolean(dispatchEvent) },
-    { label: "In transit", detail: isEnRoute ? "Load on the road" : dispatchEvent ? "Journey recorded" : "Awaiting dispatch", complete: Boolean(dispatchEvent) },
+    { label: "Dispatched", detail: dispatchEvent ? formatStamp(dispatchEvent.at) : dispatched ? "Load dispatched" : "Awaiting dispatch", complete: dispatched },
+    { label: "In transit", detail: isEnRoute ? "Load on the road" : dispatched ? "Journey recorded" : "Awaiting dispatch", complete: dispatched },
     { label: "Received", detail: verification ? formatStamp(verification.verifiedAt ?? "") : "Awaiting arrival", complete: Boolean(verification) },
     { label: "Verified", detail: verification ? isVerified ? `${verification.acceptedT.toFixed(1)} t accepted` : "Rejected on inspection" : "Awaiting verification", complete: isVerified },
   ];
   const materialImage = materialMediaFor(material?.type ?? "concrete");
-  const currentLabel = verification ? isVerified ? "Delivered" : "Delivery exception" : dispatchEvent ? "On the road" : booking.receiverAcceptedAt ? "Ready to send" : "Waiting for receiver";
+  const currentLabel = verification ? isVerified ? "Delivered" : "Delivery exception" : dispatched ? "On the road" : booking.receiverAcceptedAt ? "Ready to send" : "Waiting for receiver";
   const shipmentRows = [
     { label: "Material passport", value: material ? `${material.id} · ${TYPE_LABEL[material.type] ?? material.type} (surveyed ${formatDate(material.surveyedAt)})` : booking.materialId, to: material ? `/app/materials/${material.id}` : undefined },
     { label: "Booking reference", value: `${booking.id} · ${booking.tonnesT.toFixed(1)} t · ${slot ? formatDate(slot.date) : "Date pending"}`, to: "/app/bookings" },
     { label: "Receiver site", value: receiver ? `${receiver.name} · ${receiver.location}` : booking.receiverId },
     { label: "Driver / transport", value: "No transport details recorded" },
-    { label: "Final status", value: verification ? isVerified ? `Load verified · ${verification.acceptedT.toFixed(1)} t received and accepted` : `Load rejected · ${verification.acceptedT.toFixed(1)} t accepted` : dispatchEvent ? "Load dispatched · awaiting receiver verification" : booking.receiverAcceptedAt ? "Booking confirmed · ready to dispatch" : "Waiting for receiver approval" },
+    { label: "Final status", value: verification ? isVerified ? `Load verified · ${verification.acceptedT.toFixed(1)} t received and accepted` : `Load rejected · ${verification.acceptedT.toFixed(1)} t accepted` : dispatched ? "Load dispatched · awaiting receiver verification" : booking.receiverAcceptedAt ? "Booking confirmed · ready to dispatch" : "Waiting for receiver approval" },
   ];
 
   return (
@@ -198,9 +199,9 @@ function LoadCard({ booking }: { booking: Booking }) {
             <p className="mt-0.5 text-[10px] text-[#7c857d] dark:text-gray-400">{slot ? formatDate(slot.date) : "Date pending"}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {!dispatchEvent && !verification && !booking.receiverAcceptedAt ? (
+            {!dispatched && !verification && !booking.receiverAcceptedAt ? (
               <span className="inline-flex min-h-9 items-center text-[10px] font-semibold text-[#8a754c]">Waiting for approval</span>
-            ) : !dispatchEvent && !verification ? (
+            ) : !dispatched && !verification ? (
               <Button size="md" className="min-h-9 rounded-lg bg-[#315f3d] px-3 text-[11px] font-semibold text-white hover:bg-[#274d32] dark:bg-[#315f3d] dark:text-white" onClick={() => dispatchAction({ bookingId: booking.id })}>Send load</Button>
             ) : (
               <Link to="/app/verification" className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#315f3d] px-3 text-[11px] font-semibold text-white hover:bg-[#274d32]">View record →</Link>

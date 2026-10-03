@@ -4,10 +4,15 @@
   "version": "2.4.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node --env-file-if-exists=.env scripts/dev.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:frontend": "vite",
+    "dev:backend": "node --env-file-if-exists=.env server/server.mjs",
+    "start": "node --env-file-if-exists=.env server/server.mjs",
+    "test:backend": "node --test server/backend.test.mjs server/audit.test.mjs",
+    "check:backend": "tsc -p tsconfig.server.json"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.20",
@@ -65,5 +70,8 @@
     "react-helmet-async": {
       "react": "^16.8.0 || ^17 || ^18 || ^19"
     }
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

@@ -16,7 +16,7 @@ export default function Support() {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !message.trim()) {
       setFormError("Enter a subject and message before submitting.");
@@ -24,7 +24,8 @@ export default function Support() {
     }
     setFormError("");
     setIsSubmitting(true);
-    const request = addSupportRequestAction({ email: user?.email ?? "", subject: subject.trim(), message: message.trim() });
+    const request = await addSupportRequestAction({ email: user?.email ?? "", subject: subject.trim(), message: message.trim() });
+    if (!request) { setIsSubmitting(false); return; }
     setSubmittedId(request.id);
     setSubject("");
     setMessage("");

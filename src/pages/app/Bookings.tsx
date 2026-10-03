@@ -186,7 +186,7 @@ export default function Bookings() {
                       <HistoryMetric label="Date / Slot" value={slot ? formatDate(slot.date) : booking.slotId} />
                       <div><p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#929990]">Status</p><div className="mt-1"><StatusBadge status={booking.status} /></div></div>
                     </div>
-                    {booking.status === "confirmed" && !dispatched && <Button size="sm" variant="outline" className="shrink-0 border-[#cbd4ca] dark:border-steel-700 dark:text-white dark:hover:border-white" onClick={() => cancelBookingAction({ bookingId: booking.id, reason: "Programme change — material retained on site" })}>Cancel</Button>}
+                    {(booking.status === "confirmed" || booking.status === "hold") && !dispatched && <Button size="sm" variant="outline" className="shrink-0 border-[#cbd4ca] dark:border-steel-700 dark:text-white dark:hover:border-white" onClick={() => cancelBookingAction({ bookingId: booking.id, reason: "Programme change — material retained on site" })}>Cancel</Button>}
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#eeeae2] pt-3 text-[10px] text-[#778078] dark:border-steel-800 dark:text-gray-400">
                     <span className="font-mono">ID: {booking.id}</span>

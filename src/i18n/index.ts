@@ -3,7 +3,14 @@ import { initReactI18next } from "react-i18next";
 
 import enCommon from "../locales/en/common.json";
 
+import esCommon from "../locales/es/common.json";
+import deCommon from "../locales/de/common.json";
+import arCommon from "../locales/ar/common.json";
+
 export const resources = {
+  es: { common: esCommon },
+  de: { common: deCommon },
+  ar: { common: arCommon },
   en: {
     common: enCommon,
   },

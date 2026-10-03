@@ -24,7 +24,7 @@ import type {
   MaterialTypeKey,
   ReceiverDaySlot,
   VerificationRecord,
-} from "./types";
+} from "./types.ts";
 
 // ---------------------------------------------------------------------------
 // Capacity arithmetic
@@ -41,7 +41,7 @@ export function availableT(slot: ReceiverDaySlot, bookings: Booking[]): number {
   const slotConfirmed = bookings.filter(
     (b) => b.slotId === slot.id && b.status === "confirmed",
   );
-  return round1(Math.max(0, slot.capacityT - sum(slotConfirmed.map((b) => b.tonnesT))));
+  return round1(Math.max(0, slot.capacityT - (slot.reservedT ?? 0) - sum(slotConfirmed.map((b) => b.tonnesT))));
 }
 
 export function bookingsForSlot(dataset: GreenLoopDataset, slotId: string): Booking[] {
@@ -79,7 +79,7 @@ export function slotLedger(
   const slot = findSlot(dataset, slotId);
   if (!slot) return undefined;
   const bookings = bookingsForSlot(dataset, slotId);
-  const reserved = reservedT(bookings);
+  const reserved = reservedT(bookings) + (slot.reservedT ?? 0);
   return {
     slot,
     reserved,
@@ -93,7 +93,11 @@ export function slotLedger(
 // ---------------------------------------------------------------------------
 
 function nextEventId(events: DomainEvent[], offset: number): string {
-  return `EV-${String(events.length + 1 + offset).padStart(3, "0")}`;
+  const highestId = events.reduce((highest, event) => {
+    const numericId = Number(event.id.replace(/^EV-/, ""));
+    return Number.isFinite(numericId) ? Math.max(highest, numericId) : highest;
+  }, events.length);
+  return `EV-${String(highestId + 1 + offset).padStart(3, "0")}`;
 }
 
 function makeEvent(
@@ -148,8 +152,12 @@ const HANDLING_COST_PER_T: Record<MaterialTypeKey, number> = {
   glass: 5.0,
 };
 
-function demandFor(receiverId: string, type: MaterialTypeKey): number {
-  return DEMAND_SIGNALS[`${receiverId}:${type}`] ?? 0.3;
+function demandFor(dataset: GreenLoopDataset, receiverId: string, type: MaterialTypeKey): number {
+  const open = dataset.demands.filter(d => d.receiverId === receiverId && d.materialType === type && (d.status === "OPEN" || d.status === "PARTIALLY_COVERED"));
+  if (!open.length) return DEMAND_SIGNALS[`${receiverId}:${type}`] ?? 0;
+  const remaining = open.reduce((sum, d) => sum + Math.max(0, d.requiredT - (d.coveredT ?? dataset.bookings.filter(b => b.demandId === d.id && b.status === "confirmed").reduce((total, b) => total + b.tonnesT, 0))), 0);
+  const capacity = dataset.slots.filter(s => s.receiverId === receiverId && s.materialType === type).reduce((sum, s) => sum + s.capacityT, 0);
+  return clamp01(remaining / Math.max(remaining, capacity, 1));
 }
 
 function suitabilityFor(material: MaterialPassport): number {
@@ -162,9 +170,9 @@ function suitabilityFor(material: MaterialPassport): number {
   return clamp01(s);
 }
 
-function earliestSlotFor(dataset: GreenLoopDataset, receiverId: string, type: MaterialTypeKey) {
+function earliestSlotFor(dataset: GreenLoopDataset, receiverId: string, type: MaterialTypeKey, asOf?: string) {
   const slots = dataset.slots
-    .filter((s) => s.receiverId === receiverId && s.materialType === type)
+    .filter((s) => s.receiverId === receiverId && s.materialType === type && (!asOf || s.date >= asOf))
     .sort((a, b) => a.date.localeCompare(b.date));
   return slots[0];
 }
@@ -182,6 +190,7 @@ function transportCostPerT(distanceKm: number): number {
 export function computeMatch(
   dataset: GreenLoopDataset,
   materialId: string,
+  asOf?: string,
 ): AllocationCandidate[] {
   const material = dataset.materials.find((m) => m.id === materialId);
   if (!material) return [];
@@ -189,11 +198,11 @@ export function computeMatch(
   const candidates = dataset.receivers
     .filter((r) => r.acceptedTypes.includes(material.type))
     .map<AllocationCandidate>((receiver) => {
-      const slot = earliestSlotFor(dataset, receiver.id, material.type);
+      const slot = earliestSlotFor(dataset, receiver.id, material.type, asOf);
       const avail = slot ? availableT(slot, bookingsForSlot(dataset, slot.id)) : 0;
       const suitability = suitabilityFor(material);
-      const demand = demandFor(receiver.id, material.type);
-      const proximity = clamp01(1 - receiver.distanceKm / 80);
+      const demand = demandFor(dataset, receiver.id, material.type);
+      const proximity = receiver.distanceKnown === false ? 0.5 : clamp01(1 - receiver.distanceKm / 80);
       const availabilityRatio = clamp01(material.quantityT === 0 ? 0 : avail / material.quantityT);
       const score = round3(
         0.4 * suitability + 0.25 * demand + 0.2 * availabilityRatio + 0.15 * proximity,
@@ -203,6 +212,7 @@ export function computeMatch(
         suitability: round2(suitability),
         demand: round2(demand),
         distanceKm: receiver.distanceKm,
+        distanceKnown: receiver.distanceKnown,
         availableT: avail,
         transportCostPerT: transportCostPerT(receiver.distanceKm),
         handlingCostPerT: HANDLING_COST_PER_T[material.type],
@@ -269,7 +279,7 @@ export function requestCapacity(
     capacityAfterT: after,
     decidedAt: input.at,
     updatedAt: input.at,
-    candidates: computeMatch(dataset, material.id),
+    candidates: computeMatch(dataset, material.id, input.at.slice(0, 10)),
   };
 
   const booking: Booking = {
@@ -289,7 +299,7 @@ export function requestCapacity(
 
   events.push(
     makeEvent(
-      events,
+      dataset.events,
       0,
       "allocation.requested",
       input.actor,
@@ -301,7 +311,7 @@ export function requestCapacity(
   );
   events.push(
     makeEvent(
-      events,
+      dataset.events,
       1,
       outcome === "confirmed" ? "allocation.confirmed" : "allocation.hold",
       input.actor,
@@ -345,7 +355,7 @@ export function releaseCapacity(
 ): EngineOutput<ReleaseOutput> {
   const booking = dataset.bookings.find((b) => b.id === input.bookingId);
   if (!booking) throw new Error(`Unknown booking: ${input.bookingId}`);
-  if (booking.status !== "confirmed" || booking.loadRef || dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id))) {
+  if ((booking.status !== "confirmed" && booking.status !== "hold") || booking.loadRef || dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id))) {
     return { dataset, events: [], output: { cancelledBooking: booking, reconfirmed: [] } };
   }
 
@@ -360,12 +370,12 @@ export function releaseCapacity(
 
   events.push(
     makeEvent(
-      events,
+      dataset.events,
       0,
-      "capacity.released",
+      booking.status === "confirmed" ? "capacity.released" : "booking.cancelled",
       input.actor,
       input.at,
-      `${booking.tonnesT.toFixed(1)} t released at ${receiverName(dataset, booking.receiverId)}`,
+      booking.status === "confirmed" ? `${booking.tonnesT.toFixed(1)} t released at ${receiverName(dataset, booking.receiverId)}` : `${booking.tonnesT.toFixed(1)} t held request cancelled at ${receiverName(dataset, booking.receiverId)}`,
       input.reason,
       [booking.materialId, booking.receiverId, booking.id],
     ),
@@ -386,7 +396,9 @@ export function releaseCapacity(
     ),
   };
 
-  const recheck = recheckHolds(next, { slotId: booking.slotId, actor: input.actor, at: input.at });
+  const recheck = booking.status === "confirmed"
+    ? recheckHolds(next, { slotId: booking.slotId, actor: input.actor, at: input.at })
+    : { dataset: next, events: [], output: { reconfirmed: [] } };
   next = recheck.dataset;
   events.push(...recheck.events);
 
@@ -454,7 +466,7 @@ export function recheckHolds(
 
     events.push(
       makeEvent(
-        events,
+        dataset.events,
         events.length,
         "allocation.recheck.confirmed",
         input.actor,

@@ -12,8 +12,8 @@ import { InboxAltIcon } from "@/icons";
 export default function IncomingRequests() {
   const { dataset, acceptRequestAction, rejectRequestAction, rescheduleRequestAction } = useGreenLoopStore();
   const { user } = useAuth();
-  const receiverId = user?.receiverId ?? "R-001";
-
+  const receiverId = user?.receiverId ?? "";
+  
   const requests = dataset.bookings.filter((booking) => booking.receiverId === receiverId &&
     ((booking.status === "hold") || (booking.status === "confirmed" && !booking.receiverAcceptedAt && !booking.loadRef && !dataset.verifications.some((item) => item.bookingId === booking.id))));
 
@@ -52,7 +52,7 @@ export default function IncomingRequests() {
           <p className="mt-2 max-w-md text-steel-600 dark:text-gray-400">
             When a provider requests receiving capacity and it requires manual approval, requests will appear here.
           </p>
-          <Button size="md" className="mt-6" startIcon={<InboxAltIcon className="size-4" />}>Learn more</Button>
+          <Button size="md" className="mt-6" startIcon={<InboxAltIcon className="size-4" />} onClick={() => window.location.assign("/app/support")}>Learn more</Button>
         </div>
       ) : (
         <div className="grid gap-6">
@@ -74,7 +74,7 @@ export default function IncomingRequests() {
               const isRescheduling = reschedulingId === booking.id;
 
               // Find alternative slots for this material
-              const alternativeSlots = dataset.slots.filter(s => s.receiverId === receiverId && s.materialType === material?.type && s.id !== slot?.id && (!demand || slotMatchesDemandPeriod(s, demand.period)) && (slotLedger(dataset, s.id)?.available ?? 0) >= booking.tonnesT);
+              const alternativeSlots = dataset.slots.filter(s => s.receiverId === receiverId && s.materialType === material?.type && s.date >= new Date().toISOString().slice(0, 10) && s.id !== slot?.id && (!demand || slotMatchesDemandPeriod(s, demand.period)) && (slotLedger(dataset, s.id)?.available ?? 0) >= booking.tonnesT);
 
               return (
                 <motion.article
@@ -152,8 +152,8 @@ export default function IncomingRequests() {
                               );
                             })}
                           </select>
-                          <Button size="sm" disabled={!selectedSlotId} onClick={() => {
-                            rescheduleRequestAction(booking.id, selectedSlotId);
+                          <Button size="sm" disabled={!selectedSlotId} onClick={async () => {
+                            if (!await rescheduleRequestAction(booking.id, selectedSlotId)) return;
                             setReschedulingId(null);
                           }}>
                             Confirm new date

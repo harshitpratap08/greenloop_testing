@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import GlobalSearch from "@/components/header/GlobalSearch";
@@ -9,6 +10,7 @@ import { useSidebar } from "@/context/SidebarContext";
 import { SearchIcon } from "@/icons";
 
 const AppHeader: React.FC = () => {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const { user, setActiveWorkspace } = useAuth();
@@ -59,7 +61,7 @@ const AppHeader: React.FC = () => {
                 readOnly
                 onFocus={() => setSearchOpen(true)}
                 onClick={() => setSearchOpen(true)}
-                placeholder="Search GreenLoop..."
+                placeholder={t("searchPlaceholder")}
                 className="h-10 w-full cursor-pointer rounded-lg border border-[#deded5] bg-white py-2.5 ps-10 pe-14 text-sm text-[#28342b] placeholder:text-[#818980] transition-colors focus:border-[#548866] focus:ring-3 focus:ring-[#548866]/10 focus:outline-hidden"
               />
               <button type="button" onClick={() => setSearchOpen(true)} className="absolute inset-e-2 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-[#e5e3dc] bg-[#f6f5f0] px-1.5 py-1 text-[10px] text-[#737c74]" aria-label="Open search">
@@ -77,9 +79,9 @@ const AppHeader: React.FC = () => {
           {user && user.workspaces.length > 1 && (
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 const target = user.activeWorkspace === "receiver" ? "provider" : "receiver";
-                setActiveWorkspace(target);
+                if (!await setActiveWorkspace(target)) return;
                 navigate(target === "receiver" ? "/app/receiver/overview" : "/app/explore");
               }}
               className="hidden items-center gap-2 rounded-lg border border-[#deded5] bg-white px-3 py-2 text-xs font-semibold text-[#344339] transition-colors hover:border-[#8cab91] sm:inline-flex"
