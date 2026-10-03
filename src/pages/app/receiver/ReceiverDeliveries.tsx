@@ -7,7 +7,8 @@ import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
-import { formatDate } from "@/utils";
+import { formatDate, formatINR, formatINRPerT } from "@/utils";
+import { LocationMap } from "@/components/greenloop/LocationMap";
 import { TruckDelivery } from "@/icons";
 
 export default function ReceiverDeliveries() {
@@ -63,6 +64,11 @@ export default function ReceiverDeliveries() {
             {expectedDeliveries.map(booking => {
               const material = dataset.materials.find(m => m.id === booking.materialId);
               const project = dataset.projects.find(p => p.id === material?.projectId);
+              const receiver = dataset.receivers.find(item => item.id === receiverId);
+              const demand = booking.demandId ? dataset.demands.find(item => item.id === booking.demandId) : undefined;
+              const contact = dataset.transactionContacts?.find(item => item.materialId === booking.materialId && item.receiverId === receiverId);
+              const offer = dataset.offers?.find(item => item.demandId === booking.demandId && item.passportId === booking.materialId);
+              const unitPrice = booking.agreedPricePerT ?? offer?.agreedPricePerT ?? offer?.pricePerT ?? material?.pricePerT;
               const isReceiving = receivingId === booking.id;
 
               return (
@@ -86,6 +92,7 @@ export default function ReceiverDeliveries() {
                         <div className="flex flex-wrap items-center gap-3">
                           <StatusBadge status="confirmed" size="sm" />
                           <p className="font-semibold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t {material?.type} from {project?.name ?? "provider"}</p>
+                          {unitPrice !== undefined && <p className="text-xs font-semibold text-loop-700 dark:text-loop-300">{formatINRPerT(unitPrice)} · {formatINR(unitPrice * booking.tonnesT)}</p>}
                         </div>
 
                         <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -108,6 +115,8 @@ export default function ReceiverDeliveries() {
                             </p>
                           </div>
                         </div>
+                        {(demand?.geo ?? receiver?.geo) && <LocationMap geo={demand?.geo ?? receiver?.geo} className="mt-4 h-44" />}
+                        {contact && <div className="mt-4 border border-steel-200 p-3 text-xs dark:border-steel-800"><p className="font-semibold text-ink-900 dark:text-white">Provider contact · {contact.name}</p><a className="mt-1 block underline" href={`mailto:${contact.email}`}>{contact.email}</a>{contact.phone && <a className="mt-1 block underline" href={`tel:${contact.phone}`}>{contact.phone}</a>}</div>}
                         <details className="mt-4 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-2 block">Booking ID: {booking.id} · Load reference: {booking.loadRef}</span></details>
                       </div>
                     </div>

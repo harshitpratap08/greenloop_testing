@@ -5,7 +5,8 @@ import Button from "@/components/ui/button/Button";
 import { slotLedger } from "@/domain/capacity";
 import type { ReceiverDaySlot } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { cn, formatDate } from "@/utils";
+import { useAuth } from "@/context/AuthContext";
+import { cn, formatDate, formatINR, formatINRPerT } from "@/utils";
 import { motion } from "motion/react";
 import { ambientMedia, materialMediaFor, receiverMediaFor } from "@/config/appMedia";
 
@@ -19,7 +20,8 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function Bookings() {
-  const { dataset, cancelBookingAction } = useGreenLoopStore();
+  const { dataset, cancelBookingAction, archiveBookingAction } = useGreenLoopStore();
+  const { user } = useAuth();
   const materialLabel = (id: string) => {
     const material = dataset.materials.find((item) => item.id === id);
     return material ? `${TYPE_LABEL[material.type] ?? material.type} · ${id}` : id;
@@ -95,6 +97,8 @@ export default function Bookings() {
               const slot = slotById(booking.slotId);
               const receiver = receiverName(booking.receiverId);
               const material = dataset.materials.find((item) => item.id === booking.materialId);
+              const relatedOffer = dataset.offers?.find((offer) => offer.demandId === booking.demandId && offer.passportId === booking.materialId);
+              const unitPrice = booking.agreedPricePerT ?? relatedOffer?.agreedPricePerT ?? relatedOffer?.pricePerT ?? material?.pricePerT;
               const dispatched = Boolean(booking.loadRef);
               const label = booking.status === "hold" ? "Waiting on Capacity" : dispatched ? "On the road" : booking.receiverAcceptedAt ? "Confirmed · Ready to send" : "Waiting for receiver approval";
               const photo = materialMediaFor(material?.type ?? "concrete");
@@ -121,6 +125,7 @@ export default function Bookings() {
                       <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#929990] sm:hidden">Quantity</p>
                       <p className="font-archivo text-xl font-bold text-[#26362c] dark:text-white">{booking.tonnesT.toFixed(1)} t</p>
                       <p className="mt-0.5 text-[10px] text-[#7c857d] dark:text-gray-400">{booking.status === "hold" ? "Next: capacity review" : dispatched ? "Load dispatched" : booking.receiverAcceptedAt ? "Next: send load" : "Next: receiver approval"}</p>
+                      {unitPrice !== undefined && <p className="mt-1 text-[10px] font-semibold text-[#426b4c] dark:text-loop-300">{formatINRPerT(unitPrice)} · {formatINR(unitPrice * booking.tonnesT)}</p>}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {booking.status === "confirmed" && booking.receiverAcceptedAt && !dispatched && <Link to="/app/deliveries" className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#315f3d] px-3 text-[11px] font-semibold text-white hover:bg-[#274d32]">Send load →</Link>}
@@ -174,7 +179,11 @@ export default function Bookings() {
           <div className="overflow-hidden rounded-lg border border-[#e5e2da] dark:border-steel-800">
             {dataset.bookings.map((booking, index) => {
               const slot = slotById(booking.slotId);
+              const material = dataset.materials.find((item) => item.id === booking.materialId);
+              const relatedOffer = dataset.offers?.find((offer) => offer.demandId === booking.demandId && offer.passportId === booking.materialId);
+              const unitPrice = booking.agreedPricePerT ?? relatedOffer?.agreedPricePerT ?? relatedOffer?.pricePerT ?? material?.pricePerT;
               const cancelled = booking.status === "cancelled";
+              const completed = dataset.verifications.some((item) => item.bookingId === booking.id && item.status === "verified");
               const dispatched = Boolean(booking.loadRef) || dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id));
               return (
                 <motion.article key={booking.id} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: Math.min(index * 0.03, 0.2) }} className={cn("border-b border-[#eeeae2] p-4 last:border-b-0 transition-colors hover:bg-[#f8f7f2] dark:border-steel-800 dark:hover:bg-white/[0.04]", cancelled && "opacity-60 grayscale")}>
@@ -183,10 +192,13 @@ export default function Bookings() {
                       <HistoryMetric label="Material" value={materialLabel(booking.materialId)} />
                       <HistoryMetric label="Receiver" value={receiverName(booking.receiverId)} />
                       <HistoryMetric label="Quantity" value={`${booking.tonnesT.toFixed(1)} t`} />
+                      {unitPrice !== undefined && <HistoryMetric label="Unit price · total" value={`${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * booking.tonnesT)}`} />}
                       <HistoryMetric label="Date / Slot" value={slot ? formatDate(slot.date) : booking.slotId} />
                       <div><p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#929990]">Status</p><div className="mt-1"><StatusBadge status={booking.status} /></div></div>
                     </div>
-                    {(booking.status === "confirmed" || booking.status === "hold") && !dispatched && <Button size="sm" variant="outline" className="shrink-0 border-[#cbd4ca] dark:border-steel-700 dark:text-white dark:hover:border-white" onClick={() => cancelBookingAction({ bookingId: booking.id, reason: "Programme change — material retained on site" })}>Cancel</Button>}
+                    {(booking.status === "confirmed" || booking.status === "hold") && !dispatched && user?.activeWorkspace === "provider" && <Button size="sm" variant="outline" className="shrink-0 border-[#cbd4ca] dark:border-steel-700 dark:text-white dark:hover:border-white" onClick={() => cancelBookingAction({ bookingId: booking.id, reason: "Programme change — material retained on site" })}>Cancel</Button>}
+                    {completed && !booking.archivedAt && <Button size="sm" variant="outline" className="shrink-0" onClick={() => archiveBookingAction(booking.id)}>Archive</Button>}
+                    {booking.archivedAt && <span className="text-xs font-semibold text-steel-500">Archived {formatDate(booking.archivedAt)}</span>}
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#eeeae2] pt-3 text-[10px] text-[#778078] dark:border-steel-800 dark:text-gray-400">
                     <span className="font-mono">ID: {booking.id}</span>

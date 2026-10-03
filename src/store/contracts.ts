@@ -31,6 +31,10 @@ export interface GreenLoopStoreValue {
   addOfferAction: (offer: Omit<MaterialOffer, "id" | "status" | "createdAt">) => Promise<boolean>;
   acceptOfferAction: (offerId: string) => Promise<boolean>;
   declineOfferAction: (offerId: string) => Promise<boolean>;
+  counterOfferAction: (offerId: string, pricePerT: number) => Promise<boolean>;
+  cancelDemandAction: (demandId: string) => Promise<boolean>;
+  withdrawOfferAction: (offerId: string) => Promise<boolean>;
+  archiveBookingAction: (bookingId: string) => Promise<boolean>;
   acceptRequestAction: (bookingId: string, acceptedT?: number) => Promise<boolean>;
   rejectRequestAction: (bookingId: string) => Promise<boolean>;
   rescheduleRequestAction: (bookingId: string, slotId: string) => Promise<boolean>;

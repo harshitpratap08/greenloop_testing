@@ -446,6 +446,7 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
       id: nextId("OF", dataset.offers ?? [], 4),
       status: "pending",
       createdAt: new Date().toISOString(),
+      counters: input.counters ?? [],
     };
     setDataset((prev) => ({
       ...prev,
@@ -488,11 +489,12 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
         at,
       });
       const createdBooking = capacityResult.output.booking;
-      const acceptedBooking: Booking = { ...createdBooking, demandId: demand.id, receiverAcceptedAt: at };
+      const agreedPricePerT = offer.counters?.at(-1)?.pricePerT ?? offer.pricePerT;
+      const acceptedBooking: Booking = { ...createdBooking, demandId: demand.id, receiverAcceptedAt: at, ...(agreedPricePerT !== undefined ? { agreedPricePerT } : {}) };
       const attachedDataset: GreenLoopDataset = {
         ...capacityResult.dataset,
         bookings: capacityResult.dataset.bookings.map((item) => item.id === createdBooking.id ? acceptedBooking : item),
-        offers: offers.map((item) => item.id === offerId ? { ...item, status: "accepted" } : item),
+        offers: offers.map((item) => item.id === offerId ? { ...item, status: "accepted", ...(agreedPricePerT !== undefined ? { agreedPricePerT } : {}) } : item),
         events: capacityResult.dataset.events.map((event) =>
           event.subjectIds.includes(createdBooking.id)
             ? { ...event, subjectIds: [...event.subjectIds, demand.id, offer.id] }
@@ -505,6 +507,52 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
       next = updateDemandCoverage(next, demand.id);
       return next;
     });
+  };
+
+  const counterOfferAction = (offerId: string, actor: "provider" | "receiver", pricePerT: number) => {
+    if (!Number.isFinite(pricePerT) || pricePerT <= 0) return false;
+    setDataset((prev) => {
+      const offer = prev.offers?.find((item) => item.id === offerId);
+      if (!offer || offer.status !== "pending") return prev;
+      const counter = { actor, pricePerT, at: new Date().toISOString() };
+      const event = eventFor(prev, "offer.countered", actor === "receiver" ? ACTOR_RECEIVER : ACTOR_A,
+        `${actor === "receiver" ? "Receiver" : "Provider"} countered at ${pricePerT.toLocaleString("en-IN")} INR/t`, [offer.id, offer.demandId, offer.passportId]);
+      return { ...prev, offers: (prev.offers ?? []).map((item) => item.id === offerId ? { ...item, counters: [...(item.counters ?? []), counter] } : item), events: [...prev.events, event] };
+    });
+    return true;
+  };
+
+  const cancelDemandAction = (demandId: string) => {
+    setDataset((prev) => {
+      const demand = prev.demands.find((item) => item.id === demandId);
+      if (!demand || !["OPEN", "PARTIALLY_COVERED"].includes(demand.status)) return prev;
+      const pendingOffers = (prev.offers ?? []).filter((offer) => offer.demandId === demand.id && offer.status === "pending");
+      const event = eventFor(prev, "demand.cancelled", ACTOR_RECEIVER, "Receiver cancelled material request", [demand.id, ...pendingOffers.map((offer) => offer.id)]);
+      return { ...prev, demands: prev.demands.map((item) => item.id === demandId ? { ...item, status: "PAUSED" } : item), offers: (prev.offers ?? []).map((offer) => offer.demandId === demand.id && offer.status === "pending" ? { ...offer, status: "declined" } : offer), events: [...prev.events, event] };
+    });
+    return true;
+  };
+
+  const withdrawOfferAction = (offerId: string) => {
+    setDataset((prev) => {
+      const offer = prev.offers?.find((item) => item.id === offerId);
+      if (!offer || offer.status !== "pending") return prev;
+      const event = eventFor(prev, "offer.withdrawn", ACTOR_A, "Provider withdrew pending offer", [offer.id, offer.demandId, offer.passportId]);
+      return { ...prev, offers: (prev.offers ?? []).map((item) => item.id === offerId ? { ...item, status: "withdrawn" } : item), events: [...prev.events, event] };
+    });
+    return true;
+  };
+
+  const archiveBookingAction = (bookingId: string, actor: "provider" | "receiver") => {
+    setDataset((prev) => {
+      const verification = prev.verifications.find((item) => item.bookingId === bookingId);
+      const booking = prev.bookings.find((item) => item.id === bookingId);
+      if (!booking || !verification || verification.status !== "verified" || booking.archivedAt) return prev;
+      const at = new Date().toISOString();
+      const event = eventFor(prev, "booking.archived", actor === "receiver" ? ACTOR_RECEIVER : ACTOR_A, "Completed booking archived", [booking.id, verification.id, booking.materialId]);
+      return { ...prev, bookings: prev.bookings.map((item) => item.id === bookingId ? { ...item, archivedAt: at } : item), events: [...prev.events, event] };
+    });
+    return true;
   };
 
   const declineOfferAction = (offerId: string) => {
@@ -520,5 +568,5 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
     });
   };
 
-  return { getDataset: () => dataset, requestCapacityAction, cancelBookingAction, dispatchAction, verifyAction, addMaterialAction, addDemandAction, addProjectAction, updateCapacityAction, addSupportRequestAction, addCapacityAction, acceptRequestAction, rejectRequestAction, rescheduleRequestAction, receiveLoadAction, verifyLoadAction, addOfferAction, acceptOfferAction, declineOfferAction };
+  return { getDataset: () => dataset, requestCapacityAction, cancelBookingAction, dispatchAction, verifyAction, addMaterialAction, addDemandAction, addProjectAction, updateCapacityAction, addSupportRequestAction, addCapacityAction, acceptRequestAction, rejectRequestAction, rescheduleRequestAction, receiveLoadAction, verifyLoadAction, addOfferAction, acceptOfferAction, declineOfferAction, counterOfferAction, cancelDemandAction, withdrawOfferAction, archiveBookingAction };
 }

@@ -8,7 +8,8 @@ import StatusBadge from "@/components/greenloop/StatusBadge";
 import { materialMedia } from "@/components/greenloop/AppExploration";
 import { ambientMedia, materialMediaFor } from "@/config/appMedia";
 import { useAuth } from "@/context/AuthContext";
-import { formatDate } from "@/utils";
+import { formatDate, formatINR, formatINRPerT } from "@/utils";
+import NegotiationPanel from "@/components/greenloop/NegotiationPanel";
 import type { MaterialTypeKey } from "@/domain/types";
 import ReceiverDiscovery from "@/components/greenloop/ReceiverDiscovery";
 
@@ -45,7 +46,7 @@ function DemandMetricIcon({ kind }: { kind: "requests" | "volume" | "receivers" 
 }
 
 export default function MarketDemand() {
-  const { dataset, addOfferAction } = useGreenLoopStore();
+  const { dataset, addOfferAction, counterOfferAction, withdrawOfferAction } = useGreenLoopStore();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const providerId = user?.email ?? "P-001";
@@ -54,6 +55,7 @@ export default function MarketDemand() {
   const [selectedDemandId, setSelectedDemandId] = useState<string | null>(searchParams.get("demand"));
   const [selectedPassportId, setSelectedPassportId] = useState("");
   const [offerQuantity, setOfferQuantity] = useState("");
+  const [offerPricePerT, setOfferPricePerT] = useState("");
   const [offerError, setOfferError] = useState("");
   const [category, setCategory] = useState<DemandCategory>("all");
   const [query, setQuery] = useState("");
@@ -135,12 +137,14 @@ export default function MarketDemand() {
       providerId,
       passportId: selectedPassportId,
       offeredQuantityT: quantity,
+      ...(offerPricePerT !== "" ? { pricePerT: Number(offerPricePerT) } : {}),
     });
     
     if (!saved) return;
     setSelectedDemandId(null);
     setSelectedPassportId("");
     setOfferQuantity("");
+    setOfferPricePerT("");
   };
 
   const categoryCount = (id: DemandCategory) => id === "all"
@@ -303,6 +307,11 @@ export default function MarketDemand() {
                               return passport ? Math.max(0, passport.quantityT - committedT) : "";
                             })()} className="mt-1 block h-10 w-full rounded-lg border border-[#dcded7] bg-white px-3 text-sm text-[#26362c] outline-none focus:border-[#64866d] focus:ring-2 focus:ring-[#64866d]/15 dark:border-steel-700 dark:bg-[#17251d] dark:text-white" />
                           </div>
+                          <div className="max-w-xs">
+                            <label htmlFor={`offer-price-${demand.id}`} className="block text-sm font-semibold text-[#526158] dark:text-gray-300">Price per tonne (₹, optional)</label>
+                            <input id={`offer-price-${demand.id}`} type="number" min="0.01" step="0.01" value={offerPricePerT} onChange={(event) => setOfferPricePerT(event.target.value)} className="mt-1 block h-10 w-full rounded-lg border border-[#dcded7] bg-white px-3 text-sm text-[#26362c] outline-none focus:border-[#64866d] focus:ring-2 focus:ring-[#64866d]/15 dark:border-steel-700 dark:bg-[#17251d] dark:text-white" />
+                            {offerPricePerT !== "" && offerQuantity !== "" && <p className="mt-1 text-xs text-[#667168] dark:text-gray-400">{formatINRPerT(Number(offerPricePerT))} × {Number(offerQuantity).toLocaleString("en-IN")} t = <strong>{formatINR(Number(offerPricePerT) * Number(offerQuantity))}</strong></p>}
+                          </div>
                           {offerError && <p role="alert" className="text-sm text-error-500">{offerError}</p>}
                           <div className="flex flex-wrap gap-2">
                             <Button size="sm" type="submit">Send offer</Button>
@@ -345,10 +354,12 @@ export default function MarketDemand() {
                   </div>
                   <p className="hidden text-xs text-[#778078] dark:text-gray-400 sm:block">{formatDate(offer.createdAt)}</p>
                   <StatusBadge status={offer.status} />
+                  {offer.status === "pending" && <Button size="sm" variant="outline" onClick={() => withdrawOfferAction(offer.id)}>Withdraw offer</Button>}
                   <details className="basis-full sm:basis-auto">
                     <summary className="cursor-pointer text-xs font-semibold text-[#526b58] dark:text-[#b6cfbd]">View details <span aria-hidden="true">→</span></summary>
                     <p className="mt-2 text-xs text-[#778078] dark:text-gray-400">Offer {offer.id} · Request {offer.demandId} · Passport {offer.passportId} · {formatDate(offer.createdAt)}</p>
                   </details>
+                  {(offer.pricePerT !== undefined || offer.counters?.length) && <NegotiationPanel offer={offer} canCounter={offer.status === "pending"} onCounter={(price) => counterOfferAction(offer.id, price)} />}
                 </article>
               );
             })}

@@ -97,7 +97,7 @@ export interface Evidence {
 
 export interface ProviderMaterialListing {
   materialId: string;
-  providerId: string;
+  providerId?: string;
   providerName: string;
   organization: string;
   location: string;
@@ -112,6 +112,15 @@ export interface ProviderMaterialListing {
   pricePerT?: number;
   availableFrom?: string;
   geo?: GeoPoint;
+}
+
+export interface TransactionContact {
+  materialId: string;
+  receiverId: string;
+  name: string;
+  organization: string;
+  email: string;
+  phone?: string;
 }
 
 export interface ReceiverFacility {
@@ -210,7 +219,7 @@ export interface MaterialOffer {
   providerId: string;
   passportId: string;
   offeredQuantityT: number;
-  status: "pending" | "accepted" | "declined";
+  status: "pending" | "accepted" | "declined" | "withdrawn";
   createdAt: string;
   pricePerT?: number;
   agreedPricePerT?: number;
@@ -269,6 +278,7 @@ export interface SupportRequest {
 
 export interface GreenLoopDataset {
   providerListings?: ProviderMaterialListing[];
+  transactionContacts?: TransactionContact[];
   supportRequests?: SupportRequest[];
   projects: Project[];
   materials: MaterialPassport[];

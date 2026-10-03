@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { formatDate, formatINRPerT } from "@/utils";
+import { LocationMap } from "@/components/greenloop/LocationMap";
 
 const stages = ["Offered", "Requested", "Accepted", "Delivered", "Completed"] as const;
 
@@ -96,7 +97,8 @@ export default function ProjectDetails() {
 
         <section className="border border-steel-200 bg-white p-5 dark:border-steel-800 dark:bg-white/[0.02]">
           <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Location & activity</h2>
-          <p className="mt-3 rounded-md bg-steel-50 p-3 text-sm text-ink-900 dark:bg-white/[0.04] dark:text-gray-200">{project.location}{project.geo ? ` · ${project.geo.lat.toFixed(5)}, ${project.geo.lng.toFixed(5)}` : ""}</p>
+          <p className="mt-3 rounded-md bg-steel-50 p-3 text-sm text-ink-900 dark:bg-white/[0.04] dark:text-gray-200">{project.location}</p>
+          {project.geo && <LocationMap geo={project.geo} className="mt-3 h-52" />}
           <ol className="mt-4 space-y-4">
             {events.length ? events.slice(0, 12).map((event) => <li key={event.id} className="border-s-2 border-loop-500 ps-3">
               <p className="text-sm font-semibold text-ink-900 dark:text-white">{event.summary}</p>

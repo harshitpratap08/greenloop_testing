@@ -84,6 +84,13 @@ export function createBackend(options = {}) {
     const subjects = new Set([...materials, ...bookings, ...offers, ...dataset.projects.filter(p => mine(p.id)), ...dataset.receivers.filter(r => mine(r.id)), ...dataset.demands.filter(d => mine(d.receiverId))].map(x => x.id));
     // Public ledger quantities allow matching without exposing other providers' bookings.
     const slots = dataset.slots.filter(s => receiving || s.date >= new Date().toISOString().slice(0, 10) || bookings.some(b => b.slotId === s.id)).map(s => ({ ...s, reservedT: dataset.bookings.filter(b => b.slotId === s.id && b.status === 'confirmed' && !bookings.some(ownBooking => ownBooking.id === b.id)).reduce((total, b) => total + b.tonnesT, 0) }));
+    const transactionContacts = bookings.filter(booking => booking.receiverAcceptedAt && booking.status !== 'cancelled').flatMap(booking => {
+      const contactUserId = owner(receiving ? booking.materialId : booking.receiverId);
+      const account = contactUserId && db.prepare('SELECT email, profile FROM users WHERE id=?').get(contactUserId);
+      if (!account) return [];
+      const contact = JSON.parse(account.profile);
+      return [{ materialId: booking.materialId, receiverId: booking.receiverId, name: contact.name || contact.organization || 'Workspace contact', organization: contact.organization || contact.name || 'Organization', email: account.email, ...(contact.phone ? { phone: contact.phone } : {}) }];
+    });
     const providerListings = receiving ? dataset.materials.flatMap(material => {
       const providerUserId = owner(material.id);
       const account = providerUserId && db.prepare('SELECT email, profile FROM users WHERE id=?').get(providerUserId);
@@ -95,7 +102,7 @@ export function createBackend(options = {}) {
       if (availableT <= 0) return [];
       return [{ materialId: material.id, providerName: profile.name || profile.organization || 'Provider', organization: profile.organization || profile.name || 'Provider', location: profile.location || project.location, projectId: project.id, projectName: project.name, projectLocation: project.location, materialType: material.type, quantityT: material.quantityT, availableT, condition: material.condition, grade: material.grade, ...(material.pricePerT !== undefined ? { pricePerT: material.pricePerT } : {}), ...(material.availableFrom ? { availableFrom: material.availableFrom } : {}), ...(material.geo || project.geo ? { geo: material.geo ?? project.geo } : {}) }];
     }) : [];
-    return { ...dataset, providerListings, projects: dataset.projects.filter(p => mine(p.id) || materials.some(m => m.projectId === p.id)), materials, slots, bookings,
+    return { ...dataset, providerListings, transactionContacts, projects: dataset.projects.filter(p => mine(p.id) || materials.some(m => m.projectId === p.id)), materials, slots, bookings,
       allocations: dataset.allocations.filter(a => bookings.some(b => b.allocationId === a.id)), offers,
       verifications: dataset.verifications.filter(v => bookings.some(b => b.id === v.bookingId)),
       events: dataset.events.filter(e => e.subjectIds.some(id => subjects.has(id))),
@@ -127,6 +134,8 @@ export function createBackend(options = {}) {
     const providerBooking = id => { role('provider'); const item = booking(id); own(item.materialId, user); return item; };
     const offer = id => { role('receiver'); const item = dataset.offers.find(o => o.id === id); requireThat(item, 'Offer not found.', 404); own(dataset.demands.find(d => d.id === item.demandId)?.receiverId, user); requireThat(item.status === 'pending', 'This offer has already been decided.', 409); return item; };
     const receiverActions = ['addDemandAction', 'addCapacityAction', 'updateCapacityAction', 'acceptOfferAction', 'declineOfferAction', 'acceptRequestAction', 'rejectRequestAction', 'rescheduleRequestAction', 'receiveLoadAction', 'verifyLoadAction', 'verifyAction'];
+    if (action === 'counterOfferAction' && user.activeWorkspace === 'receiver') receiverActions.push(action);
+    if (action === 'cancelDemandAction') receiverActions.push(action);
     const engine = createActions(dataset, { kind: receiverActions.includes(action) ? 'receiver' : 'contractor', name: user.name || user.email });
     let result;
     switch (action) {
@@ -158,7 +167,7 @@ export function createBackend(options = {}) {
         result = engine.requestCapacityAction({ materialId: input.materialId, receiverId: input.receiverId, slotId: input.slotId, tonnesT: input.tonnesT }); break;
       }
       case 'cancelBookingAction': {
-        const b = providerBooking(args[0].bookingId); requireThat(!b.loadRef && b.status !== 'cancelled', 'Dispatched or cancelled bookings cannot be cancelled.', 409);
+        const b = providerBooking(args[0].bookingId); requireThat(!b.loadRef && !b.receiverAcceptedAt && b.status !== 'cancelled', 'Accepted, dispatched, or cancelled bookings cannot be cancelled.', 409);
         result = engine.cancelBookingAction({ bookingId: b.id, reason: text(args[0].reason ?? '', 'reason', 1000, true) }); break;
       }
       case 'dispatchAction': {
@@ -169,10 +178,49 @@ export function createBackend(options = {}) {
         requireThat(d && m && ['OPEN', 'PARTIALLY_COVERED'].includes(d.status) && d.materialType === m.type, 'This request cannot accept that material.', 409);
         number(o.offeredQuantityT, 'offer quantity'); const committed = dataset.bookings.filter(b => b.materialId === m.id && b.status !== 'cancelled').reduce((sum, b) => sum + b.tonnesT, 0);
         requireThat(o.offeredQuantityT <= m.quantityT - committed, 'Offer exceeds available material.', 409);
-        result = engine.addOfferAction({ demandId: d.id, passportId: m.id, offeredQuantityT: o.offeredQuantityT, providerId: user.email }); break;
+        result = engine.addOfferAction({ demandId: d.id, passportId: m.id, offeredQuantityT: o.offeredQuantityT, providerId: user.email, ...(o.pricePerT === undefined ? {} : { pricePerT: number(o.pricePerT, 'price per tonne', true) }) }); break;
       }
       case 'acceptOfferAction': offer(args[0]); result = engine.acceptOfferAction(args[0]); break;
       case 'declineOfferAction': offer(args[0]); result = engine.declineOfferAction(args[0]); break;
+      case 'counterOfferAction': {
+        const offerId = text(args[0], 'offer ID', 250);
+        const item = dataset.offers.find(candidate => candidate.id === offerId);
+        requireThat(item && item.status === 'pending', 'This offer is no longer open for negotiation.', 409);
+        const actor = user.activeWorkspace === 'receiver' ? 'receiver' : 'provider';
+        role(actor);
+        if (actor === 'receiver') own(dataset.demands.find(demand => demand.id === item.demandId)?.receiverId, user);
+        else own(item.passportId, user);
+        result = engine.counterOfferAction(offerId, actor, number(args[1], 'counter price per tonne', true));
+        requireThat(result, 'This offer is no longer open for negotiation.', 409);
+        break;
+      }
+      case 'cancelDemandAction': {
+        role('receiver');
+        const demand = dataset.demands.find(item => item.id === text(args[0], 'request ID', 250));
+        requireThat(demand, 'Request not found.', 404); own(demand.receiverId, user);
+        requireThat(['OPEN', 'PARTIALLY_COVERED'].includes(demand.status), 'Only an open request can be cancelled.', 409);
+        requireThat(!dataset.bookings.some(item => item.demandId === demand.id && item.status !== 'cancelled'), 'A request with active bookings cannot be cancelled.', 409);
+        result = engine.cancelDemandAction(demand.id);
+        break;
+      }
+      case 'withdrawOfferAction': {
+        role('provider');
+        const offerId = text(args[0], 'offer ID', 250);
+        const item = dataset.offers.find(candidate => candidate.id === offerId);
+        requireThat(item && item.status === 'pending', 'Only a pending offer can be withdrawn.', 409);
+        own(item.passportId, user);
+        result = engine.withdrawOfferAction(offerId);
+        break;
+      }
+      case 'archiveBookingAction': {
+        const actor = user.activeWorkspace === 'receiver' ? 'receiver' : 'provider';
+        if (actor === 'receiver') receiverBooking(args[0]); else providerBooking(args[0]);
+        const item = booking(text(args[0], 'booking ID', 250));
+        requireThat(dataset.verifications.some(record => record.bookingId === item.id && record.status === 'verified'), 'Only a verified completed booking can be archived.', 409);
+        requireThat(!item.archivedAt, 'This booking is already archived.', 409);
+        result = engine.archiveBookingAction(item.id, actor);
+        break;
+      }
       case 'acceptRequestAction': { const b = receiverBooking(args[0]); requireThat(!b.loadRef, 'This load has already dispatched.', 409); if (args[1] !== null && args[1] !== undefined) number(args[1], 'accepted quantity'); result = engine.acceptRequestAction(b.id, args[1] ?? undefined); break; }
       case 'rejectRequestAction': { const b = receiverBooking(args[0]); requireThat(!b.loadRef, 'Dispatched loads must be verified instead.', 409); result = engine.rejectRequestAction(b.id); break; }
       case 'rescheduleRequestAction': { const b = receiverBooking(args[0]); const target = dataset.slots.find(s => s.id === args[1]); requireThat(target && target.date >= new Date().toISOString().slice(0, 10), 'Choose a current receiving slot.'); result = engine.rescheduleRequestAction(b.id, text(args[1], 'slot ID')); break; }

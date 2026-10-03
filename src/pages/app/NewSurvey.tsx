@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import type { MaterialCondition, MaterialGrade, MaterialTypeKey, Evidence, MaterialPassport } from "@/domain/types";
+import type { MaterialCondition, MaterialGrade, MaterialTypeKey, Evidence, MaterialPassport, GeoPoint } from "@/domain/types";
+import { LocationPicker } from "@/components/greenloop/LocationMap";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/utils";
 import { materialMediaFor } from "@/config/appMedia";
@@ -27,6 +28,7 @@ export default function NewSurvey() {
   
   const [step, setStep] = useState(1);
   const [projectId, setProjectId] = useState(location.state?.projectId || params.get("project") || dataset.projects[0]?.id || "");
+  const [projectGeo, setProjectGeo] = useState<GeoPoint | undefined>(() => dataset.projects.find((project) => project.id === (location.state?.projectId || params.get("project") || dataset.projects[0]?.id))?.geo);
   const [type, setType] = useState<MaterialTypeKey>("concrete");
   const [quantity, setQuantity] = useState("10");
   const [rangeMin, setRangeMin] = useState("8");
@@ -64,9 +66,10 @@ export default function NewSurvey() {
 
   const handleCreateProject = async () => {
     if (!projectName.trim() || !projectLocation.trim()) return;
-    const project = await addProjectAction({ name: projectName.trim(), location: projectLocation.trim(), status: "active" });
+    const project = await addProjectAction({ name: projectName.trim(), location: projectLocation.trim(), status: "active", ...(projectGeo ? { geo: projectGeo } : {}) });
     if (!project) return;
     setProjectId(project.id);
+    setProjectGeo(project.geo);
     setProjectName("");
     setProjectLocation("");
     setShowProjectForm(false);
@@ -98,6 +101,7 @@ export default function NewSurvey() {
       evidence,
       ...(availableFrom ? { availableFrom } : {}),
       ...(pricePerT !== "" ? { pricePerT: Number(pricePerT) } : {}),
+      ...(projectGeo ? { geo: projectGeo } : {}),
     });
     if (!passport) return;
     setCreatedPassport(passport);
@@ -163,12 +167,13 @@ export default function NewSurvey() {
           {step === 3 && (
             <motion.div key="choose-location" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border border-steel-200 border-t-4 border-t-loop-600 bg-white p-8 dark:border-steel-800 dark:border-t-loop-500 dark:bg-black">
               <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Where is the material?</h2>
-              <p className="mt-2 text-steel-600 dark:text-gray-400">Choose the project where the material is located. This is saved with its Material Passport.</p>
-              
+              <p className="mt-2 text-steel-600 dark:text-gray-400">Choose the project where the material is located. The written address remains the source of truth; map coordinates are optional.</p>
+              <div className="mt-5"><LocationPicker geo={projectGeo} onChange={setProjectGeo} /></div>
+
               <div className="mt-8 space-y-4">
                 {dataset.projects.map(p => (
                   <label key={p.id} className={cn("flex cursor-pointer items-center gap-4 rounded-sm border p-5 transition-all hover:border-loop-400", projectId === p.id ? "border-loop-500 bg-loop-50 ring-1 ring-loop-500 dark:bg-loop-500/10" : "border-steel-200 dark:border-steel-800")}>
-                    <input type="radio" name="project" value={p.id} checked={projectId === p.id} onChange={() => setProjectId(p.id)} className="size-5 text-loop-600 focus:ring-loop-600" />
+                    <input type="radio" name="project" value={p.id} checked={projectId === p.id} onChange={() => { setProjectId(p.id); setProjectGeo(p.geo); }} className="size-5 text-loop-600 focus:ring-loop-600" />
                     <div>
                       <p className="font-archivo text-lg font-bold text-ink-900 dark:text-white">{p.name}</p>
                       <p className="text-sm text-steel-600 dark:text-gray-400">{p.location} · {p.status}</p>
