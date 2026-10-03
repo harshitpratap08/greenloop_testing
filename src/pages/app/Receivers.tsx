@@ -28,7 +28,7 @@ const WORKFLOW_STEPS = [
 export default function Receivers() {
   const { dataset, requestCapacityAction } = useGreenLoopStore();
   const location = useLocation();
-  const [materialId, setMaterialId] = useState<string>(location.state?.materialId || dataset.materials[0]?.id || "");
+  const [materialId, setMaterialId] = useState<string>(location.state?.materialId || dataset.materials.find(material => material.projectId === location.state?.projectId)?.id || dataset.materials[0]?.id || "");
   const [receiverId, setReceiverId] = useState<string>("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [requestQuantity, setRequestQuantity] = useState("");
@@ -50,7 +50,7 @@ export default function Receivers() {
   const selectedMatch = orderedMatches.find((candidate) => candidate.receiverId === receiverId) ?? orderedMatches[0];
   const selectedReceiver = selectedMatch && dataset.receivers.find((receiver) => receiver.id === selectedMatch.receiverId);
   const receiverSlots = selectedMatch && material ? dataset.slots
-    .filter((slot) => slot.receiverId === selectedMatch.receiverId && slot.materialType === material.type)
+    .filter((slot) => slot.receiverId === selectedMatch.receiverId && slot.materialType === material.type && slot.date >= new Date().toISOString().slice(0, 10))
     .sort((a, b) => a.date.localeCompare(b.date)) : [];
   const selectedSlot = receiverSlots.find((slot) => slot.id === selectedSlotId) ?? receiverSlots[0];
   const requestedT = requestQuantity ? Number(requestQuantity) : remainingT;
@@ -161,7 +161,7 @@ export default function Receivers() {
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#f6f5f0] px-3.5 py-3 dark:bg-white/[0.04]">
                   <div className="min-w-0 text-xs">
                     <span className="text-[#7c857d] dark:text-gray-400">Project origin: </span>
-                    <Link to="/app/explore" state={{ projectId: material.projectId }} className="font-semibold text-[#34483a] underline decoration-[#bdc8bc] underline-offset-2 hover:text-[#315f3d] dark:text-white">{project?.name ?? material.projectId}</Link>
+                    <Link to={`/app/materials?project=${encodeURIComponent(material.projectId)}`} className="font-semibold text-[#34483a] underline decoration-[#bdc8bc] underline-offset-2 hover:text-[#315f3d] dark:text-white">{project?.name ?? material.projectId}</Link>
                     {project && <span className="text-[#7c857d] dark:text-gray-400"> · {project.location}</span>}
                   </div>
                   <Link to={`/app/materials/${material.id}`} className="shrink-0 text-xs font-semibold text-[#426b4c] hover:underline dark:text-[#b8d0bd]">View passport →</Link>

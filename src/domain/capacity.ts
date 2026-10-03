@@ -93,7 +93,11 @@ export function slotLedger(
 // ---------------------------------------------------------------------------
 
 function nextEventId(events: DomainEvent[], offset: number): string {
-  return `EV-${String(events.length + 1 + offset).padStart(3, "0")}`;
+  const highestId = events.reduce((highest, event) => {
+    const numericId = Number(event.id.replace(/^EV-/, ""));
+    return Number.isFinite(numericId) ? Math.max(highest, numericId) : highest;
+  }, events.length);
+  return `EV-${String(highestId + 1 + offset).padStart(3, "0")}`;
 }
 
 function makeEvent(
@@ -295,7 +299,7 @@ export function requestCapacity(
 
   events.push(
     makeEvent(
-      events,
+      dataset.events,
       0,
       "allocation.requested",
       input.actor,
@@ -307,7 +311,7 @@ export function requestCapacity(
   );
   events.push(
     makeEvent(
-      events,
+      dataset.events,
       1,
       outcome === "confirmed" ? "allocation.confirmed" : "allocation.hold",
       input.actor,
@@ -351,7 +355,7 @@ export function releaseCapacity(
 ): EngineOutput<ReleaseOutput> {
   const booking = dataset.bookings.find((b) => b.id === input.bookingId);
   if (!booking) throw new Error(`Unknown booking: ${input.bookingId}`);
-  if (booking.status !== "confirmed" || booking.loadRef || dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id))) {
+  if ((booking.status !== "confirmed" && booking.status !== "hold") || booking.loadRef || dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id))) {
     return { dataset, events: [], output: { cancelledBooking: booking, reconfirmed: [] } };
   }
 
@@ -366,12 +370,12 @@ export function releaseCapacity(
 
   events.push(
     makeEvent(
-      events,
+      dataset.events,
       0,
-      "capacity.released",
+      booking.status === "confirmed" ? "capacity.released" : "booking.cancelled",
       input.actor,
       input.at,
-      `${booking.tonnesT.toFixed(1)} t released at ${receiverName(dataset, booking.receiverId)}`,
+      booking.status === "confirmed" ? `${booking.tonnesT.toFixed(1)} t released at ${receiverName(dataset, booking.receiverId)}` : `${booking.tonnesT.toFixed(1)} t held request cancelled at ${receiverName(dataset, booking.receiverId)}`,
       input.reason,
       [booking.materialId, booking.receiverId, booking.id],
     ),
@@ -392,7 +396,9 @@ export function releaseCapacity(
     ),
   };
 
-  const recheck = recheckHolds(next, { slotId: booking.slotId, actor: input.actor, at: input.at });
+  const recheck = booking.status === "confirmed"
+    ? recheckHolds(next, { slotId: booking.slotId, actor: input.actor, at: input.at })
+    : { dataset: next, events: [], output: { reconfirmed: [] } };
   next = recheck.dataset;
   events.push(...recheck.events);
 
@@ -460,7 +466,7 @@ export function recheckHolds(
 
     events.push(
       makeEvent(
-        events,
+        dataset.events,
         events.length,
         "allocation.recheck.confirmed",
         input.actor,

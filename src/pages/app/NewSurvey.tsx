@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { uploadFile } from "@/lib/api";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import type { MaterialCondition, MaterialGrade, MaterialTypeKey, Evidence, MaterialPassport } from "@/domain/types";
@@ -22,9 +22,11 @@ export default function NewSurvey() {
   const { t } = useTranslation();
   const { dataset, addMaterialAction, addProjectAction } = useGreenLoopStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [params] = useSearchParams();
   
   const [step, setStep] = useState(1);
-  const [projectId, setProjectId] = useState(dataset.projects[0]?.id || "");
+  const [projectId, setProjectId] = useState(location.state?.projectId || params.get("project") || dataset.projects[0]?.id || "");
   const [type, setType] = useState<MaterialTypeKey>("concrete");
   const [quantity, setQuantity] = useState("10");
   const [rangeMin, setRangeMin] = useState("8");

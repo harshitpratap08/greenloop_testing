@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname, basename } from 'node:path';
 import { createBackend } from './server.mjs';
+import { receiverCapacityTotals } from '../src/domain/metrics.ts';
 
 test('persistent provider/receiver workflow, ownership, reservations, uploads and recovery', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'greenloop-test-'));
@@ -65,6 +66,7 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     ]);
     const all = (await receiver('/dataset')).dataset;
     assert.equal(all.bookings.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + b.tonnesT, 0), 15);
+    assert.equal(receiverCapacityTotals((await provider('/dataset')).dataset).find(r => r.name === 'Reuse Yard').reserved, 15);
     assert.equal(all.bookings.filter(b => b.status === 'hold').length, 1);
     assert.ok(firstRequest.result && secondRequest.result);
     const cancelled = all.bookings.find(b => b.status === 'confirmed' && b.id !== booking.id);

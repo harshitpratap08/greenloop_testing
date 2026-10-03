@@ -1,6 +1,7 @@
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import PageMeta from "@/components/common/PageMeta";
 import type { GreenLoopDataset } from "@/domain/types";
+import { recoveryFlowTotals as computeFlow, receiverCapacityTotals } from "@/domain/metrics";
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/utils";
@@ -296,32 +297,8 @@ function RecoveryFlowChart({ dataset }: { dataset: GreenLoopDataset }) {
   );
 }
 
-function computeFlow(dataset: GreenLoopDataset): Record<string, number> {
-  const surveyed = dataset.materials.reduce((s, m) => s + m.quantityT, 0);
-  const allocatedIds = new Set(dataset.allocations.map((a) => a.materialId));
-  const matched = dataset.materials.filter((m) => allocatedIds.has(m.id)).reduce((s, m) => s + m.quantityT, 0);
-  const activeBookings = dataset.bookings.filter((b) => b.status === "confirmed" || b.status === "hold" || b.status === "pending");
-  const reserved = activeBookings.reduce((s, b) => s + b.tonnesT, 0);
-  const dispatchedBookingIds = new Set(
-    dataset.events.filter((e) => e.kind === "load.dispatched").flatMap((e) => e.subjectIds.filter((id) => dataset.bookings.some((b) => b.id === id))),
-  );
-  const dispatched = dataset.bookings
-    .filter((b) => dispatchedBookingIds.has(b.id))
-    .reduce((s, b) => s + b.tonnesT, 0);
-  const verified = dataset.verifications.filter((v) => v.status === "verified").reduce((s, v) => s + v.acceptedT, 0);
-  return { surveyed, matched, reserved, dispatched, verified };
-}
-
 function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
-  const totals = dataset.receivers.map((r) => {
-    const slots = dataset.slots.filter((s) => s.receiverId === r.id);
-    const capacity = slots.reduce((s, slot) => s + slot.capacityT, 0);
-    const bookings = dataset.bookings.filter(
-      (b) => b.receiverId === r.id && (b.status === "confirmed" || b.status === "hold" || b.status === "pending"),
-    );
-    const reserved = bookings.reduce((s, b) => s + b.tonnesT, 0);
-    return { name: r.name, capacity, reserved, available: capacity - reserved };
-  });
+  const totals = receiverCapacityTotals(dataset);
   const max = Math.max(...totals.map((t) => t.capacity), 1);
 
   return (

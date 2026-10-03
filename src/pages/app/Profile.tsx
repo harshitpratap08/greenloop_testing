@@ -11,9 +11,9 @@ export default function Profile() {
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState(() => ({
-    fullName: user?.name || "Site Manager",
-    companyName: user?.organization || "Harrow Road Demolition",
-    email: user?.email || "manager@harrowdemo.co.uk",
+    fullName: user?.name || "",
+    companyName: user?.organization || "",
+    email: user?.email || "",
     phone: user?.phone || "",
     location: user?.location || "",
     vat: user?.vat || "",

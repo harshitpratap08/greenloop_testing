@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
+import { useAuth } from "@/context/AuthContext";
 import { formatStamp } from "@/utils";
 
 interface ActivityItem {
@@ -31,6 +32,7 @@ const toneText: Record<ActivityItem["tone"], string> = {
 
 export default function NotificationDropdown() {
   const { dataset } = useGreenLoopStore();
+  const { user } = useAuth();
   const items: ActivityItem[] = [...dataset.events].reverse().slice(0, 5).map((event) => ({
     id: event.id,
     actor: event.actor.name,
@@ -40,7 +42,10 @@ export default function NotificationDropdown() {
     tone: event.kind.includes("hold") ? "hold" : event.kind.includes("reject") || event.kind.includes("cancel") ? "rejected" : event.kind.includes("confirm") || event.kind.includes("verified") ? "confirmed" : "neutral",
   }));
   const [isOpen, setIsOpen] = useState(false);
-  const [notifying, setNotifying] = useState(true);
+  const [seen, setSeen] = useState({ identity: "", eventId: "" });
+  const identity = `${user?.id ?? ""}:${user?.activeWorkspace ?? ""}`;
+  const latestEventId = dataset.events.at(-1)?.id ?? "";
+  const notifying = Boolean(latestEventId && (seen.identity !== identity || seen.eventId !== latestEventId));
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -52,7 +57,7 @@ export default function NotificationDropdown() {
 
   const handleClick = () => {
     toggleDropdown();
-    setNotifying(false);
+    setSeen({ identity, eventId: latestEventId });
   };
 
   return (
@@ -61,6 +66,7 @@ export default function NotificationDropdown() {
         className="dropdown-toggle relative flex h-8 w-8 items-center justify-center rounded-lg border border-[#deded5] bg-white text-[#526157] transition-colors hover:bg-[#e9eee8] sm:h-9 sm:w-9 xl:h-10 xl:w-10"
         onClick={handleClick}
         aria-label="Activity"
+        aria-expanded={isOpen}
       >
         <span
           className={cn(
@@ -155,6 +161,7 @@ export default function NotificationDropdown() {
         </ul>
         <Link
           to="/app/audit-trail"
+          onClick={closeDropdown}
           className="mt-3 block rounded-lg border border-steel-300 bg-white px-4 py-2 text-center text-sm font-medium text-ink-800 hover:bg-steel-50 dark:border-steel-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
         >
           View full audit trail

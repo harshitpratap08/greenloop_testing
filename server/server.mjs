@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { randomBytes, randomUUID, createHash, scryptSync, timingSafeEqual } from 'node:crypto';
-import { mkdirSync, readFileSync, existsSync, appendFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, existsSync, appendFileSync, statSync } from 'node:fs';
 import { resolve, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createActions } from './actions.ts';
@@ -40,10 +40,22 @@ export function createBackend(options = {}) {
     CREATE TABLE IF NOT EXISTS oauth_states (state TEXT PRIMARY KEY, verifier TEXT NOT NULL, expires INTEGER NOT NULL);
   `);
   db.prepare('INSERT OR IGNORE INTO state VALUES (1, ?)').run(JSON.stringify(empty()));
-  const load = () => JSON.parse(db.prepare('SELECT document FROM state WHERE id=1').get().document);
+  const load = () => {
+    const dataset = JSON.parse(db.prepare('SELECT document FROM state WHERE id=1').get().document);
+    // Preserve historical events while repairing duplicate IDs deterministically.
+    // Reads do not write the database; the next business transaction persists repairs.
+    let nextId = dataset.events.reduce((highest, event) => Math.max(highest, Number(/^EV-(\d+)$/.exec(event.id)?.[1] ?? 0)), 0) + 1;
+    const seen = new Set();
+    dataset.events = dataset.events.map(event => {
+      const repaired = seen.has(event.id) ? { ...event, id: `EV-${String(nextId++).padStart(3, '0')}` } : event;
+      seen.add(repaired.id);
+      return repaired;
+    });
+    return dataset;
+  };
   const save = dataset => db.prepare('UPDATE state SET document=? WHERE id=1').run(JSON.stringify(dataset));
   const owner = id => db.prepare('SELECT user_id FROM owners WHERE entity_id=?').get(id)?.user_id;
-  const own = (id, user) => requireThat(owner(id) === user.id, 'You do not have permission to change this record.', 403);
+  const own = (id, user) => { text(id, 'record ID', 250); requireThat(owner(id) === user.id, 'You do not have permission to change this record.', 403); };
   const assign = (id, user) => db.prepare('INSERT INTO owners VALUES (?, ?)').run(id, user.id);
   const transaction = operation => { db.exec('BEGIN IMMEDIATE'); try { const result = operation(); db.exec('COMMIT'); return result; } catch (error) { db.exec('ROLLBACK'); throw error; } };
   const profile = row => ({ id: row.id, email: row.email, ...JSON.parse(row.profile) });
@@ -116,10 +128,10 @@ export function createBackend(options = {}) {
         result = engine.addMaterialAction({ projectId: m.projectId, type: choice(m.type, materialTypes, 'material type'), quantityT: m.quantityT, quantityRangeT: m.quantityRangeT, condition: choice(m.condition, ['good', 'fair', 'poor'], 'condition'), grade: choice(m.grade, ['A', 'B', 'C'], 'grade'), confidence: m.confidence, surveyNotes: text(m.surveyNotes ?? '', 'notes', 5000, true), evidence: evidence(m.evidence, user, dataset) }); assign(result.id, user); break;
       }
       case 'addDemandAction': {
-        role('receiver'); const d = args[0]; own(user.receiverId, user); result = engine.addDemandAction({ receiverId: user.receiverId, materialType: choice(d.materialType, materialTypes, 'material type'), requiredT: number(d.requiredT, 'required quantity'), period: date(d.period), location: text(d.location, 'location', 250), notes: text(d.notes ?? '', 'notes', 5000, true) }); assign(result.id, user); break;
+        role('receiver'); const d = args[0]; own(user.receiverId, user); date(d.period); requireThat(d.period >= new Date().toISOString().slice(0, 10), 'The needed-by date is in the past.'); result = engine.addDemandAction({ receiverId: user.receiverId, materialType: choice(d.materialType, materialTypes, 'material type'), requiredT: number(d.requiredT, 'required quantity'), period: d.period, location: text(d.location, 'location', 250), notes: text(d.notes ?? '', 'notes', 5000, true) }); assign(result.id, user); break;
       }
       case 'addCapacityAction': {
-        role('receiver'); const s = args[0]; own(s.receiverId, user); date(s.date); choice(s.materialType, materialTypes, 'material type');
+        role('receiver'); const s = args[0]; own(s.receiverId, user); date(s.date); requireThat(s.date >= new Date().toISOString().slice(0, 10), 'This receiving slot is in the past.'); choice(s.materialType, materialTypes, 'material type');
         requireThat(!dataset.slots.some(x => x.receiverId === s.receiverId && x.date === s.date && x.materialType === s.materialType), 'A slot already exists for this material and date.', 409);
         result = engine.addCapacityAction({ receiverId: s.receiverId, date: s.date, materialType: s.materialType, capacityT: number(s.capacityT, 'capacity') }); break;
       }
@@ -158,12 +170,17 @@ export function createBackend(options = {}) {
         number(args[1], 'accepted quantity', true); number(args[2], 'rejected quantity', true); requireThat(Math.abs(args[1] + args[2] - v.actualT) < 0.001, 'Accepted and rejected quantities must equal the received weight.');
         if (args[2] > 0) text(args[3], 'rejection reason', 1000); result = engine.verifyLoadAction(v.id, args[1], args[2], args[3]); break;
       }
-      case 'verifyAction': { const b = receiverBooking(args[0].bookingId); requireThat(b.loadRef && !dataset.verifications.some(v => v.bookingId === b.id), 'Receive and verify each dispatched load only once.', 409); const p = args[0]; number(p.actualT, 'received quantity', true); number(p.acceptedT, 'accepted quantity', true); requireThat(p.acceptedT <= p.actualT, 'Accepted quantity exceeds received weight.'); result = engine.verifyAction({ bookingId: b.id, actualT: p.actualT, acceptedT: p.acceptedT, rejectReason: p.rejectReason, evidence: evidence(p.evidence ?? [], user, dataset) }); break; }
+      case 'verifyAction': { const b = receiverBooking(args[0].bookingId); requireThat(b.loadRef && !dataset.verifications.some(v => v.bookingId === b.id), 'Receive and verify each dispatched load only once.', 409); const p = args[0]; number(p.actualT, 'received quantity', true); number(p.acceptedT, 'accepted quantity', true); requireThat(p.acceptedT <= p.actualT, 'Accepted quantity exceeds received weight.'); const rejectReason = text(p.rejectReason ?? '', 'rejection reason', 1000, p.acceptedT === p.actualT); result = engine.verifyAction({ bookingId: b.id, actualT: p.actualT, acceptedT: p.acceptedT, rejectReason, evidence: evidence(p.evidence ?? [], user, dataset) }); break; }
       case 'addSupportRequestAction': { const s = args[0]; result = engine.addSupportRequestAction({ email: user.email, subject: text(s.subject, 'subject', 250), message: text(s.message, 'message', 5000) }); assign(result.id, user); break; }
       default: throw new ApiError(404, 'Unknown operation.');
     }
     const next = engine.getDataset();
     requireThat(next !== dataset, 'This operation is no longer available. Refresh and check material, demand, and capacity limits.', 409);
+    next.projects = next.projects.map(project => {
+      const materialIds = new Set(next.materials.filter(material => material.projectId === project.id).map(material => material.id));
+      const event = next.events.findLast(event => event.subjectIds.some(id => id === project.id || materialIds.has(id)));
+      return event ? { ...project, lastActivityAt: event.at } : project;
+    });
     next.receivers = next.receivers.map(r => ({ ...r,
       dailyIntakeT: Math.max(0, ...next.slots.filter(s => s.receiverId === r.id).map(s => next.slots.filter(x => x.receiverId === r.id && x.date === s.date).reduce((sum, x) => sum + x.capacityT, 0))),
       currentStockT: next.verifications.filter(v => v.receiverId === r.id && v.status === 'verified').reduce((sum, v) => sum + v.acceptedT, 0),
@@ -288,7 +305,9 @@ export function createBackend(options = {}) {
       requireThat(['GET', 'HEAD'].includes(req.method), 'Method not allowed.', 405);
       const dist = resolve(root, 'dist'); const requested = resolve(dist, `.${decodeURIComponent(path)}`);
       requireThat(requested.startsWith(dist + '/') || requested.startsWith(dist + '\\') || requested === dist, 'Invalid path.', 400);
-      const file = existsSync(requested) && extname(requested) ? requested : resolve(dist, 'index.html');
+      const staticFile = Boolean(extname(requested));
+      if (staticFile) requireThat(existsSync(requested) && statSync(requested).isFile(), 'File not found.', 404);
+      const file = staticFile ? requested : resolve(dist, 'index.html');
       requireThat(existsSync(file), 'Build the frontend with npm run build, or run npm run dev.', 404);
       const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2', '.mp4': 'video/mp4' }[extname(file)] ?? 'application/octet-stream';
       res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': file.endsWith('index.html') ? 'no-cache' : 'public, max-age=3600' }); res.end(req.method === 'HEAD' ? undefined : readFileSync(file));

@@ -82,7 +82,7 @@ export default function MaterialPassport() {
     );
 
   // Workflow stage from the material's own lifecycle.
-  const workflowStage = verification ? 7 : booking ? (booking.loadRef ? 6 : 5) : allocation ? 4 : candidates.length > 0 ? 3 : material.status === "surveyed" ? 2 : 1;
+  const workflowStage = verification && verification.status !== "pending" ? 7 : booking ? (booking.loadRef ? 6 : 5) : allocation ? 4 : candidates.length > 0 ? 3 : material.status === "surveyed" ? 2 : 1;
 
   return (
     <PageMotion className="mx-auto max-w-[1200px] pb-24">
@@ -123,7 +123,7 @@ export default function MaterialPassport() {
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <div>
                 <dt className="eyebrow-label text-steel-500 dark:text-steel-400">Project</dt>
-                <dd className="mt-1"><Link to="/app/explore" state={{ projectId: project.id }} className="font-semibold text-ink-900 underline underline-offset-4 hover:text-loop-600 dark:text-white">{project.name}</Link></dd>
+                <dd className="mt-1"><Link to={`/app/materials?project=${encodeURIComponent(project.id)}`} className="font-semibold text-ink-900 underline underline-offset-4 hover:text-loop-600 dark:text-white">{project.name}</Link></dd>
               </div>
               <div>
                 <dt className="eyebrow-label text-steel-500 dark:text-steel-400">Location</dt>

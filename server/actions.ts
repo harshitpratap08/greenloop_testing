@@ -357,10 +357,7 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
       const demandRemainingT = demand ? Math.max(0, demand.requiredT - committedDemandT) : Infinity;
       const at = new Date().toISOString();
       if (booking.tonnesT > before + 1e-9 || booking.tonnesT > materialRemainingT + 1e-9 || booking.tonnesT > demandRemainingT + 1e-9) {
-        const event = eventFor(prev, "allocation.reschedule.hold", ACTOR_RECEIVER,
-          `Reschedule unavailable — ${booking.tonnesT.toFixed(1)} t does not fit in ${target.date}`,
-          [booking.materialId, booking.receiverId, booking.id, target.id], undefined, at);
-        return { ...prev, events: [...prev.events, event] };
+        return prev;
       }
       const after = Math.max(0, Math.round((before - booking.tonnesT) * 10) / 10);
       const next: GreenLoopDataset = {
@@ -468,7 +465,7 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
       const material = prev.materials.find((item) => item.id === offer.passportId);
       if (!demand || !material || material.type !== demand.materialType || demand.status === "PAUSED") return prev;
       const eligibleSlots = prev.slots
-        .filter((item) => item.receiverId === demand.receiverId && item.materialType === demand.materialType && slotMatchesDemandPeriod(item, demand.period))
+        .filter((item) => item.receiverId === demand.receiverId && item.materialType === demand.materialType && item.date >= new Date().toISOString().slice(0, 10) && slotMatchesDemandPeriod(item, demand.period))
         .sort((a, b) => a.date.localeCompare(b.date));
       if (!eligibleSlots.length) return prev;
 
