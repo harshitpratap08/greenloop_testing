@@ -1,14 +1,13 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
 import type { ReactNode } from "react";
+import { Link } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
 import { PageMotion, RevealItem } from "@/components/greenloop/kit";
 import { useGreeting } from "@/components/greenloop/AppExploration";
 import { useAuth } from "@/context/AuthContext";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { ambientMedia, materialMediaFor } from "@/config/appMedia";
-import { BoxMoving, CheckCircleIcon, SearchIcon, TaskIcon, TruckDelivery } from "@/icons";
-import type { MaterialPassport } from "@/domain/types";
+import { BoxMoving, CheckCircleIcon, TaskIcon } from "@/icons";
+import { formatDate } from "@/utils";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -41,27 +40,8 @@ function ActivityCard({ icon, label, value, detail, to }: { icon: ReactNode; lab
 function ShortcutCard({ title, description, action, to, image }: HomeCard) {
   return (
     <Link to={to} className="group min-w-0 overflow-hidden rounded-xl border border-[#e6e4dc] bg-white transition-colors hover:border-[#4b8b67] dark:border-white/10 dark:bg-[#17241b] dark:hover:border-[#79a88a]">
-      <div className="aspect-[16/9] overflow-hidden bg-[#e5e4dc]">
-        <img src={image.src} alt={image.alt} loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transform-none" />
-      </div>
-      <div className="p-4 sm:p-5">
-        <h3 className="font-archivo text-lg font-bold text-[#243229] dark:text-white">{title}</h3>
-        <p className="mt-1 min-h-10 text-sm leading-5 text-[#667168] dark:text-gray-300">{description}</p>
-        <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#477e5d]">{action}<span aria-hidden="true">→</span></span>
-      </div>
-    </Link>
-  );
-}
-
-function MaterialResult({ material }: { material: MaterialPassport }) {
-  return (
-    <Link to={`/app/materials/${material.id}`} className="flex items-center gap-3 p-3 transition-colors hover:bg-[#f5f6f2] dark:hover:bg-white/5">
-      <img src={materialMediaFor(material.type).src} alt="" className="size-12 shrink-0 rounded-md object-cover" loading="lazy" />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold text-[#243229] dark:text-white">{TYPE_LABEL[material.type] ?? material.type}</span>
-        <span className="mt-0.5 block truncate text-xs text-[#748078] dark:text-gray-400">{material.id} · {material.quantityT.toFixed(1)} t · {material.condition} condition</span>
-      </span>
-      <span className="text-xs font-semibold text-[#477e5d]">Open <span aria-hidden="true">→</span></span>
+      <div className="aspect-[16/9] overflow-hidden bg-[#e5e4dc]"><img src={image.src} alt={image.alt} loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transform-none" /></div>
+      <div className="p-4 sm:p-5"><h3 className="font-archivo text-lg font-bold text-[#243229] dark:text-white">{title}</h3><p className="mt-1 min-h-10 text-sm leading-5 text-[#667168] dark:text-gray-300">{description}</p><span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#477e5d]">{action}<span aria-hidden="true">→</span></span></div>
     </Link>
   );
 }
@@ -70,98 +50,78 @@ export default function Overview() {
   const { dataset } = useGreenLoopStore();
   const { user } = useAuth();
   const greeting = useGreeting();
-  const navigate = useNavigate();
-  const [query, setQuery] = useState("");
-  const receiverId = user?.receiverId;
-  const receiverDemandIds = useMemo(() => new Set((dataset.demands ?? []).filter((demand) => demand.receiverId === receiverId).map((demand) => demand.id)), [dataset.demands, receiverId]);
-  const activeRequests = (dataset.demands ?? []).filter((demand) => demand.receiverId === receiverId && demand.status !== "PAUSED" && demand.status !== "COVERED").length;
-  const pendingOffers = (dataset.offers ?? []).filter((offer) => offer.status === "pending" && receiverDemandIds.has(offer.demandId)).length;
-  const dispatchedIds = new Set(dataset.events.filter((event) => event.kind === "load.dispatched").flatMap((event) => event.subjectIds));
-  const receiverUpcomingDeliveries = dataset.bookings.filter((booking) => booking.receiverId === receiverId && booking.status === "confirmed" && !dispatchedIds.has(booking.id));
-  const materialSourcedT = dataset.verifications.filter((verification) => verification.receiverId === receiverId && verification.status === "verified").reduce((total, verification) => total + verification.acceptedT, 0);
-  const normalizedQuery = query.trim().toLowerCase();
-  const searchResults = useMemo(() => {
-    if (!normalizedQuery) return [];
-    return dataset.materials.filter((material) => {
-      if (material.status === "verified" || material.status === "cancelled") return false;
-      const project = dataset.projects.find((item) => item.id === material.projectId);
-      const values = [TYPE_LABEL[material.type] ?? material.type, material.id, material.condition, project?.name ?? ""];
-      if (material.type === "timber") values.push("wood");
-      return values.some((value) => value.toLowerCase().includes(normalizedQuery));
-    }).slice(0, 5);
-  }, [dataset.materials, dataset.projects, normalizedQuery]);
+  const receiverId = user?.receiverId ?? "";
+  const receiverDemands = dataset.demands.filter((demand) => demand.receiverId === receiverId && demand.status !== "PAUSED");
+  const demandIds = new Set(receiverDemands.map((demand) => demand.id));
+  const pendingOffers = (dataset.offers ?? []).filter((offer) => offer.status === "pending" && demandIds.has(offer.demandId)).length;
+  const confirmedBookings = dataset.bookings.filter((booking) => booking.receiverId === receiverId && booking.status === "confirmed");
+  const requestedT = receiverDemands.reduce((total, demand) => total + demand.requiredT, 0);
+  const receivedT = dataset.verifications.filter((record) => record.receiverId === receiverId && record.status === "verified").reduce((total, record) => total + record.acceptedT, 0);
+  const remainingT = Math.max(0, requestedT - confirmedBookings.filter((booking) => booking.demandId).reduce((total, booking) => total + booking.tonnesT, 0));
   const firstName = user?.name?.trim().split(/\s+/)[0];
+  const relatedBookingIds = new Set(dataset.bookings.filter((booking) => booking.receiverId === receiverId).map((booking) => booking.id));
+  const events = dataset.events.filter((event) => event.subjectIds.some((id) => id === receiverId || demandIds.has(id) || relatedBookingIds.has(id))).slice(-5).reverse();
 
   const shortcuts: HomeCard[] = [
-    { title: "Find Materials", description: "Search recorded passports for material that fits your project.", action: "Browse materials", to: "/app/materials", image: materialMediaFor("brick") },
-    { title: "My Requests", description: "Manage material requests and review provider offers.", action: "View requests", to: "/app/receiver/demand", image: ambientMedia.sortingFacility },
-    { title: "Deliveries", description: "Follow booked and arriving loads at your facility.", action: "Track deliveries", to: "/app/receiver/deliveries", image: ambientMedia.authTruck },
-    { title: "Impact", description: "Review recorded recovery and accepted material.", action: "View reports", to: "/app/reports", image: ambientMedia.inspectionWorker },
+    { title: "Find Providers", description: "Browse real material listings and compare availability before requesting a load.", action: "Browse providers", to: "/app/receiver/providers", image: materialMediaFor("brick") },
+    { title: "Request Material", description: "Publish the material, amount, and date your facility needs.", action: "Create request", to: "/app/receiver/demand", image: ambientMedia.sortingFacility },
+    { title: "Receiver Inventory", description: "Review material already received and verified at your facility.", action: "View inventory", to: "/app/receiver/inventory", image: ambientMedia.inspectionWorker },
   ];
-
-  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (searchResults[0]) navigate(`/app/materials/${searchResults[0].id}`);
-  };
 
   return (
     <PageMotion className="mx-auto max-w-[1440px] pb-12">
-      <PageMeta title="Home | GreenLoop" description="Find recovered construction materials, manage requests, and follow deliveries to your facility." />
-
+      <PageMeta title="Receiver Home | GreenLoop" description="Manage material requests, follow demand coverage, and review receiver activity." />
       <RevealItem>
         <section className="grid overflow-hidden rounded-2xl border border-[#e6e4dc] bg-white dark:border-white/10 dark:bg-[#17241b] lg:grid-cols-[1.08fr_0.92fr]" aria-labelledby="receiver-home-title">
           <div className="flex flex-col items-start justify-center p-6 sm:p-9 lg:p-11">
             <p className="text-sm font-semibold text-[#54705c] dark:text-[#a6c7ad]">{greeting}{firstName ? `, ${firstName}` : ""}.</p>
-            <h1 id="receiver-home-title" className="mt-3 max-w-xl font-archivo text-3xl font-bold leading-tight tracking-tight text-[#1e2922] dark:text-white sm:text-4xl lg:text-[2.75rem]">Looking for materials?</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#657168] dark:text-gray-300 sm:text-base">Find the right recovered materials for your next project. Access quality construction materials and make your work more sustainable.</p>
-            <form id="material-search" onSubmit={handleSearch} className="mt-6 flex w-full max-w-xl rounded-lg border border-[#d9ddd7] bg-white p-1 focus-within:border-[#548866] focus-within:ring-2 focus-within:ring-[#548866]/15 dark:border-white/15 dark:bg-[#101913]">
-              <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search materials" placeholder="Search for materials (e.g. bricks, steel, wood...)" className="min-w-0 flex-1 bg-transparent px-3 text-sm text-[#26342b] outline-none placeholder:text-[#8a938b] dark:text-white dark:placeholder:text-gray-500" />
-              <button type="submit" aria-label="Search materials" className="flex size-10 shrink-0 items-center justify-center rounded-md bg-[#33734f] text-white transition-colors hover:bg-[#285e40]"><SearchIcon className="size-5" /></button>
-            </form>
-            {normalizedQuery && (
-              <div className="mt-2 w-full max-w-xl overflow-hidden rounded-lg border border-[#e6e4dc] bg-white dark:border-white/10 dark:bg-[#17241b]" aria-live="polite">
-                {searchResults.length > 0 ? searchResults.map((material) => <MaterialResult key={material.id} material={material} />) : <p className="p-4 text-sm text-[#667168] dark:text-gray-300">No available material passports match that search.</p>}
-              </div>
-            )}
-            <Link to="/app/receiver/demand" className="mt-4 text-sm font-semibold text-[#477e5d] underline decoration-[#b7cabb] underline-offset-4 hover:text-[#285e40] dark:text-[#a6c7ad]">Can’t find it? Request material <span aria-hidden="true">→</span></Link>
+            <h1 id="receiver-home-title" className="mt-3 max-w-xl font-archivo text-3xl font-bold leading-tight tracking-tight text-[#1e2922] dark:text-white sm:text-4xl lg:text-[2.75rem]">Source recovered material for your next project.</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#657168] dark:text-gray-300 sm:text-base">Publish what your facility needs, review provider offers, and follow demand through delivery and verification.</p>
+            <Link to="/app/receiver/demand" className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#33734f] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#285e40]">Request Material <span aria-hidden="true">→</span></Link>
+            <Link to="/app/receiver/providers" className="mt-3 text-sm font-semibold text-[#477e5d] underline underline-offset-4 dark:text-[#a6c7ad]">Browse Providers</Link>
           </div>
           <div className="relative min-h-56 bg-[#d8d7cd] sm:min-h-72 lg:min-h-[330px]">
-            <img src={ambientMedia.sortingFacility.src} alt={ambientMedia.sortingFacility.alt} fetchPriority="high" className="absolute inset-0 size-full object-cover" />
+            <img src={ambientMedia.sortingFacility.src} alt={ambientMedia.sortingFacility.alt} className="absolute inset-0 size-full object-cover" />
             <span className="absolute inset-0 bg-[#18231c]/15" aria-hidden="true" />
-            <div className="absolute inset-x-4 bottom-4 rounded-lg bg-[#17251d]/85 p-3 text-white sm:inset-x-auto sm:right-5 sm:bottom-5 sm:max-w-64 sm:p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/70">Materials for what’s next</p>
-              <p className="mt-1 text-sm font-medium leading-5">Quality recovered material, ready to find its next project.</p>
-            </div>
+            <div className="absolute inset-s-4 bottom-4 rounded-lg bg-[#17251d]/85 p-3 text-white sm:inset-s-auto sm:inset-e-5 sm:bottom-5 sm:max-w-64 sm:p-4"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/70">Demand, matched to supply</p><p className="mt-1 text-sm font-medium leading-5">Track what is requested, received, and still needed.</p></div>
           </div>
         </section>
       </RevealItem>
 
       <RevealItem className="mt-7">
         <section aria-labelledby="receiver-activity-title">
-          <div className="mb-3">
-            <h2 id="receiver-activity-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Your Activity</h2>
-            <p className="mt-1 text-xs text-[#748078] dark:text-gray-400">Requests and deliveries for your receiving workspace.</p>
-          </div>
+          <div className="mb-3"><h2 id="receiver-activity-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Your Activity</h2><p className="mt-1 text-xs text-[#748078] dark:text-gray-400">Requests and verified material for your receiving workspace.</p></div>
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <ActivityCard icon={<TaskIcon className="size-5" />} label="Active Requests" value={String(activeRequests)} detail="Manage requests" to="/app/receiver/demand" />
+            <ActivityCard icon={<TaskIcon className="size-5" />} label="Active Requests" value={String(receiverDemands.length)} detail="Manage requests" to="/app/receiver/demand" />
             <ActivityCard icon={<BoxMoving className="size-5" />} label="Offers to Review" value={String(pendingOffers)} detail="Review offers" to="/app/receiver/demand" />
-            <ActivityCard icon={<TruckDelivery className="size-5" />} label="Upcoming Deliveries" value={String(receiverUpcomingDeliveries.length)} detail="Track loads" to="/app/receiver/deliveries" />
-            <ActivityCard icon={<CheckCircleIcon className="size-5" />} label="Material Sourced" value={`${materialSourcedT.toFixed(1)} t`} detail="View impact" to="/app/reports" />
+            <ActivityCard icon={<CheckCircleIcon className="size-5" />} label="Remaining Demand" value={`${remainingT.toLocaleString("en-IN")} t`} detail="Review progress" to="/app/receiver/demand" />
+            <ActivityCard icon={<BoxMoving className="size-5" />} label="Material Received" value={`${receivedT.toLocaleString("en-IN")} t`} detail="View inventory" to="/app/receiver/inventory" />
           </div>
         </section>
       </RevealItem>
 
       <RevealItem className="mt-8">
-        <section aria-labelledby="receiver-shortcuts-title">
-          <div className="mb-4">
-            <h2 id="receiver-shortcuts-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Explore GreenLoop</h2>
-            <p className="mt-1 text-xs text-[#748078] dark:text-gray-400">Find material, keep requests moving, and follow each delivery.</p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {shortcuts.map((shortcut) => <ShortcutCard key={shortcut.title} {...shortcut} />)}
-          </div>
+        <section aria-labelledby="demand-progress-title">
+          <div className="mb-4"><h2 id="demand-progress-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Demand Progress</h2><p className="mt-1 text-xs text-[#748078] dark:text-gray-400">Coverage is calculated from confirmed bookings.</p></div>
+          {receiverDemands.length ? <ul className="grid gap-3 md:grid-cols-2">
+            {receiverDemands.slice(0, 4).map((demand) => {
+              const covered = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status === "confirmed").reduce((total, booking) => total + booking.tonnesT, 0);
+              const remaining = Math.max(0, demand.requiredT - covered);
+              const percent = demand.requiredT ? Math.min(100, Math.round((covered / demand.requiredT) * 100)) : 0;
+              return <li key={demand.id} className="rounded-xl border border-[#e6e4dc] bg-white p-4 dark:border-white/10 dark:bg-[#17241b]"><div className="flex justify-between gap-3"><div><h3 className="font-semibold text-[#243229] dark:text-white">{TYPE_LABEL[demand.materialType] ?? demand.materialType}</h3><p className="mt-1 text-xs text-[#748078] dark:text-gray-400">Needed by {formatDate(demand.period)} · {demand.location}</p></div><span className="font-archivo text-lg font-bold text-[#243229] dark:text-white">{percent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e9ece6] dark:bg-white/10"><div className="h-full rounded-full bg-[#5c8967]" style={{ width: `${percent}%` }} /></div><div className="mt-2 flex justify-between text-xs text-[#748078] dark:text-gray-400"><span>{covered.toLocaleString("en-IN")} t received of {demand.requiredT.toLocaleString("en-IN")} t</span><span>{remaining.toLocaleString("en-IN")} t remaining</span></div></li>;
+            })}
+          </ul> : <div className="rounded-xl border border-dashed border-[#cbd4ca] px-5 py-8 text-sm text-[#667168] dark:border-white/15 dark:text-gray-300">No material requests yet. Create a request to start matching with providers.</div>}
         </section>
       </RevealItem>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <RevealItem>
+          <section aria-labelledby="receiver-shortcuts-title"><div className="mb-4"><h2 id="receiver-shortcuts-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Quick Actions</h2></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{shortcuts.map((shortcut) => <ShortcutCard key={shortcut.title} {...shortcut} />)}</div></section>
+        </RevealItem>
+        <RevealItem>
+          <section aria-labelledby="receiver-recent-activity-title" className="rounded-xl border border-[#e6e4dc] bg-white p-5 dark:border-white/10 dark:bg-[#17241b]"><div className="flex items-center justify-between gap-3"><h2 id="receiver-recent-activity-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Recent Activity</h2><Link to="/app/audit-trail" className="text-xs font-semibold text-[#477e5d] underline dark:text-[#a6c7ad]">View history</Link></div>{events.length ? <ol className="mt-4 space-y-4">{events.map((event) => <li key={event.id} className="border-s-2 border-[#5c8967] ps-3"><p className="text-sm font-medium text-[#35443a] dark:text-gray-200">{event.summary}</p><p className="mt-1 text-xs text-[#748078] dark:text-gray-400">{formatDate(event.at)}</p></li>)}</ol> : <p className="mt-4 text-sm text-[#748078] dark:text-gray-400">New request, offer, delivery, and verification updates will appear here.</p>}</section>
+        </RevealItem>
+      </div>
     </PageMotion>
   );
 }

@@ -1,11 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import GlobalSearch from "@/components/header/GlobalSearch";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
-import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
 import { SearchIcon } from "@/icons";
 
@@ -13,9 +12,7 @@ const AppHeader: React.FC = () => {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const { user, setActiveWorkspace } = useAuth();
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
-  const navigate = useNavigate();
 
   const handleToggleSidebar = () => {
     if (window.innerWidth >= 1280) toggleSidebar();
@@ -76,22 +73,6 @@ const AppHeader: React.FC = () => {
         </button>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          {user && user.workspaces.length > 1 && (
-            <button
-              type="button"
-              onClick={async () => {
-                const target = user.activeWorkspace === "receiver" ? "provider" : "receiver";
-                if (!await setActiveWorkspace(target)) return;
-                navigate(target === "receiver" ? "/app/receiver/overview" : "/app/explore");
-              }}
-              className="hidden items-center gap-2 rounded-lg border border-[#deded5] bg-white px-3 py-2 text-xs font-semibold text-[#344339] transition-colors hover:border-[#8cab91] sm:inline-flex"
-              aria-label={`Switch to ${user.activeWorkspace === "receiver" ? "Provider" : "Receiver"} workspace`}
-            >
-              <span aria-hidden="true" className="size-2 rounded-full bg-[#568568]" />
-              {user.activeWorkspace === "receiver" ? "Receiver" : "Provider"}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 7H16M16 7L13 4M16 7L13 10M16 17H8M8 17L11 14M8 17L11 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </button>
-          )}
           <ThemeToggleButton />
           <NotificationDropdown />
           <UserDropdown />

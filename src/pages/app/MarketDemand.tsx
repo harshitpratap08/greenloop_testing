@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion } from "motion/react";
@@ -7,8 +8,10 @@ import StatusBadge from "@/components/greenloop/StatusBadge";
 import { materialMedia } from "@/components/greenloop/AppExploration";
 import { ambientMedia, materialMediaFor } from "@/config/appMedia";
 import { useAuth } from "@/context/AuthContext";
-import { formatDate } from "@/utils";
+import { formatDate, formatINR, formatINRPerT } from "@/utils";
+import NegotiationPanel from "@/components/greenloop/NegotiationPanel";
 import type { MaterialTypeKey } from "@/domain/types";
+import ReceiverDiscovery from "@/components/greenloop/ReceiverDiscovery";
 
 type DemandCategory = "all" | MaterialTypeKey | "other";
 
@@ -43,18 +46,29 @@ function DemandMetricIcon({ kind }: { kind: "requests" | "volume" | "receivers" 
 }
 
 export default function MarketDemand() {
-  const { dataset, addOfferAction } = useGreenLoopStore();
+  const { dataset, addOfferAction, counterOfferAction, withdrawOfferAction } = useGreenLoopStore();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const providerId = user?.email ?? "P-001";
   const openDemands = useMemo(() => dataset.demands.filter((demand) => demand.status === "OPEN" || demand.status === "PARTIALLY_COVERED"), [dataset.demands]);
 
-  const [selectedDemandId, setSelectedDemandId] = useState<string | null>(null);
+  const [selectedDemandId, setSelectedDemandId] = useState<string | null>(searchParams.get("demand"));
   const [selectedPassportId, setSelectedPassportId] = useState("");
   const [offerQuantity, setOfferQuantity] = useState("");
+  const [offerPricePerT, setOfferPricePerT] = useState("");
   const [offerError, setOfferError] = useState("");
   const [category, setCategory] = useState<DemandCategory>("all");
   const [query, setQuery] = useState("");
   const myOffers = dataset.offers?.filter((offer) => offer.providerId === providerId) ?? [];
+
+  useEffect(() => {
+    if (searchParams.get("view") === "receivers") {
+      window.setTimeout(() => document.getElementById("receiver-discovery")?.scrollIntoView(), 0);
+    }
+    if (searchParams.get("demand")) {
+      window.setTimeout(() => document.getElementById(`demand-${searchParams.get("demand")}`)?.scrollIntoView(), 0);
+    }
+  }, [searchParams]);
 
   const filteredDemands = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -123,12 +137,14 @@ export default function MarketDemand() {
       providerId,
       passportId: selectedPassportId,
       offeredQuantityT: quantity,
+      ...(offerPricePerT !== "" ? { pricePerT: Number(offerPricePerT) } : {}),
     });
     
     if (!saved) return;
     setSelectedDemandId(null);
     setSelectedPassportId("");
     setOfferQuantity("");
+    setOfferPricePerT("");
   };
 
   const categoryCount = (id: DemandCategory) => id === "all"
@@ -170,7 +186,7 @@ export default function MarketDemand() {
         ))}
       </section>
 
-      <section aria-label="Active material requests">
+      <section id="active-demand-list" aria-label="Active material requests">
         <div className="mb-3 border-b border-[#e4e1d8] dark:border-steel-800">
           <div className="flex gap-5 overflow-x-auto">
             {DEMAND_CATEGORIES.map((item) => (
@@ -204,7 +220,7 @@ export default function MarketDemand() {
               const availablePassports = dataset.materials.filter((item) => item.type === demand.materialType && item.status !== "cancelled" && item.quantityT > dataset.bookings.filter((booking) => booking.materialId === item.id && booking.status !== "cancelled").reduce((sum, booking) => sum + booking.tonnesT, 0));
               const image = materialMediaFor(demand.materialType);
               return (
-                <motion.article key={demand.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.04, 0.2) }} className="overflow-hidden rounded-xl border border-[#e5e2da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] transition hover:border-[#bfccbf] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957]">
+                <motion.article id={`demand-${demand.id}`} key={demand.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.04, 0.2) }} className="overflow-hidden rounded-xl border border-[#e5e2da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] transition hover:border-[#bfccbf] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957]">
                   <div className="grid lg:grid-cols-[180px_minmax(0,1fr)_250px]">
                     <div className="relative min-h-40 overflow-hidden lg:min-h-[188px]">
                       <img src={image.src} alt={image.alt} loading="lazy" className="absolute inset-0 size-full object-cover" />
@@ -291,6 +307,11 @@ export default function MarketDemand() {
                               return passport ? Math.max(0, passport.quantityT - committedT) : "";
                             })()} className="mt-1 block h-10 w-full rounded-lg border border-[#dcded7] bg-white px-3 text-sm text-[#26362c] outline-none focus:border-[#64866d] focus:ring-2 focus:ring-[#64866d]/15 dark:border-steel-700 dark:bg-[#17251d] dark:text-white" />
                           </div>
+                          <div className="max-w-xs">
+                            <label htmlFor={`offer-price-${demand.id}`} className="block text-sm font-semibold text-[#526158] dark:text-gray-300">Price per tonne (₹, optional)</label>
+                            <input id={`offer-price-${demand.id}`} type="number" min="0.01" step="0.01" value={offerPricePerT} onChange={(event) => setOfferPricePerT(event.target.value)} className="mt-1 block h-10 w-full rounded-lg border border-[#dcded7] bg-white px-3 text-sm text-[#26362c] outline-none focus:border-[#64866d] focus:ring-2 focus:ring-[#64866d]/15 dark:border-steel-700 dark:bg-[#17251d] dark:text-white" />
+                            {offerPricePerT !== "" && offerQuantity !== "" && <p className="mt-1 text-xs text-[#667168] dark:text-gray-400">{formatINRPerT(Number(offerPricePerT))} × {Number(offerQuantity).toLocaleString("en-IN")} t = <strong>{formatINR(Number(offerPricePerT) * Number(offerQuantity))}</strong></p>}
+                          </div>
                           {offerError && <p role="alert" className="text-sm text-error-500">{offerError}</p>}
                           <div className="flex flex-wrap gap-2">
                             <Button size="sm" type="submit">Send offer</Button>
@@ -333,16 +354,20 @@ export default function MarketDemand() {
                   </div>
                   <p className="hidden text-xs text-[#778078] dark:text-gray-400 sm:block">{formatDate(offer.createdAt)}</p>
                   <StatusBadge status={offer.status} />
+                  {offer.status === "pending" && <Button size="sm" variant="outline" onClick={() => withdrawOfferAction(offer.id)}>Withdraw offer</Button>}
                   <details className="basis-full sm:basis-auto">
                     <summary className="cursor-pointer text-xs font-semibold text-[#526b58] dark:text-[#b6cfbd]">View details <span aria-hidden="true">→</span></summary>
                     <p className="mt-2 text-xs text-[#778078] dark:text-gray-400">Offer {offer.id} · Request {offer.demandId} · Passport {offer.passportId} · {formatDate(offer.createdAt)}</p>
                   </details>
+                  <NegotiationPanel offer={offer} canCounter={offer.status === "pending"} onCounter={(price) => counterOfferAction(offer.id, price)} />
                 </article>
               );
             })}
           </div>
         )}
       </section>
+
+      {user?.activeWorkspace !== "receiver" && <ReceiverDiscovery dataset={dataset} />}
     </div>
   );
 }

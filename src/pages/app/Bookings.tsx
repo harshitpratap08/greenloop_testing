@@ -5,7 +5,9 @@ import Button from "@/components/ui/button/Button";
 import { slotLedger } from "@/domain/capacity";
 import type { ReceiverDaySlot } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { cn, formatDate } from "@/utils";
+import { useAuth } from "@/context/AuthContext";
+import { cn, formatDate, formatINR, formatINRPerT } from "@/utils";
+import NegotiationPanel from "@/components/greenloop/NegotiationPanel";
 import { motion } from "motion/react";
 import { ambientMedia, materialMediaFor, receiverMediaFor } from "@/config/appMedia";
 
@@ -19,7 +21,8 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function Bookings() {
-  const { dataset, cancelBookingAction } = useGreenLoopStore();
+  const { dataset, cancelBookingAction, archiveBookingAction } = useGreenLoopStore();
+  const { user } = useAuth();
   const materialLabel = (id: string) => {
     const material = dataset.materials.find((item) => item.id === id);
     return material ? `${TYPE_LABEL[material.type] ?? material.type} · ${id}` : id;
@@ -50,11 +53,11 @@ export default function Bookings() {
           {activeBookings.length ? (
             <a href="#active-bookings" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/35 bg-[#163121]/65 px-4 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-[#244a32]">View active bookings <span aria-hidden="true">→</span></a>
           ) : (
-            <a href="/app/receivers" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/35 bg-[#163121]/65 px-4 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-[#244a32]">Find receiving capacity <span aria-hidden="true">→</span></a>
+            <a href="/app/market-demand?view=receivers" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/35 bg-[#163121]/65 px-4 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-[#244a32]">Find receiving capacity <span aria-hidden="true">→</span></a>
           )}
         </div>
         <div className="relative z-10 flex justify-end border-t border-white/15 px-5 py-3 lg:hidden">
-          {activeBookings.length ? <a href="#active-bookings" className="text-xs font-semibold text-white underline underline-offset-4">View active bookings →</a> : <a href="/app/receivers" className="text-xs font-semibold text-white underline underline-offset-4">Find receiving capacity →</a>}
+          {activeBookings.length ? <a href="#active-bookings" className="text-xs font-semibold text-white underline underline-offset-4">View active bookings →</a> : <a href="/app/market-demand?view=receivers" className="text-xs font-semibold text-white underline underline-offset-4">Find receiving capacity →</a>}
         </div>
       </section>
 
@@ -95,6 +98,8 @@ export default function Bookings() {
               const slot = slotById(booking.slotId);
               const receiver = receiverName(booking.receiverId);
               const material = dataset.materials.find((item) => item.id === booking.materialId);
+              const relatedOffer = dataset.offers?.find((offer) => offer.demandId === booking.demandId && offer.passportId === booking.materialId);
+              const unitPrice = booking.agreedPricePerT ?? relatedOffer?.agreedPricePerT ?? relatedOffer?.pricePerT ?? material?.pricePerT;
               const dispatched = Boolean(booking.loadRef);
               const label = booking.status === "hold" ? "Waiting on Capacity" : dispatched ? "On the road" : booking.receiverAcceptedAt ? "Confirmed · Ready to send" : "Waiting for receiver approval";
               const photo = materialMediaFor(material?.type ?? "concrete");
@@ -115,16 +120,24 @@ export default function Bookings() {
                       <p className="mt-1.5 leading-5 text-[#778078] dark:text-gray-400">Booking ID: {booking.id} · Match ID: {booking.allocationId} · Receiving slot: {booking.slotId} · Capacity after booking: {booking.capacityAfterT.toFixed(1)} t free</p>
                       {booking.holdReason && <p className="mt-1 text-signal-700 dark:text-signal-300">{booking.holdReason}</p>}
                     </details>
+                    <details className="mt-2 text-[10px] text-[#526b58] dark:text-[#b6cfbd]">
+                      <summary className="w-fit cursor-pointer font-semibold">Transaction analysis →</summary>
+                      <div className="mt-2">
+                        {relatedOffer ? <NegotiationPanel offer={relatedOffer} canCounter={false} onCounter={async () => false} /> : <p className="border border-steel-200 bg-steel-50 p-3 text-xs text-steel-600 dark:border-steel-800 dark:bg-white/[0.03] dark:text-gray-300">{unitPrice !== undefined ? `No offer ledger · ${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * booking.tonnesT)}` : "Price on request"}</p>}
+                        <p className="mt-2 font-semibold">Transaction status · {label}</p>
+                      </div>
+                    </details>
                   </div>
                   <div className="flex flex-row items-center justify-between gap-3 border-t border-[#eeeae2] bg-[#f8f7f2] p-3.5 sm:flex-col sm:items-end sm:justify-center sm:border-l sm:border-t-0 sm:p-4 dark:border-steel-800 dark:bg-[#1c2b22]">
                     <div className="sm:text-right">
                       <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#929990] sm:hidden">Quantity</p>
                       <p className="font-archivo text-xl font-bold text-[#26362c] dark:text-white">{booking.tonnesT.toFixed(1)} t</p>
                       <p className="mt-0.5 text-[10px] text-[#7c857d] dark:text-gray-400">{booking.status === "hold" ? "Next: capacity review" : dispatched ? "Load dispatched" : booking.receiverAcceptedAt ? "Next: send load" : "Next: receiver approval"}</p>
+                      <p className="mt-1 text-[10px] font-semibold text-[#426b4c] dark:text-loop-300">{unitPrice !== undefined ? `${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * booking.tonnesT)}` : "Price on request"}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {booking.status === "confirmed" && booking.receiverAcceptedAt && !dispatched && <Link to="/app/deliveries" className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#315f3d] px-3 text-[11px] font-semibold text-white hover:bg-[#274d32]">Send load →</Link>}
-                      {booking.status === "hold" && <Link to="/app/receivers" className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#315f3d] px-3 text-[11px] font-semibold text-white hover:bg-[#274d32]">Find another slot →</Link>}
+                      {booking.status === "hold" && <Link to="/app/market-demand?view=receivers" className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#315f3d] px-3 text-[11px] font-semibold text-white hover:bg-[#274d32]">Find another slot →</Link>}
                       {dispatched && <Link to="/app/deliveries" className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#315f3d] px-3 text-[11px] font-semibold text-white hover:bg-[#274d32]">View load →</Link>}
                     </div>
                   </div>
@@ -169,12 +182,16 @@ export default function Bookings() {
               <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#4b7956] dark:text-[#b8d0bd]">Reservation records</p>
               <h2 id="bookings-heading" className="mt-1 font-archivo text-xl font-bold text-[#26362c] dark:text-white">Booking and hold history</h2>
             </div>
-            <Link to="/app/receivers" className="text-xs font-semibold text-[#426b4c] underline underline-offset-4 hover:text-[#315f3d] dark:text-[#b8d0bd]">Find receiving capacity →</Link>
+            <Link to="/app/market-demand?view=receivers" className="text-xs font-semibold text-[#426b4c] underline underline-offset-4 hover:text-[#315f3d] dark:text-[#b8d0bd]">Find receiving capacity →</Link>
           </div>
           <div className="overflow-hidden rounded-lg border border-[#e5e2da] dark:border-steel-800">
             {dataset.bookings.map((booking, index) => {
               const slot = slotById(booking.slotId);
+              const material = dataset.materials.find((item) => item.id === booking.materialId);
+              const relatedOffer = dataset.offers?.find((offer) => offer.demandId === booking.demandId && offer.passportId === booking.materialId);
+              const unitPrice = booking.agreedPricePerT ?? relatedOffer?.agreedPricePerT ?? relatedOffer?.pricePerT ?? material?.pricePerT;
               const cancelled = booking.status === "cancelled";
+              const completed = dataset.verifications.some((item) => item.bookingId === booking.id && item.status === "verified");
               const dispatched = Boolean(booking.loadRef) || dataset.events.some((event) => event.kind === "load.dispatched" && event.subjectIds.includes(booking.id));
               return (
                 <motion.article key={booking.id} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: Math.min(index * 0.03, 0.2) }} className={cn("border-b border-[#eeeae2] p-4 last:border-b-0 transition-colors hover:bg-[#f8f7f2] dark:border-steel-800 dark:hover:bg-white/[0.04]", cancelled && "opacity-60 grayscale")}>
@@ -183,10 +200,13 @@ export default function Bookings() {
                       <HistoryMetric label="Material" value={materialLabel(booking.materialId)} />
                       <HistoryMetric label="Receiver" value={receiverName(booking.receiverId)} />
                       <HistoryMetric label="Quantity" value={`${booking.tonnesT.toFixed(1)} t`} />
+                      <HistoryMetric label="Unit price · total" value={unitPrice !== undefined ? `${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * booking.tonnesT)}` : "Price on request"} />
                       <HistoryMetric label="Date / Slot" value={slot ? formatDate(slot.date) : booking.slotId} />
                       <div><p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#929990]">Status</p><div className="mt-1"><StatusBadge status={booking.status} /></div></div>
                     </div>
-                    {(booking.status === "confirmed" || booking.status === "hold") && !dispatched && <Button size="sm" variant="outline" className="shrink-0 border-[#cbd4ca] dark:border-steel-700 dark:text-white dark:hover:border-white" onClick={() => cancelBookingAction({ bookingId: booking.id, reason: "Programme change — material retained on site" })}>Cancel</Button>}
+                    {(booking.status === "confirmed" || booking.status === "hold") && !dispatched && user?.activeWorkspace === "provider" && <Button size="sm" variant="outline" className="shrink-0 border-[#cbd4ca] dark:border-steel-700 dark:text-white dark:hover:border-white" onClick={() => cancelBookingAction({ bookingId: booking.id, reason: "Programme change — material retained on site" })}>Cancel</Button>}
+                    {completed && !booking.archivedAt && <Button size="sm" variant="outline" className="shrink-0" onClick={() => archiveBookingAction(booking.id)}>Archive</Button>}
+                    {booking.archivedAt && <span className="text-xs font-semibold text-steel-500">Archived {formatDate(booking.archivedAt)}</span>}
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#eeeae2] pt-3 text-[10px] text-[#778078] dark:border-steel-800 dark:text-gray-400">
                     <span className="font-mono">ID: {booking.id}</span>
@@ -195,6 +215,13 @@ export default function Bookings() {
                     </div>
                   </div>
                   {booking.holdReason && <div className="mt-3 rounded-md border border-signal-200 bg-signal-50 px-3 py-2 text-[11px] font-medium text-signal-900 dark:border-signal-500/40 dark:bg-signal-900/20 dark:text-signal-200">{booking.holdReason}</div>}
+                  <details className="mt-3 text-xs text-[#526b58] dark:text-[#b6cfbd]">
+                    <summary className="w-fit cursor-pointer font-semibold">Transaction analysis →</summary>
+                    <div className="mt-2">
+                      {relatedOffer ? <NegotiationPanel offer={relatedOffer} canCounter={false} onCounter={async () => false} /> : <p className="border border-steel-200 bg-steel-50 p-3 text-xs text-steel-600 dark:border-steel-800 dark:bg-white/[0.03] dark:text-gray-300">{unitPrice !== undefined ? `No offer ledger · ${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * booking.tonnesT)}` : "Price on request"}</p>}
+                      <p className="mt-2 font-semibold">Transaction status · {booking.status}</p>
+                    </div>
+                  </details>
                 </motion.article>
               );
             })}

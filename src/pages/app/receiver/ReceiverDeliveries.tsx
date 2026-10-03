@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { uploadFile } from "@/lib/api";
+import type { Evidence } from "@/domain/types";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion, AnimatePresence } from "motion/react";
@@ -7,7 +9,8 @@ import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
-import { formatDate } from "@/utils";
+import { formatDate, formatINR, formatINRPerT } from "@/utils";
+import { LocationMap } from "@/components/greenloop/LocationMap";
 import { TruckDelivery } from "@/icons";
 
 export default function ReceiverDeliveries() {
@@ -23,6 +26,23 @@ export default function ReceiverDeliveries() {
 
   const [receivingId, setReceivingId] = useState<string | null>(null);
   const [actualT, setActualT] = useState<string>("");
+  const [ticket, setTicket] = useState<Evidence | null>(null);
+  const [uploadingTicket, setUploadingTicket] = useState(false);
+  const [ticketError, setTicketError] = useState("");
+
+  const handleTicketUpload = async (file?: File) => {
+    if (!file) return;
+    setUploadingTicket(true);
+    setTicketError("");
+    try {
+      const ref = await uploadFile(file);
+      setTicket({ kind: "weighbridge-ticket", label: file.name, ref, recordedAt: new Date().toISOString() });
+    } catch (cause) {
+      setTicketError(cause instanceof Error ? cause.message : "Could not upload the weighbridge ticket.");
+    } finally {
+      setUploadingTicket(false);
+    }
+  };
 
   return (
     <div className="relative min-h-screen pb-24">
@@ -63,6 +83,11 @@ export default function ReceiverDeliveries() {
             {expectedDeliveries.map(booking => {
               const material = dataset.materials.find(m => m.id === booking.materialId);
               const project = dataset.projects.find(p => p.id === material?.projectId);
+              const receiver = dataset.receivers.find(item => item.id === receiverId);
+              const demand = booking.demandId ? dataset.demands.find(item => item.id === booking.demandId) : undefined;
+              const contact = dataset.transactionContacts?.find(item => item.materialId === booking.materialId && item.receiverId === receiverId);
+              const offer = dataset.offers?.find(item => item.demandId === booking.demandId && item.passportId === booking.materialId);
+              const unitPrice = booking.agreedPricePerT ?? offer?.agreedPricePerT ?? offer?.pricePerT ?? material?.pricePerT;
               const isReceiving = receivingId === booking.id;
 
               return (
@@ -86,6 +111,7 @@ export default function ReceiverDeliveries() {
                         <div className="flex flex-wrap items-center gap-3">
                           <StatusBadge status="confirmed" size="sm" />
                           <p className="font-semibold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t {material?.type} from {project?.name ?? "provider"}</p>
+                          <p className="text-xs font-semibold text-loop-700 dark:text-loop-300">{unitPrice !== undefined ? `${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * booking.tonnesT)}` : "Price on request"}</p>
                         </div>
 
                         <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -108,6 +134,8 @@ export default function ReceiverDeliveries() {
                             </p>
                           </div>
                         </div>
+                        {(demand?.geo ?? receiver?.geo) && <LocationMap geo={demand?.geo ?? receiver?.geo} className="mt-4 h-44" />}
+                        {contact && <div className="mt-4 border border-steel-200 p-3 text-xs dark:border-steel-800"><p className="font-semibold text-ink-900 dark:text-white">Provider contact · {contact.name}</p><a className="mt-1 block underline" href={`mailto:${contact.email}`}>{contact.email}</a>{contact.phone && <a className="mt-1 block underline" href={`tel:${contact.phone}`}>{contact.phone}</a>}</div>}
                         <details className="mt-4 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-2 block">Booking ID: {booking.id} · Load reference: {booking.loadRef}</span></details>
                       </div>
                     </div>
@@ -127,22 +155,26 @@ export default function ReceiverDeliveries() {
                               step="0.1"
                             />
                           </div>
+                          <label className="text-xs font-medium text-steel-600 dark:text-gray-300">Weighbridge ticket
+                            <input type="file" accept="image/png,image/jpeg,image/webp,application/pdf" disabled={uploadingTicket} onChange={(event) => handleTicketUpload(event.target.files?.[0])} className="mt-1 block max-w-full text-xs file:me-3 file:border file:border-steel-300 file:bg-white file:px-2 file:py-1 file:text-xs dark:file:border-steel-700 dark:file:bg-black" />
+                            {uploadingTicket && <span role="status" className="mt-1 block">Uploading ticket…</span>}
+                            {ticket && <span className="mt-1 block text-loop-700 dark:text-loop-300">Attached: {ticket.label}</span>}
+                            {ticketError && <span role="alert" className="mt-1 block text-error-500">{ticketError}</span>}
+                          </label>
                           <div className="flex gap-3">
                             <Button
                               size="sm"
-                              disabled={!actualT || !Number.isFinite(Number(actualT)) || Number(actualT) < 0}
+                              disabled={!actualT || !Number.isFinite(Number(actualT)) || Number(actualT) < 0 || !ticket || uploadingTicket}
                               onClick={async () => {
-                                if (!await receiveLoadAction(booking.id, Number(actualT), [{
-                                  kind: "weighbridge-ticket",
-                                  label: `Manual entry`,
-                                  recordedAt: new Date().toISOString()
-                                }])) return;
+                                if (!ticket || !await receiveLoadAction(booking.id, Number(actualT), [ticket])) return;
                                 setReceivingId(null);
+                                setTicket(null);
+                                setTicketError("");
                               }}
                             >
                               Record arrival
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => setReceivingId(null)}>
+                            <Button size="sm" variant="outline" onClick={() => { setReceivingId(null); setTicket(null); setTicketError(""); }}>
                               Cancel
                             </Button>
                           </div>

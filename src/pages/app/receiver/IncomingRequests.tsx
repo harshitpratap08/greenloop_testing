@@ -6,6 +6,8 @@ import Button from "@/components/ui/button/Button";
 import { slotLedger, slotMatchesDemandPeriod } from "@/domain/capacity";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import { formatINR, formatINRPerT } from "@/utils";
+import { LocationMap } from "@/components/greenloop/LocationMap";
 import { materialMediaFor, ambientMedia } from "@/config/appMedia";
 import { InboxAltIcon } from "@/icons";
 
@@ -62,6 +64,7 @@ export default function IncomingRequests() {
               const project = dataset.projects.find(p => p.id === material?.projectId);
               const slot = dataset.slots.find(s => s.id === booking.slotId);
               const demand = booking.demandId ? dataset.demands.find((item) => item.id === booking.demandId) : undefined;
+              const receiver = dataset.receivers.find((item) => item.id === receiverId);
               const ledger = slot ? slotLedger(dataset, slot.id) : null;
               const committedMaterialT = dataset.bookings.filter((item) => item.id !== booking.id && item.materialId === booking.materialId && item.status !== "cancelled")
                 .reduce((total, item) => total + item.tonnesT, 0);
@@ -121,9 +124,11 @@ export default function IncomingRequests() {
                             <p className="ledger-numeral mt-1.5 text-2xl font-bold tracking-tight text-ink-900 dark:text-white">
                               {booking.tonnesT.toFixed(1)} <span className="text-sm font-bold text-steel-400">t</span>
                             </p>
+                            <p className="mt-1 text-xs font-semibold text-loop-700 dark:text-loop-300">{material?.pricePerT !== undefined ? `Indicative ${formatINRPerT(material.pricePerT)} · ${formatINR(material.pricePerT * booking.tonnesT)}` : "Price on request"}</p>
                           </div>
                         </div>
 
+                        {(demand?.geo ?? receiver?.geo) && <LocationMap geo={demand?.geo ?? receiver?.geo} className="mt-4 h-44" />}
                         {ledger && (
                           <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md bg-steel-50 px-4 py-3 text-sm dark:bg-white/5">
                             <span className="font-medium text-steel-700 dark:text-gray-300">Capacity on {slot?.date}:</span>

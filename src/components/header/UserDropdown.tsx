@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { useAuth } from "@/context/AuthContext";
-import { useNavigate } from "react-router";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,8 +14,7 @@ export default function UserDropdown() {
   const subDropdownRef = useRef<HTMLLIElement>(null);
   const { t } = useTranslation();
   const { language: locale, setLanguage } = useLanguage();
-  const { user, setActiveWorkspace, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const currentLang = getLanguage(locale as Locale);
   const CurrentFlagIcon = currentLang.FlagIcon;
 
@@ -95,25 +93,6 @@ export default function UserDropdown() {
         </div>
 
         <ul className="flex flex-col gap-1 border-b border-gray-200 pt-4 pb-3 dark:border-gray-800">
-          {user?.workspaces && user.workspaces.length > 1 && (
-            <li>
-              <button
-                type="button"
-                onClick={async () => {
-                  const target = user.activeWorkspace === 'receiver' ? 'provider' : 'receiver';
-                  if (!await setActiveWorkspace(target)) return;
-                  closeDropdown();
-                  navigate('/app');
-                }}
-                className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-loop-600 hover:bg-loop-50 dark:text-loop-400 dark:hover:bg-loop-900/20"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 7H16M16 7L13 4M16 7L13 10M16 17H8M8 17L11 14M8 17L11 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Switch to {user.activeWorkspace === 'receiver' ? 'Provider' : 'Receiver'} Workspace
-              </button>
-            </li>
-          )}
           <li>
             <DropdownItem
               onItemClick={closeDropdown}

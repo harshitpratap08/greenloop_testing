@@ -13,6 +13,7 @@ interface ActivityItem {
   message: string;
   label: string;
   time: string;
+  href: string;
   tone: "confirmed" | "hold" | "rejected" | "neutral";
 }
 
@@ -33,14 +34,40 @@ const toneText: Record<ActivityItem["tone"], string> = {
 export default function NotificationDropdown() {
   const { dataset } = useGreenLoopStore();
   const { user } = useAuth();
-  const items: ActivityItem[] = [...dataset.events].reverse().slice(0, 5).map((event) => ({
-    id: event.id,
-    actor: event.actor.name,
-    message: event.summary,
-    label: event.kind.split(".").map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" · "),
-    time: formatStamp(event.at),
-    tone: event.kind.includes("hold") ? "hold" : event.kind.includes("reject") || event.kind.includes("cancel") ? "rejected" : event.kind.includes("confirm") || event.kind.includes("verified") ? "confirmed" : "neutral",
-  }));
+  const items: ActivityItem[] = [...dataset.events].reverse().slice(0, 5).map((event) => {
+    const [firstId = "", secondId = ""] = event.subjectIds;
+    const activeReceiver = user?.activeWorkspace === "receiver";
+    const href = event.kind.startsWith("demand.")
+      ? activeReceiver ? `/app/receiver/demand?demand=${encodeURIComponent(firstId)}` : `/app/market-demand?demand=${encodeURIComponent(firstId)}`
+      : event.kind.startsWith("offer.")
+        ? activeReceiver ? `/app/receiver/demand?demand=${encodeURIComponent(secondId)}` : `/app/market-demand?demand=${encodeURIComponent(secondId)}`
+        : event.kind.startsWith("allocation.")
+          ? activeReceiver ? "/app/receiver/incoming-requests" : "/app/bookings"
+          : event.kind.includes("capacity")
+            ? activeReceiver ? "/app/receiver/demand?capacity=1" : "/app/bookings"
+            : event.kind.startsWith("request.")
+              ? "/app/bookings"
+              : event.kind.startsWith("load.")
+                ? activeReceiver ? "/app/receiver/deliveries" : "/app/deliveries"
+                : event.kind.startsWith("delivery.")
+                  ? activeReceiver ? "/app/receiver/verification" : "/app/deliveries"
+                  : event.kind.startsWith("verification.")
+                ? activeReceiver ? "/app/receiver/verification" : "/app/verification"
+                : event.kind.startsWith("material.")
+                  ? `/app/materials/${encodeURIComponent(firstId)}`
+                  : event.kind.startsWith("project.")
+                    ? `/app/projects/${encodeURIComponent(firstId)}`
+                    : "/app/bookings";
+    return {
+      id: event.id,
+      actor: event.actor.name,
+      message: event.summary,
+      label: event.kind.split(".").map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" · "),
+      time: formatStamp(event.at),
+      href,
+      tone: event.kind.includes("hold") ? "hold" : event.kind.includes("reject") || event.kind.includes("cancel") ? "rejected" : event.kind.includes("confirm") || event.kind.includes("verified") ? "confirmed" : "neutral",
+    };
+  });
   const [isOpen, setIsOpen] = useState(false);
   const [seen, setSeen] = useState({ identity: "", eventId: "" });
   const identity = `${user?.id ?? ""}:${user?.activeWorkspace ?? ""}`;
@@ -128,6 +155,8 @@ export default function NotificationDropdown() {
           {items.map((item) => (
             <li key={item.id}>
               <DropdownItem
+                tag="a"
+                to={item.href}
                 onItemClick={closeDropdown}
                 className="flex gap-3 border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
               >

@@ -12,7 +12,7 @@ import PageMeta from "@/components/common/PageMeta";
 import { materialMedia } from "@/components/greenloop/AppExploration";
 import { computeMatch, slotLedger } from "@/domain/capacity";
 import { eventsForSubjects } from "@/domain/events";
-import { formatDate } from "@/utils";
+import { formatDate, formatINR, formatINRPerT } from "@/utils";
 import { PageMotion, RevealItem, MediaPanel, CapacityMeter, StatusChip, WorkflowRail7, Counter, EvidenceGallery, type EvidenceItem } from "@/components/greenloop/kit";
 import { materialMediaFor, receiverMediaFor } from "@/config/appMedia";
 
@@ -50,6 +50,8 @@ export default function MaterialPassport() {
   const allocation = dataset.allocations.find((a) => a.materialId === material.id && a.status !== "cancelled");
   const receiver = allocation ? dataset.receivers.find((r) => r.id === allocation.receiverId) : null;
   const booking = dataset.bookings.find((b) => b.allocationId === allocation?.id && b.status !== "cancelled");
+  const relatedOffer = (dataset.offers ?? []).find((offer) => offer.passportId === material.id && offer.status !== "declined");
+  const transactionPricePerT = booking?.agreedPricePerT ?? relatedOffer?.agreedPricePerT ?? relatedOffer?.pricePerT;
   const verification = dataset.verifications.find((v) => v.bookingId === booking?.id);
   const candidates = computeMatch(dataset, material.id, new Date().toISOString().slice(0, 10)).slice(0, 3);
   const ledger = allocation ? slotLedger(dataset, allocation.slotId) : undefined;
@@ -78,7 +80,7 @@ export default function MaterialPassport() {
     ) : booking ? (
       <Link to="/app/deliveries" className="inline-flex min-h-11 items-center bg-ink-900 px-5 text-sm font-bold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">View booking & delivery</Link>
     ) : (
-      <Link to="/app/receivers" state={{ materialId: material.id }} className="inline-flex min-h-11 items-center bg-ink-900 px-5 text-sm font-bold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">Find a receiver</Link>
+      <Link to="/app/market-demand?view=receivers" state={{ materialId: material.id }} className="inline-flex min-h-11 items-center bg-ink-900 px-5 text-sm font-bold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">Find a receiver</Link>
     );
 
   // Workflow stage from the material's own lifecycle.
@@ -123,7 +125,8 @@ export default function MaterialPassport() {
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <div>
                 <dt className="eyebrow-label text-steel-500 dark:text-steel-400">Project</dt>
-                <dd className="mt-1"><Link to={`/app/materials?project=${encodeURIComponent(project.id)}`} className="font-semibold text-ink-900 underline underline-offset-4 hover:text-loop-600 dark:text-white">{project.name}</Link></dd>
+                <dd className="mt-1"><Link to={`/app/projects/${project.id}`} className="font-semibold text-ink-900 underline underline-offset-4 hover:text-loop-600 dark:text-white">{project.name}</Link></dd>
+                <Link to={`/app/projects/${project.id}`} className="mt-1 inline-block text-xs font-semibold text-loop-700 underline dark:text-loop-300">View Project Progress</Link>
               </div>
               <div>
                 <dt className="eyebrow-label text-steel-500 dark:text-steel-400">Location</dt>
@@ -137,6 +140,8 @@ export default function MaterialPassport() {
                 <dt className="eyebrow-label text-steel-500 dark:text-steel-400">Confidence</dt>
                 <dd className="ledger-numeral mt-1 font-medium text-ink-900 dark:text-white">{Math.round(material.confidence * 100)}%</dd>
               </div>
+              {material.availableFrom && <div><dt className="eyebrow-label text-steel-500 dark:text-steel-400">Available from</dt><dd className="mt-1 font-medium text-ink-900 dark:text-white">{formatDate(material.availableFrom)}</dd></div>}
+              <div><dt className="eyebrow-label text-steel-500 dark:text-steel-400">Price / unit</dt><dd className="mt-1 font-medium text-ink-900 dark:text-white">{material.pricePerT !== undefined ? formatINRPerT(material.pricePerT) : "Price on request"}</dd>{material.pricePerT !== undefined && <dd className="mt-1 text-xs text-gray-500 dark:text-gray-400">Total value {formatINR(material.pricePerT * material.quantityT)}</dd>}</div>
             </dl>
             <div className="mt-auto">
               <p className="eyebrow-label text-steel-500 dark:text-steel-400">Next</p>
@@ -268,6 +273,10 @@ export default function MaterialPassport() {
                 <div className="mt-3 space-y-2 text-theme-sm">
                   <p className="flex justify-between gap-2"><span className="text-gray-500 dark:text-gray-400">Booking</span><span className="ledger-numeral font-semibold text-ink-900 dark:text-white">{booking.id}</span></p>
                   <p className="flex justify-between gap-2"><span className="text-gray-500 dark:text-gray-400">Tonnes</span><span className="ledger-numeral font-semibold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t</span></p>
+                  {transactionPricePerT !== undefined && <>
+                    <p className="flex justify-between gap-2"><span className="text-gray-500 dark:text-gray-400">Agreed price</span><span className="font-semibold text-ink-900 dark:text-white">{formatINRPerT(transactionPricePerT)}</span></p>
+                    <p className="flex justify-between gap-2"><span className="text-gray-500 dark:text-gray-400">Transaction value</span><span className="font-semibold text-ink-900 dark:text-white">{formatINR(transactionPricePerT * booking.tonnesT)}</span></p>
+                  </>}
                   {verification && (
                     <>
                       <p className="flex justify-between gap-2"><span className="text-gray-500 dark:text-gray-400">Received</span><span className="ledger-numeral font-semibold text-ink-900 dark:text-white">{verification.actualT.toFixed(1)} t</span></p>

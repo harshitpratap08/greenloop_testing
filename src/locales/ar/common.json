@@ -1,4 +1,9 @@
 {
+  "sidebar": {
+    "groups": { "menu": "العمليات", "others": "البيانات المرجعية", "tools": "الأدوات" },
+    "items": { "explore": "الرئيسية", "dashboard": "وحدة العمليات", "projects": "المشاريع", "materials": "المخزون", "marketDemand": "الطلب النشط", "receivers": "الجهات المستقبلة", "receiverInventory": "المخزون", "receiverDemand": "طلب مواد", "providers": "الموردون", "incomingRequests": "الطلبات الواردة", "bookings": "الحجوزات", "verification": "إثبات الاسترداد", "deliveries": "التسليمات", "reports": "التقارير", "allocations": "تفاصيل المطابقة", "publicSite": "الموقع العام" },
+    "workspace": { "provider": "المورد", "receiver": "المستقبل", "switchToProvider": "التبديل إلى مساحة المورد", "switchToReceiver": "التبديل إلى مساحة المستقبل" }
+  },
   "backend": {
     "passwordMismatch": "استخدم 8 أحرف على الأقل وكلمتي مرور متطابقتين.",
     "requestFailed": "تعذر تنفيذ الطلب. حاول مرة أخرى.",

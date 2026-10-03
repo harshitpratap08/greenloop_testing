@@ -19,7 +19,8 @@
     "groups": {
       "menu": "Operations",
       "support": "Admin",
-      "others": "Reference data"
+      "others": "Reference data",
+      "tools": "Tools"
     },
     "badges": {
       "new": "new",
@@ -29,9 +30,13 @@
       "explore": "Home",
       "dashboard": "Operations console",
       "projects": "Projects",
-      "materials": "Materials & Passports",
+      "materials": "Inventory",
       "marketDemand": "Active Demand",
-      "receivers": "Find a Receiver",
+      "receivers": "Receivers",
+      "receiverInventory": "Inventory",
+      "receiverDemand": "Request Material",
+      "providers": "Providers",
+      "incomingRequests": "Incoming Requests",
       "allocations": "Match Details",
       "bookings": "Bookings",
       "verification": "Proof of Recovery",
@@ -49,6 +54,12 @@
       "calendar": "Calendar",
       "userProfile": "User Profile",
       "profile": "Profile"
+    },
+    "workspace": {
+      "provider": "Provider",
+      "receiver": "Receiver",
+      "switchToProvider": "Switch to Provider workspace",
+      "switchToReceiver": "Switch to Receiver workspace"
     },
     "widget": {
       "title": "Demo dataset",

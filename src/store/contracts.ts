@@ -12,7 +12,7 @@ type VerifyAction = (input: { bookingId: string } & Omit<DeliveryInput, "booking
 type AddMaterialAction = (input: Omit<MaterialPassport, "id" | "status" | "surveyedAt">) => Promise<MaterialPassport | null>;
 type AddDemandInput = Omit<DemandRecord, "id" | "status" | "createdAt" | "receiverId"> & { receiverId?: string };
 type AddDemandAction = (input: AddDemandInput) => Promise<DemandRecord | null>;
-type AddProjectAction = (input: Pick<Project, "name" | "location" | "status">) => Promise<Project | null>;
+type AddProjectAction = (input: Pick<Project, "name" | "location" | "status"> & Partial<Pick<Project, "geo">>) => Promise<Project | null>;
 type AddCapacityAction = (input: Omit<ReceiverDaySlot, "id">) => Promise<ReceiverDaySlot | null>;
 type UpdateCapacityAction = (slotId: string, capacityT: number) => Promise<boolean>;
 
@@ -31,10 +31,13 @@ export interface GreenLoopStoreValue {
   addOfferAction: (offer: Omit<MaterialOffer, "id" | "status" | "createdAt">) => Promise<boolean>;
   acceptOfferAction: (offerId: string) => Promise<boolean>;
   declineOfferAction: (offerId: string) => Promise<boolean>;
+  counterOfferAction: (offerId: string, pricePerT: number) => Promise<boolean>;
+  cancelDemandAction: (demandId: string) => Promise<boolean>;
+  withdrawOfferAction: (offerId: string) => Promise<boolean>;
+  archiveBookingAction: (bookingId: string) => Promise<boolean>;
   acceptRequestAction: (bookingId: string, acceptedT?: number) => Promise<boolean>;
   rejectRequestAction: (bookingId: string) => Promise<boolean>;
   rescheduleRequestAction: (bookingId: string, slotId: string) => Promise<boolean>;
   receiveLoadAction: (bookingId: string, actualT: number, evidence: Evidence[]) => Promise<boolean>;
   verifyLoadAction: (verificationId: string, acceptedT: number, rejectedT: number, rejectReason?: string) => Promise<boolean>;
 }
-

@@ -37,7 +37,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
     const out: { group: string; label: string; hint: string; to: string; state?: Record<string, string> }[] = [];
     for (const p of dataset.projects) {
       if (p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)) {
-        out.push({ group: "Projects", label: p.name, hint: p.id, to: `/app/materials?project=${encodeURIComponent(p.id)}` });
+        out.push({ group: "Projects", label: p.name, hint: p.id, to: `/app/projects/${p.id}` });
       }
     }
     for (const m of dataset.materials) {
@@ -47,7 +47,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
     }
     for (const r of dataset.receivers) {
       if (r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)) {
-        out.push({ group: "Receivers", label: r.name, hint: `${r.distanceKm} km · ${r.location}`, to: "/app/receivers" });
+        out.push({ group: "Receivers", label: r.name, hint: `${r.distanceKm} km · ${r.location}`, to: "/app/market-demand?view=receivers" });
       }
     }
     const dispatchedKinds = new Set(dataset.events.filter((e) => e.kind === "load.dispatched").flatMap((e) => e.subjectIds));

@@ -1,4 +1,9 @@
 {
+  "sidebar": {
+    "groups": { "menu": "Betrieb", "others": "Referenzdaten", "tools": "Werkzeuge" },
+    "items": { "explore": "Startseite", "dashboard": "Betriebskonsole", "projects": "Projekte", "materials": "Inventar", "marketDemand": "Aktive Nachfrage", "receivers": "Abnehmer", "receiverInventory": "Inventar", "receiverDemand": "Material anfragen", "providers": "Anbieter", "incomingRequests": "Eingehende Anfragen", "bookings": "Buchungen", "verification": "Verwertungsnachweis", "deliveries": "Lieferungen", "reports": "Berichte", "allocations": "Matching-Details", "publicSite": "Öffentliche Website" },
+    "workspace": { "provider": "Anbieter", "receiver": "Abnehmer", "switchToProvider": "Zum Anbieter-Arbeitsbereich wechseln", "switchToReceiver": "Zum Abnehmer-Arbeitsbereich wechseln" }
+  },
   "backend": {
     "passwordMismatch": "Verwende mindestens 8 Zeichen und übereinstimmende Passwörter.",
     "requestFailed": "Die Anfrage ist fehlgeschlagen. Bitte erneut versuchen.",

@@ -5,7 +5,7 @@ import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion, AnimatePresence } from "motion/react";
 import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
-import { cn } from "@/utils";
+import { cn, formatINR, formatINRPerT } from "@/utils";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 import { ambientMedia } from "@/config/appMedia";
@@ -67,7 +67,9 @@ export default function ReceiverVerification() {
             {pendingVerifications.map(vr => {
               const booking = dataset.bookings.find(b => b.id === vr.bookingId);
               const material = dataset.materials.find(m => m.id === vr.materialId);
-              
+              const offer = booking?.demandId ? dataset.offers?.find((item) => item.demandId === booking.demandId && item.passportId === vr.materialId) : undefined;
+              const unitPrice = booking?.agreedPricePerT ?? offer?.agreedPricePerT ?? offer?.pricePerT ?? material?.pricePerT;
+
               const isVerifying = verifyingId === vr.id;
               
               // Safe math for reconciliation form
@@ -82,7 +84,7 @@ export default function ReceiverVerification() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   key={vr.id}
-                  className="border border-steel-200 bg-white p-6 transition-colors hover:border-ink-900 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-white"
+                  className="border border-steel-200 bg-white p-4 transition-colors hover:border-loop-500 sm:p-6 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-loop-400"
                 >
                   <div className="grid gap-6 md:grid-cols-[1fr_auto]">
                     <div>
@@ -91,26 +93,27 @@ export default function ReceiverVerification() {
                         <p className="text-sm font-medium text-steel-500 dark:text-steel-400">{vr.loadRef}</p>
                       </div>
                       
-                      <div className="mt-6 flex flex-wrap items-baseline gap-x-8 gap-y-3">
+                      <div className="mt-5 flex flex-wrap items-baseline gap-x-6 gap-y-3 sm:mt-6 sm:gap-x-8">
                         <p className="font-archivo text-xl font-bold text-ink-900 dark:text-white">{material?.type} · {vr.plannedT.toFixed(1)} t expected, {vr.actualT.toFixed(1)} t arrived</p>
+                        <p className="basis-full text-sm font-semibold text-loop-700 dark:text-loop-300">{unitPrice !== undefined ? `${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * vr.actualT)} delivered value` : "Price on request"}</p>
                         <details className="text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Load: {vr.loadRef} · Booking: {booking?.id} · Variance: {varianceNum > 0 ? "+" : ""}{varianceNum.toFixed(1)} t</span></details>
                       </div>
                       
-                      <div className="mt-6 rounded border border-steel-100 bg-steel-50/50 p-4 dark:border-steel-800 dark:bg-white/5">
-                        <div className="grid grid-cols-3 gap-4 divide-x divide-steel-200 dark:divide-steel-800">
+                      <div className="mt-5 rounded border border-steel-100 bg-[#f7f7f3] p-3 sm:mt-6 sm:p-4 dark:border-steel-800 dark:bg-white/5">
+                        <div className="grid grid-cols-1 gap-3 divide-y divide-steel-200 sm:grid-cols-3 sm:gap-4 sm:divide-y-0 sm:divide-x dark:divide-steel-800">
                           <div>
                             <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Expected</p>
                             <p className="ledger-numeral mt-1 text-xl font-bold text-ink-900 dark:text-white">
                               {vr.plannedT.toFixed(1)} <span className="text-sm text-steel-500">t</span>
                             </p>
                           </div>
-                          <div className="pl-4">
+                          <div className="pt-3 sm:pl-4 sm:pt-0">
                             <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Arrived</p>
                             <p className="ledger-numeral mt-1 text-xl font-bold text-ink-900 dark:text-white">
                               {vr.actualT.toFixed(1)} <span className="text-sm text-steel-500">t</span>
                             </p>
                           </div>
-                          <div className="pl-4">
+                          <div className="pt-3 sm:pl-4 sm:pt-0">
                             <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Difference</p>
                             <p className={cn(
                               "ledger-numeral mt-1 text-xl font-bold",
@@ -130,7 +133,7 @@ export default function ReceiverVerification() {
                             <label className="text-sm font-medium text-steel-700 dark:text-gray-300">Accepted quantity (t)</label>
                             <input 
                               type="number" 
-                              className="mt-1 block w-full rounded-sm border-steel-300 text-sm shadow-sm focus:border-loop-500 focus:ring-loop-500 dark:border-steel-700 dark:bg-black dark:text-white"
+                              className="mt-1 block min-h-11 w-full rounded-sm border-steel-300 text-sm shadow-sm focus:border-loop-500 focus:ring-loop-500 dark:border-steel-700 dark:bg-black dark:text-white"
                               value={acceptedT}
                               onChange={e => setAcceptedT(e.target.value)}
                               placeholder={vr.actualT.toFixed(1)}
@@ -150,7 +153,7 @@ export default function ReceiverVerification() {
                               <label className="text-xs font-medium text-steel-500 dark:text-gray-400">Reason for Rejection</label>
                               <input 
                                 type="text" 
-                                className="mt-1 block w-full rounded-sm border-steel-300 text-sm shadow-sm focus:border-loop-500 focus:ring-loop-500 dark:border-steel-700 dark:bg-black dark:text-white"
+                                className="mt-1 block min-h-11 w-full rounded-sm border-steel-300 text-sm shadow-sm focus:border-loop-500 focus:ring-loop-500 dark:border-steel-700 dark:bg-black dark:text-white"
                                 value={rejectReason}
                                 onChange={e => setRejectReason(e.target.value)}
                                 placeholder="e.g. Contamination"

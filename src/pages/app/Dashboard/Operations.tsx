@@ -30,7 +30,7 @@ export default function Operations() {
   const unassignedMaterials = dataset.materials.filter((material) => material.status !== "verified" && material.status !== "dispatched" && !dataset.allocations.some((allocation) => allocation.materialId === material.id && allocation.status !== "cancelled"));
 
   const attentionTasks: Array<{ id: string; title: string; action: string; to: string; materialId?: string }> = [
-    ...unassignedMaterials.map((material) => ({ id: material.id, title: `${material.quantityT.toFixed(1)} t ${material.type} needs a receiver`, action: "Find receiver", to: "/app/receivers", materialId: material.id })),
+    ...unassignedMaterials.map((material) => ({ id: material.id, title: `${material.quantityT.toFixed(1)} t ${material.type} needs a receiver`, action: "Find receiver", to: "/app/market-demand?view=receivers", materialId: material.id })),
     ...readyToSend.map((booking) => ({ id: booking.id, title: `${booking.tonnesT.toFixed(1)} t booking is ready to dispatch`, action: "Send load", to: "/app/deliveries" })),
     ...holdBookings.map((booking) => ({ id: booking.id, title: `${booking.tonnesT.toFixed(1)} t request is waiting on capacity`, action: "Review booking", to: "/app/bookings" })),
   ];
@@ -186,7 +186,7 @@ export default function Operations() {
         </section>
 
         <section className="rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02]">
-          <SectionHeading title="Network Capacity" to="/app/receivers" action="Find receivers" />
+          <SectionHeading title="Network Capacity" to="/app/market-demand?view=receivers" action="Find receivers" />
           <p className="mt-1 text-[11px] text-steel-600 dark:text-steel-400">Real-time receiving capacity for tracked facilities.</p>
           <div className="mt-3">
             {capacitySlots.length > 0 ? (

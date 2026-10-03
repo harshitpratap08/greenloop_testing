@@ -4,7 +4,8 @@ import StatusBadge from "@/components/greenloop/StatusBadge";
 import Button from "@/components/ui/button/Button";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import type { Booking } from "@/domain/types";
-import { cn, formatStamp, formatDate } from "@/utils";
+import { cn, formatStamp, formatDate, formatINR, formatINRPerT } from "@/utils";
+import { LocationMap } from "@/components/greenloop/LocationMap";
 import { motion } from "motion/react";
 import { ambientMedia, materialMediaFor } from "@/config/appMedia";
 
@@ -80,7 +81,11 @@ export default function Deliveries() {
 function LoadCard({ booking }: { booking: Booking }) {
   const { dataset, dispatchAction } = useGreenLoopStore();
   const receiver = dataset.receivers.find((item) => item.id === booking.receiverId);
+  const demand = booking.demandId ? dataset.demands.find((item) => item.id === booking.demandId) : undefined;
   const material = dataset.materials.find((item) => item.id === booking.materialId);
+  const contact = dataset.transactionContacts?.find((item) => item.materialId === booking.materialId && item.receiverId === booking.receiverId);
+  const offer = dataset.offers?.find((item) => item.demandId === booking.demandId && item.passportId === booking.materialId);
+  const unitPrice = booking.agreedPricePerT ?? offer?.agreedPricePerT ?? offer?.pricePerT ?? material?.pricePerT;
   const slot = dataset.slots.find((item) => item.id === booking.slotId);
   const verification = dataset.verifications.find((item) => item.bookingId === booking.id);
   const project = material && dataset.projects.find((item) => item.id === material.projectId);
@@ -125,6 +130,7 @@ function LoadCard({ booking }: { booking: Booking }) {
             <StatusBadge status={currentStatus} size="sm" />
           </div>
           <p className="mt-1 truncate text-xs text-[#778078] dark:text-gray-400"><span className="font-semibold text-[#405245] dark:text-gray-200">{receiver?.name ?? "Receiver"}</span> · Ref: {loadRef}</p>
+          <p className="mt-1 text-xs font-semibold text-[#426b4c] dark:text-loop-300">{unitPrice !== undefined ? `${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * booking.tonnesT)}` : "Price on request"}</p>
           <details className="mt-2 text-[10px] text-[#526b58] dark:text-[#b6cfbd]">
             <summary className="w-fit cursor-pointer font-semibold">View shipment details →</summary>
             <div className="mt-3 border-t border-[#eeeae2] pt-3 dark:border-steel-800">
@@ -153,6 +159,8 @@ function LoadCard({ booking }: { booking: Booking }) {
                 </ol>
               </div>
 
+              {(demand?.geo ?? receiver?.geo) && <div className="mt-3"><LocationMap geo={demand?.geo ?? receiver?.geo} className="h-44" /></div>}
+              {contact && <div className="mt-3 border border-[#e5e2da] p-3 text-xs dark:border-steel-800"><p className="font-semibold text-[#2c3e31] dark:text-white">Accepted receiver contact · {contact.name}</p><a className="mt-1 block underline" href={`mailto:${contact.email}`}>{contact.email}</a>{contact.phone && <a className="mt-1 block underline" href={`tel:${contact.phone}`}>{contact.phone}</a>}</div>}
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <section className="rounded-lg border border-[#e5e2da] p-3.5 dark:border-steel-800" aria-label="Delivery evidence">
                   <h3 className="text-xs font-bold text-[#2c3e31] dark:text-white">Delivery evidence</h3>

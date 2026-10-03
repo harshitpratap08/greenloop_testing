@@ -5,7 +5,7 @@ import StatusBadge from "@/components/greenloop/StatusBadge";
 import { eventsForSubjects } from "@/domain/events";
 import type { VerificationRecord } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { cn, formatStamp } from "@/utils";
+import { cn, formatINR, formatINRPerT, formatStamp } from "@/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { ambientMedia, materialMediaFor } from "@/config/appMedia";
 
@@ -110,6 +110,8 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
   const project = material && dataset.projects.find((item) => item.id === material.projectId);
   const receiver = dataset.receivers.find((item) => item.id === verification.receiverId);
   const booking = dataset.bookings.find((item) => item.id === verification.bookingId);
+  const offer = booking?.demandId ? dataset.offers?.find((item) => item.demandId === booking.demandId && item.passportId === verification.materialId) : undefined;
+  const unitPrice = booking?.agreedPricePerT ?? offer?.agreedPricePerT ?? offer?.pricePerT ?? material?.pricePerT;
   const events = eventsForSubjects(dataset, [verification.bookingId, verification.id]);
   const dispatchEvent = events.find((event) => event.kind === "load.dispatched");
   const variance = verification.actualT - verification.plannedT;
@@ -148,6 +150,7 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
                 {receiver?.name ?? verification.receiverId} <span className="px-1 text-steel-300">·</span>
                 <span className="ledger-numeral">Ref: {verification.loadRef}</span>
               </p>
+              <p className="mt-2 text-xs font-semibold text-loop-700 dark:text-loop-300">{unitPrice !== undefined ? `${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * verification.acceptedT)} accepted value` : "Price on request"}</p>
             </div>
             <span className="inline-flex shrink-0 items-center gap-1.5 border border-steel-200 px-2.5 py-1 text-xs font-medium text-steel-600 dark:border-steel-700 dark:text-steel-300">
               <span className="size-1.5 rounded-full bg-loop-600" aria-hidden="true" />

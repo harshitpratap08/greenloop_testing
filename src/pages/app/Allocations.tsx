@@ -67,7 +67,7 @@ export default function Allocations() {
                       {materialLabel(allocation.materialId)}
                     </Link>
                     <span className="text-steel-400" aria-hidden="true">→</span>
-                    <Link to="/app/receivers" className="truncate text-sm font-semibold text-ink-900 hover:text-loop-700 dark:text-white dark:hover:text-loop-400">
+                    <Link to="/app/market-demand?view=receivers" className="truncate text-sm font-semibold text-ink-900 hover:text-loop-700 dark:text-white dark:hover:text-loop-400">
                       {receiverName(allocation.receiverId)}
                     </Link>
                   </div>
@@ -164,7 +164,7 @@ export default function Allocations() {
                         <div className="flex items-center gap-2.5">
                           <img src={receiverMediaFor(candidate.receiverId).src} alt={receiverMediaFor(candidate.receiverId).alt} loading="lazy" className="size-10 shrink-0 border border-steel-200 object-cover dark:border-steel-800" />
                           <div className="min-w-0 flex-1">
-                            <Link to="/app/receivers" className="block truncate text-xs font-bold text-ink-900 hover:text-loop-700 dark:text-white dark:hover:text-loop-400">{receiverName(candidate.receiverId)}</Link>
+                            <Link to="/app/market-demand?view=receivers" className="block truncate text-xs font-bold text-ink-900 hover:text-loop-700 dark:text-white dark:hover:text-loop-400">{receiverName(candidate.receiverId)}</Link>
                             {candidate.recommended && <span className="mt-1 inline-flex border border-loop-200 bg-white px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-loop-800 dark:border-loop-700/50 dark:bg-loop-900/20 dark:text-loop-300">Recommended</span>}
                           </div>
                           <div className="text-end">
@@ -200,7 +200,7 @@ export default function Allocations() {
           <EmptyState
             title="No matches yet"
             body="Find a receiver for your material to create a match."
-            action={{ label: "Find receivers", to: "/app/receivers" }}
+            action={{ label: "Find receivers", to: "/app/market-demand?view=receivers" }}
           />
         )}
       </div>

@@ -1,6 +1,7 @@
 import PageMeta from "@/components/common/PageMeta";
 import { useGreeting } from "@/components/greenloop/AppExploration";
 import { RevealItem, PageMotion } from "@/components/greenloop/kit";
+import { ProjectCard } from "@/components/greenloop/AppExploration";
 import { useAuth } from "@/context/AuthContext";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { ambientMedia, materialMediaFor, projectMediaFor } from "@/config/appMedia";
@@ -53,17 +54,21 @@ export default function Explore() {
     material.status !== "verified" && material.status !== "dispatched" &&
     !activeAllocations.some((allocation) => allocation.materialId === material.id),
   ).length;
-  const dispatchedIds = new Set(dataset.events.filter((event) => event.kind === "load.dispatched").flatMap((event) => event.subjectIds));
-  const upcomingDeliveries = dataset.bookings.filter((booking) => booking.status === "confirmed" && !dispatchedIds.has(booking.id)).length;
+  const activeTransactions = dataset.bookings.filter((booking) => booking.status !== "cancelled").length;
   const materialReusedT = dataset.verifications
     .filter((verification) => verification.status === "verified")
     .reduce((total, verification) => total + verification.acceptedT, 0);
   const leadProject = dataset.projects[0];
+  const pendingActions = [
+    ...dataset.materials.filter((material) => !activeAllocations.some((allocation) => allocation.materialId === material.id) && material.status !== "verified" && material.status !== "dispatched").map((material) => ({ id: material.id, label: `${material.quantityT.toFixed(1)} t ${material.type} is ready to offer`, to: "/app/market-demand" })),
+    ...dataset.bookings.filter((booking) => booking.status === "hold").map((booking) => ({ id: booking.id, label: `${booking.tonnesT.toFixed(1)} t request is waiting on capacity`, to: "/app/bookings" })),
+    ...dataset.bookings.filter((booking) => booking.status === "confirmed" && booking.receiverAcceptedAt && !booking.loadRef).map((booking) => ({ id: `dispatch-${booking.id}`, label: `${booking.tonnesT.toFixed(1)} t booking is ready to dispatch`, to: "/app/deliveries" })),
+  ].slice(0, 5);
   const heroImage = leadProject ? projectMediaFor(leadProject) : ambientMedia.surveyHero;
 
   const shortcuts: HomeCard[] = [
     { title: "Materials", description: "Manage your listings and available materials.", action: "View materials", to: "/app/materials", image: materialMediaFor("brick") },
-    { title: "Deliveries", description: "Track booked loads and what happens next.", action: "View deliveries", to: "/app/deliveries", image: ambientMedia.authTruck },
+    { title: "Bookings", description: "Review active requests, confirmations, and transaction status.", action: "View bookings", to: "/app/bookings", image: ambientMedia.authTruck },
     { title: "Impact", description: "See the recovery recorded across your workspace.", action: "View impact", to: "/app/reports", image: ambientMedia.inspectionWorker },
     { title: "Recent Activity", description: "Review the latest recorded project events.", action: "View activity", to: "/app/audit-trail", image: ambientMedia.sortingFacility },
   ];
@@ -101,12 +106,24 @@ export default function Explore() {
           </div>
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <ActivityCard icon={<BoxMoving className="size-5" />} label="Active Listings" value={String(activeListings)} detail="View listings" to="/app/materials" />
-            <ActivityCard icon={<TaskIcon className="size-5" />} label="Pending Matches" value={String(pendingMatches)} detail="Find a receiver" to="/app/receivers" />
-            <ActivityCard icon={<TruckDelivery className="size-5" />} label="Upcoming Deliveries" value={String(upcomingDeliveries)} detail="Track loads" to="/app/deliveries" />
+            <ActivityCard icon={<TaskIcon className="size-5" />} label="Pending Matches" value={String(pendingMatches)} detail="Find a receiver" to="/app/market-demand?view=receivers" />
+            <ActivityCard icon={<TruckDelivery className="size-5" />} label="Active Transactions" value={String(activeTransactions)} detail="Review bookings" to="/app/bookings" />
             <ActivityCard icon={<CheckCircleIcon className="size-5" />} label="Material Reused" value={`${materialReusedT.toFixed(1)} t`} detail="View impact" to="/app/reports" />
           </div>
         </section>
       </RevealItem>
+
+      <RevealItem className="mt-8">
+        <section aria-labelledby="provider-pending-title" className="rounded-xl border border-[#e6e4dc] bg-white p-5 dark:border-white/10 dark:bg-[#17241b]">
+          <div className="flex items-center justify-between gap-3"><div><h2 id="provider-pending-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Pending Actions</h2><p className="mt-1 text-xs text-[#748078] dark:text-gray-400">Work that can move your active material forward.</p></div><span className="font-archivo text-xl font-bold text-[#243229] dark:text-white">{pendingActions.length}</span></div>
+          {pendingActions.length ? <ul className="mt-4 grid gap-2 sm:grid-cols-2">{pendingActions.map((action) => <li key={action.id} className="flex items-center justify-between gap-3 rounded-lg bg-[#f6f5f0] px-4 py-3 dark:bg-white/[0.04]"><span className="text-sm font-medium text-[#35443a] dark:text-gray-200">{action.label}</span><Link to={action.to} className="shrink-0 text-xs font-semibold text-[#477e5d] underline dark:text-[#a6c7ad]">Review</Link></li>)}</ul> : <p className="mt-4 text-sm text-[#748078] dark:text-gray-400">No pending actions. New tasks appear here when a record needs attention.</p>}
+        </section>
+      </RevealItem>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1fr]">
+        {leadProject && <RevealItem><section aria-labelledby="provider-project-title"><div className="mb-3"><h2 id="provider-project-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Project Overview</h2></div><ProjectCard project={leadProject} /></section></RevealItem>}
+        <RevealItem><section aria-labelledby="provider-recent-title" className="rounded-xl border border-[#e6e4dc] bg-white p-5 dark:border-white/10 dark:bg-[#17241b]"><div className="flex items-center justify-between gap-3"><h2 id="provider-recent-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Recent Activity</h2><Link to="/app/audit-trail" className="text-xs font-semibold text-[#477e5d] underline dark:text-[#a6c7ad]">View history</Link></div>{dataset.events.length ? <ol className="mt-4 space-y-4">{dataset.events.slice(-5).reverse().map((event) => <li key={event.id} className="border-s-2 border-[#5c8967] ps-3"><p className="text-sm font-medium text-[#35443a] dark:text-gray-200">{event.summary}</p><p className="mt-1 text-xs text-[#748078] dark:text-gray-400">{event.at.slice(0, 10)} · {event.actor.name}</p></li>)}</ol> : <p className="mt-4 text-sm text-[#748078] dark:text-gray-400">New material, offer, booking, and recovery updates will appear here.</p>}</section></RevealItem>
+      </div>
 
       <RevealItem className="mt-8">
         <section aria-labelledby="provider-shortcuts-title">

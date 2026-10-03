@@ -1,13 +1,16 @@
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { AnimatePresence, motion } from "motion/react";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { type MaterialTypeKey } from "@/domain/types";
-import { slotMatchesDemandPeriod } from "@/domain/capacity";
+import { type GeoPoint, type MaterialTypeKey } from "@/domain/types";
+import { LocationMap, LocationPicker } from "@/components/greenloop/LocationMap";
+import { slotLedger, slotMatchesDemandPeriod } from "@/domain/capacity";
 import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
-import { cn } from "@/utils";
+import { cn, formatINR, formatINRPerT } from "@/utils";
+import NegotiationPanel from "@/components/greenloop/NegotiationPanel";
 import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 import { materialMediaFor } from "@/config/appMedia";
@@ -25,21 +28,42 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function Demand() {
   const { t } = useTranslation();
-  const { dataset, addDemandAction, acceptOfferAction, declineOfferAction } = useGreenLoopStore();
+  const { dataset, addDemandAction, acceptOfferAction, declineOfferAction, counterOfferAction, cancelDemandAction, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
   const { user } = useAuth();
   const receiverId = user?.receiverId ?? "";
-  
-  const [isAdding, setIsAdding] = useState(false);
+  const [searchParams] = useSearchParams();
+  const initialType = searchParams.get("materialType");
+  const [isAdding, setIsAdding] = useState(Boolean(searchParams.get("materialType")));
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [type, setType] = useState<MaterialTypeKey>("concrete");
-  const [requiredT, setRequiredT] = useState("");
+  const [type, setType] = useState<MaterialTypeKey>(initialType && ["concrete", "brick", "steel", "timber", "plasterboard", "glass"].includes(initialType) ? initialType as MaterialTypeKey : "concrete");
+  const [requiredT, setRequiredT] = useState(searchParams.get("quantityT") ?? "");
   const [period, setPeriod] = useState("");
+  const [budgetPerT, setBudgetPerT] = useState(searchParams.get("budgetPerT") ?? "");
+  const [capacityOpen, setCapacityOpen] = useState(searchParams.get("capacity") === "1");
+  const [capacityType, setCapacityType] = useState<MaterialTypeKey>("concrete");
+  const [capacityDate, setCapacityDate] = useState("");
+  const [capacityT, setCapacityT] = useState("");
+  const [capacityError, setCapacityError] = useState("");
+  const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
+  const [editedCapacity, setEditedCapacity] = useState("");
+  const [editCapacityError, setEditCapacityError] = useState("");
   const [error, setError] = useState("");
   const [location, setLocation] = useState(user?.location || user?.organization || "");
+  const [geo, setGeo] = useState<GeoPoint | undefined>();
   const [notes, setNotes] = useState("");
   const [sentMessage, setSentMessage] = useState("");
 
   const receiverDemands = dataset.demands?.filter((d) => d.receiverId === receiverId) ?? [];
+  const receiverSlots = dataset.slots.filter((slot) => slot.receiverId === receiverId).sort((a, b) => a.date.localeCompare(b.date));
+
+  useEffect(() => {
+    const demandId = searchParams.get("demand");
+    if (demandId) {
+      setExpandedId(demandId);
+      window.setTimeout(() => document.getElementById(`demand-${demandId}`)?.scrollIntoView({ behavior: "smooth" }), 0);
+    }
+    if (searchParams.get("capacity") === "1") window.setTimeout(() => document.getElementById("receiving-capacity")?.scrollIntoView({ behavior: "smooth" }), 0);
+  }, [searchParams]);
 
   const handleAddDemand = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +79,8 @@ export default function Demand() {
       period: period || "Q4 2026",
       location: location || user?.organization || "Receiving facility",
       notes: notes,
+      ...(budgetPerT !== "" ? { budgetPerT: Number(budgetPerT) } : {}),
+      ...(geo ? { geo } : {}),
     });
     
     if (!demand) return;
@@ -63,9 +89,21 @@ export default function Demand() {
     setRequiredT("");
     setPeriod("");
     setNotes("");
+    setBudgetPerT("");
   };
 
   // Helper to calculate how much of a material type is covered by confirmed bookings
+  const handleAddCapacity = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const capacity = Number(capacityT);
+    if (!capacityDate || !Number.isFinite(capacity) || capacity <= 0) { setCapacityError("Choose a date and enter capacity greater than zero."); return; }
+    const existing = receiverSlots.find((slot) => slot.date === capacityDate && slot.materialType === capacityType);
+    if (existing) {
+      if (!await updateCapacityAction(existing.id, existing.capacityT + capacity)) { setCapacityError("Capacity could not be increased below its reserved amount."); return; }
+    } else if (!await addCapacityAction({ receiverId, date: capacityDate, materialType: capacityType, capacityT: capacity })) { setCapacityError("Capacity could not be saved."); return; }
+    setCapacityError(""); setCapacityT(""); setCapacityDate(""); setCapacityOpen(false);
+  };
+
   const calculateCoveredT = (demandId: string) => {
     return dataset.bookings
       .filter((booking) => booking.demandId === demandId && booking.status === "confirmed")
@@ -74,10 +112,10 @@ export default function Demand() {
 
   return (
     <div className="relative min-h-screen pb-24">
-      <PageMeta title="Material Requests | GreenLoop" description="Tell providers what material your facility needs." />
+      <PageMeta title="Request Material | GreenLoop" description="Publish material requirements and receiving capacity for your facility." />
       <WorkflowPageHeader
-        title="Material Requests"
-        description="Tell providers what you need. Offers come to you. A material request describes the type, amount, and date your facility needs."
+        title="Request Material"
+        description="Publish the material, quantity, needed-by date, budget, and receiving capacity your facility can accept."
         status={`${receiverDemands.length} request${receiverDemands.length === 1 ? "" : "s"} from this facility`}
         action={!isAdding ? { label: "Request material", onClick: () => { setIsAdding(true); setSentMessage(""); } } : undefined}
       />
@@ -145,6 +183,16 @@ export default function Demand() {
               </div>
 
               <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Map location (optional)</label>
+                <LocationPicker className="mt-2" geo={geo} onChange={setGeo} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Budget per tonne (₹, optional)</label>
+                <input type="number" min="0" step="1" value={budgetPerT} onChange={(event) => setBudgetPerT(event.target.value)} className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white" />
+              </div>
+
+              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Notes (Optional)</label>
                 <input
                   type="text"
@@ -158,12 +206,71 @@ export default function Demand() {
               {error && <p role="alert" className="text-sm text-error-500 sm:col-span-2">{error}</p>}
               <div className="flex gap-4 sm:col-span-2">
                 <Button size="md" type="submit">Send request</Button>
-                <Button size="md" variant="outline" type="button" onClick={() => setIsAdding(false)}>Cancel</Button>
+                <Button size="md" variant="outline" type="button" onClick={() => { setIsAdding(false); setRequiredT(""); setPeriod(""); setBudgetPerT(""); setNotes(""); setError(""); }}>Delete draft</Button>
               </div>
             </form>
           </div>
         </motion.div>
       )}
+
+      <section id="receiving-capacity" className="mb-8 border border-steel-200 bg-white p-5 dark:border-steel-800 dark:bg-white/[0.02] sm:p-6" aria-labelledby="receiving-capacity-title">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Receiving operations</p>
+            <h2 id="receiving-capacity-title" className="mt-1 font-archivo text-xl font-bold text-ink-900 dark:text-white">Receiving capacity</h2>
+            <p className="mt-1 text-sm text-steel-600 dark:text-gray-400">Set intake limits by material and date. Confirmed bookings reserve this capacity.</p>
+          </div>
+          <Button size="sm" variant="outline" type="button" aria-expanded={capacityOpen} onClick={() => { setCapacityOpen((open) => !open); setCapacityError(""); }}>{capacityOpen ? "Close capacity form" : "Add capacity"}</Button>
+        </div>
+
+        {capacityOpen && <form onSubmit={handleAddCapacity} className="mt-5 grid gap-4 border-t border-steel-100 pt-5 sm:grid-cols-4 dark:border-steel-800/60">
+          <label className="text-sm font-medium text-steel-700 dark:text-gray-300">Material type
+            <select value={capacityType} onChange={(event) => setCapacityType(event.target.value as MaterialTypeKey)} className="mt-1 block w-full rounded-sm border-steel-300 dark:border-steel-700 dark:bg-black dark:text-white">
+              {Object.entries(TYPE_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </label>
+          <label className="text-sm font-medium text-steel-700 dark:text-gray-300">Receiving date
+            <input type="date" required min={new Date().toISOString().slice(0, 10)} value={capacityDate} onChange={(event) => setCapacityDate(event.target.value)} className="mt-1 block w-full rounded-sm border-steel-300 dark:border-steel-700 dark:bg-black dark:text-white" />
+          </label>
+          <label className="text-sm font-medium text-steel-700 dark:text-gray-300">Capacity to add (t)
+            <input type="number" required min="0.1" step="0.1" value={capacityT} onChange={(event) => setCapacityT(event.target.value)} className="mt-1 block w-full rounded-sm border-steel-300 dark:border-steel-700 dark:bg-black dark:text-white" />
+          </label>
+          <div className="flex flex-col justify-end gap-2">
+            <Button size="md" type="submit">Save capacity</Button>
+            {capacityError && <p role="alert" className="text-xs text-error-500">{capacityError}</p>}
+          </div>
+        </form>}
+
+        {receiverSlots.length > 0 ? <ul className="mt-5 grid gap-3 border-t border-steel-100 pt-5 sm:grid-cols-2 lg:grid-cols-3 dark:border-steel-800/60">
+          {receiverSlots.map((slot) => {
+            const ledger = slotLedger(dataset, slot.id);
+            const isEditing = editingSlotId === slot.id;
+            return <li key={slot.id} className="bg-steel-50 px-4 py-3 dark:bg-white/[0.03]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium capitalize text-ink-900 dark:text-white">{TYPE_LABEL[slot.materialType] ?? slot.materialType} · {slot.date}</span>
+                <span className="ledger-numeral text-sm font-semibold text-loop-700 dark:text-loop-300">{ledger?.available.toFixed(1) ?? "0.0"} t available</span>
+              </div>
+              {isEditing ? <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={async (event) => {
+                event.preventDefault();
+                if (!await updateCapacityAction(slot.id, Number(editedCapacity))) {
+                  setEditCapacityError("Capacity must be positive and cannot be lower than reserved tonnes.");
+                  return;
+                }
+                setEditingSlotId(null);
+                setEditedCapacity("");
+                setEditCapacityError("");
+              }}>
+                <label className="flex-1 text-xs font-medium text-steel-600 dark:text-gray-300">Total capacity (t)
+                  <input aria-label={`Total capacity for ${slot.materialType} ${slot.date}`} type="number" min={ledger?.reserved ?? 0} step="0.1" required value={editedCapacity} onChange={(event) => setEditedCapacity(event.target.value)} className="mt-1 block h-9 w-full rounded-sm border-steel-300 text-sm dark:border-steel-700 dark:bg-black dark:text-white" />
+                </label>
+                <Button size="sm" type="submit">Save</Button>
+                <Button size="sm" variant="outline" type="button" onClick={() => { setEditingSlotId(null); setEditCapacityError(""); }}>Cancel</Button>
+                {editCapacityError && <p role="alert" className="basis-full text-xs text-error-500">{editCapacityError}</p>}
+              </form> : <Button size="sm" variant="outline" className="mt-3" onClick={() => { setEditingSlotId(slot.id); setEditedCapacity(slot.capacityT.toString()); setEditCapacityError(""); }}>Manage capacity</Button>}
+            </li>;
+          })}
+        </ul> : <p className="mt-4 border-t border-steel-100 pt-4 text-sm text-steel-500 dark:border-steel-800/60 dark:text-gray-400">No receiving capacity is scheduled yet.</p>}
+      </section>
 
       {/* Demand List */}
       {!isAdding && receiverDemands.length === 0 ? (
@@ -182,7 +289,7 @@ export default function Demand() {
             const coveredT = calculateCoveredT(demand.id);
             const heldT = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status === "hold")
               .reduce((total, booking) => total + booking.tonnesT, 0);
-            const remainingT = Math.max(0, demand.requiredT - coveredT - heldT);
+            const remainingT = Math.max(0, demand.requiredT - coveredT);
             const percentCovered = Math.min(100, (coveredT / demand.requiredT) * 100);
             const media = materialMediaFor(demand.materialType);
             const typeLabel = TYPE_LABEL[demand.materialType] ?? demand.materialType;
@@ -194,6 +301,7 @@ export default function Demand() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={demand.id}
+                id={`demand-${demand.id}`}
                 className="overflow-hidden rounded-lg border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600"
               >
                 {/* Hero material image — what this facility needs */}
@@ -219,25 +327,25 @@ export default function Demand() {
 
                     <div className="flex flex-wrap items-start gap-x-12 gap-y-5">
                       <div>
-                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Required</p>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Requested</p>
                         <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-ink-900 dark:text-white">
                           {demand.requiredT.toFixed(1)} <span className="text-xl font-bold text-steel-400">t</span>
                         </p>
                       </div>
                       <div>
-                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Open</p>
-                        <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-loop-600 dark:text-loop-400">
-                          {remainingT.toFixed(1)} <span className="text-xl font-bold text-steel-400">t</span>
-                        </p>
-                        <p className="mt-1 text-xs text-steel-500 dark:text-gray-400">
-                          {coveredT.toFixed(1)} t filled · {remainingT.toFixed(1)} t open
-                          {heldT > 0 ? ` · ${heldT.toFixed(1)} t waiting on capacity` : ""}
-                        </p>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Received</p>
+                        <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-loop-600 dark:text-loop-400">{coveredT.toFixed(1)} <span className="text-xl font-bold text-steel-400">t</span></p>
+                      </div>
+                      <div>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Remaining</p>
+                        <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-ink-900 dark:text-white">{remainingT.toFixed(1)} <span className="text-xl font-bold text-steel-400">t</span></p>
+                        {heldT > 0 && <p className="mt-1 text-xs text-steel-500 dark:text-gray-400">{heldT.toFixed(1)} t waiting on capacity</p>}
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between gap-4 lg:flex-col lg:items-end">
                       <StatusBadge status={demand.status} />
+                      {(["OPEN", "PARTIALLY_COVERED"].includes(demand.status) && !dataset.bookings.some((booking) => booking.demandId === demand.id && booking.status !== "cancelled")) && <Button size="sm" variant="outline" onClick={() => cancelDemandAction(demand.id)}>Cancel Request</Button>}
                       <button
                         type="button"
                         aria-expanded={isExpanded}
@@ -288,6 +396,7 @@ export default function Demand() {
                             <div>
                               <p className="eyebrow-label text-steel-500 dark:text-steel-400">Receiving facility</p>
                               <p className="mt-1.5 text-sm font-semibold text-ink-900 dark:text-white">{demand.location}</p>
+                              {demand.geo && <LocationMap geo={demand.geo} className="mt-3 h-40" />}
                             </div>
                           </div>
                           <div className="flex items-start gap-3 sm:border-l sm:border-steel-100 sm:pl-6 dark:sm:border-steel-800/60">
@@ -295,6 +404,7 @@ export default function Demand() {
                             <div>
                               <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material specification</p>
                               <p className="mt-1.5 text-sm font-semibold text-ink-900 dark:text-white">{typeLabel}</p>
+                              {demand.budgetPerT !== undefined && <p className="mt-1 text-xs text-steel-500">Budget ₹{demand.budgetPerT.toLocaleString("en-IN")}/tonne</p>}
                             </div>
                           </div>
                         </div>
@@ -336,6 +446,7 @@ export default function Demand() {
                                   <p className="text-sm font-semibold text-ink-900 dark:text-gray-100">Provider offer · {receiverDistanceKm ?? "—"} km away</p>
                                   <p className="mt-1 font-archivo text-lg font-bold text-ink-900 dark:text-white">{offer.offeredQuantityT.toFixed(1)} t {TYPE_LABEL[passport?.type ?? ""] ?? passport?.type ?? demand.materialType}</p>
                                   <p className="text-sm text-steel-600 dark:text-gray-400">{passport?.condition ?? "Details unavailable"} condition · Grade {passport?.grade ?? "—"} · {passport?.evidence.length ?? 0} Evidence items</p>
+                                  <p className="mt-1 text-sm font-semibold text-ink-900 dark:text-white">{offer.pricePerT !== undefined ? <>{formatINRPerT(offer.counters?.at(-1)?.pricePerT ?? offer.pricePerT)} · Total {formatINR((offer.counters?.at(-1)?.pricePerT ?? offer.pricePerT) * offer.offeredQuantityT)}</> : "Price on request"}</p>
                                   <details className="mt-2 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Provider: {offer.providerId} · Material Passport: {offer.passportId} · Offer: {offer.id}</span>{passport?.evidence.map((item) => <span key={`${offer.id}-${item.label}`} className="mt-1 block">Evidence: {item.label}</span>)}</details>
                                 </div>
                               </div>
@@ -346,6 +457,7 @@ export default function Demand() {
                               {!hasCapacity && <p className="text-xs text-warning-600 sm:basis-full">Add receiving capacity by the requested date before accepting this offer.</p>}
                               {hasCapacity && offer.offeredQuantityT > passportAvailableT && <p className="text-xs text-warning-600 sm:basis-full">Only {passportAvailableT.toFixed(1)} t remains on this passport.</p>}
                               {offer.offeredQuantityT > offerRemainingT && <p className="text-xs text-warning-600 sm:basis-full">Only {offerRemainingT.toFixed(1)} t remains available for an offer on this request.</p>}
+                              <div className="basis-full"><NegotiationPanel offer={offer} canCounter onCounter={(price) => counterOfferAction(offer.id, price)} /></div>
                             </div>
                           );
                         })}
