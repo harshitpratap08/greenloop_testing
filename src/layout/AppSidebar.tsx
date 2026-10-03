@@ -120,7 +120,9 @@ const AppSidebar: React.FC = () => {
   
   const currentNavItems = user?.activeWorkspace === 'receiver' ? receiverNavItems : providerNavItems;
   const currentReferenceItems = referenceItems;
-  const currentToolItems = toolsItems;
+  const currentToolItems: NavItem[] = user?.activeWorkspace === "receiver"
+    ? [...toolsItems, { icon: <ListIcon fontSize={24} />, name: "Incoming Requests", key: "incomingRequests", path: "/app/receiver/incoming-requests" }]
+    : toolsItems;
   const location = useLocation();
   type Submenu = { type: "main" | "others"; index: number } | null;
   const [submenuOverride, setSubmenuOverride] = useState<{

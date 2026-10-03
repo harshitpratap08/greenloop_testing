@@ -79,7 +79,7 @@ export function createBackend(options = {}) {
     const mine = id => owner(id) === user.id;
     const receiving = user.activeWorkspace === 'receiver';
     const bookings = dataset.bookings.filter(b => receiving ? mine(b.receiverId) : mine(b.materialId));
-    const offers = (dataset.offers ?? []).filter(o => receiving ? mine(dataset.demands.find(d => d.id === o.demandId)?.receiverId) : o.providerId === user.email);
+    const offers = (dataset.offers ?? []).filter(o => receiving ? mine(dataset.demands.find(d => d.id === o.demandId)?.receiverId) : o.providerId === user.email).map(offer => receiving && offer.status !== 'accepted' ? { ...offer, providerId: 'Provider' } : offer);
     const materials = dataset.materials.filter(m => (!receiving && mine(m.id)) || bookings.some(b => b.materialId === m.id) || offers.some(o => o.passportId === m.id));
     const subjects = new Set([...materials, ...bookings, ...offers, ...dataset.projects.filter(p => mine(p.id)), ...dataset.receivers.filter(r => mine(r.id)), ...dataset.demands.filter(d => mine(d.receiverId))].map(x => x.id));
     // Public ledger quantities allow matching without exposing other providers' bookings.
@@ -135,7 +135,7 @@ export function createBackend(options = {}) {
     const offer = id => { role('receiver'); const item = dataset.offers.find(o => o.id === id); requireThat(item, 'Offer not found.', 404); own(dataset.demands.find(d => d.id === item.demandId)?.receiverId, user); requireThat(item.status === 'pending', 'This offer has already been decided.', 409); return item; };
     const receiverActions = ['addDemandAction', 'addCapacityAction', 'updateCapacityAction', 'acceptOfferAction', 'declineOfferAction', 'acceptRequestAction', 'rejectRequestAction', 'rescheduleRequestAction', 'receiveLoadAction', 'verifyLoadAction', 'verifyAction'];
     if (action === 'counterOfferAction' && user.activeWorkspace === 'receiver') receiverActions.push(action);
-    if (action === 'cancelDemandAction') receiverActions.push(action);
+    if (action === 'cancelDemandAction' || (action === 'archiveBookingAction' && user.activeWorkspace === 'receiver')) receiverActions.push(action);
     const engine = createActions(dataset, { kind: receiverActions.includes(action) ? 'receiver' : 'contractor', name: user.name || user.email });
     let result;
     switch (action) {

@@ -36,6 +36,7 @@
       "receiverInventory": "Inventory",
       "receiverDemand": "Request Material",
       "providers": "Providers",
+      "incomingRequests": "Incoming Requests",
       "allocations": "Match Details",
       "bookings": "Bookings",
       "verification": "Proof of Recovery",

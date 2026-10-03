@@ -45,9 +45,13 @@ export default function NotificationDropdown() {
           ? activeReceiver ? "/app/receiver/incoming-requests" : "/app/bookings"
           : event.kind.includes("capacity")
             ? activeReceiver ? "/app/receiver/demand?capacity=1" : "/app/bookings"
-            : event.kind.startsWith("load.")
-              ? activeReceiver ? "/app/receiver/deliveries" : "/app/deliveries"
-              : event.kind.startsWith("verification.")
+            : event.kind.startsWith("request.")
+              ? "/app/bookings"
+              : event.kind.startsWith("load.")
+                ? activeReceiver ? "/app/receiver/deliveries" : "/app/deliveries"
+                : event.kind.startsWith("delivery.")
+                  ? activeReceiver ? "/app/receiver/verification" : "/app/deliveries"
+                  : event.kind.startsWith("verification.")
                 ? activeReceiver ? "/app/receiver/verification" : "/app/verification"
                 : event.kind.startsWith("material.")
                   ? `/app/materials/${encodeURIComponent(firstId)}`

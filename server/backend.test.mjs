@@ -51,6 +51,7 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     await receiver('/actions', 'POST', { action: 'updateCapacityAction', args: [slot.id, 5] }, 409);
     await provider('/actions', 'POST', { action: 'dispatchAction', args: [{ bookingId: booking.id }] }, 409);
     await act(receiver, 'acceptRequestAction', booking.id);
+    await provider('/actions', 'POST', { action: 'cancelBookingAction', args: [{ bookingId: booking.id }] }, 409);
     assert.equal((await receiver('/dataset')).dataset.transactionContacts[0].email, 'provider@example.com');
     assert.equal((await provider('/dataset')).dataset.transactionContacts[0].email, 'receiver@example.com');
     await act(provider, 'dispatchAction', { bookingId: booking.id });
@@ -104,11 +105,13 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     const demand = (await act(receiver, 'addDemandAction', { materialType: 'concrete', requiredT: 5, period: nextDate, location: 'Delhi' })).result;
     const offerResult = await act(provider, 'addOfferAction', { passportId: evidenced.id, demandId: demand.id, providerId: 'forged', offeredQuantityT: 5, pricePerT: 2500 });
     const offer = offerResult.dataset.offers[0]; assert.equal(offer.providerId, 'provider@example.com'); assert.equal(offer.pricePerT, 2500);
+    assert.equal((await receiver('/dataset')).dataset.offers.find(item => item.id === offer.id).providerId, 'Provider');
     await act(provider, 'counterOfferAction', offer.id, 2750);
     await act(receiver, 'counterOfferAction', offer.id, 2600);
     await act(receiver, 'acceptOfferAction', offer.id);
     const accepted = (await receiver('/dataset')).dataset;
     assert.equal(accepted.demands.find(d => d.id === demand.id).status, 'COVERED');
+    assert.equal(accepted.offers.find(item => item.id === offer.id).providerId, 'provider@example.com');
     assert.equal(accepted.offers.find(item => item.id === offer.id).agreedPricePerT, 2600);
     assert.equal(accepted.bookings.find(item => item.demandId === demand.id).agreedPricePerT, 2600);
     const cancelDate = new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10);
@@ -118,8 +121,11 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     await act(provider, 'withdrawOfferAction', pendingOffer.id);
     assert.equal((await provider('/dataset')).dataset.offers.find(item => item.id === pendingOffer.id).status, 'withdrawn');
     const cancellableDemand = (await act(receiver, 'addDemandAction', { materialType: 'concrete', requiredT: 1, period: cancelDate, location: 'Delhi' })).result;
+    const offerToCancel = (await act(provider, 'addOfferAction', { passportId: cancelMaterial.id, demandId: cancellableDemand.id, offeredQuantityT: 1 })).dataset.offers[0];
     await act(receiver, 'cancelDemandAction', cancellableDemand.id);
-    assert.equal((await receiver('/dataset')).dataset.demands.find(item => item.id === cancellableDemand.id).status, 'PAUSED');
+    const cancelledRecords = (await receiver('/dataset')).dataset;
+    assert.equal(cancelledRecords.demands.find(item => item.id === cancellableDemand.id).status, 'PAUSED');
+    assert.equal(cancelledRecords.offers.find(item => item.id === offerToCancel.id).status, 'declined');
     await receiver(upload.ref.slice(4));
     const support = await act(provider, 'addSupportRequestAction', { subject: 'Question', message: 'Hello' }); assert.ok(support.result.id);
     assert.equal((await outsider('/dataset')).dataset.supportRequests.length, 0);
