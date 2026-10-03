@@ -124,7 +124,7 @@ export default function IncomingRequests() {
                             <p className="ledger-numeral mt-1.5 text-2xl font-bold tracking-tight text-ink-900 dark:text-white">
                               {booking.tonnesT.toFixed(1)} <span className="text-sm font-bold text-steel-400">t</span>
                             </p>
-                            {material?.pricePerT !== undefined && <p className="mt-1 text-xs font-semibold text-loop-700 dark:text-loop-300">Indicative {formatINRPerT(material.pricePerT)} · {formatINR(material.pricePerT * booking.tonnesT)}</p>}
+                            <p className="mt-1 text-xs font-semibold text-loop-700 dark:text-loop-300">{material?.pricePerT !== undefined ? `Indicative ${formatINRPerT(material.pricePerT)} · ${formatINR(material.pricePerT * booking.tonnesT)}` : "Price on request"}</p>
                           </div>
                         </div>
 

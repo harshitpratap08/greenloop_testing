@@ -183,7 +183,7 @@ export function projectNextAction(dataset: GreenLoopDataset, projectId: string):
     case 0:
       return { label: "Add Material", to: "/app/materials/new", reason: `${projectName} has no material records yet.` };
     case 1:
-      return { label: "Find a receiver", to: "/app/receivers", reason: "Materials are surveyed — match them to a facility." };
+      return { label: "Find a receiver", to: "/app/market-demand?view=receivers", reason: "Materials are surveyed — match them to a facility." };
     case 2: {
       const held = dataset.bookings.find(
         (b) => b.status === "hold" && dataset.allocations.some((a) => a.id === b.allocationId && materialInProject(dataset, a.materialId, projectId)),

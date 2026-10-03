@@ -109,7 +109,7 @@ export default function Materials() {
               <div><p className="font-archivo text-xl font-bold leading-5">{totalT.toFixed(1)} t</p><p className="mt-1 text-[10px] text-white/70 lg:text-[#7d887f] dark:lg:text-gray-400">Total Volume</p></div>
             </div>
             <Link to={selectedProjectId ? `/app/materials/new?project=${encodeURIComponent(selectedProjectId)}` : "/app/materials/new"} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#39714b] px-4 text-sm font-semibold text-white transition hover:bg-[#2f613e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:w-auto lg:min-w-[140px]">
-              <span aria-hidden="true" className="text-lg leading-none">+</span> Add Material
+              <span aria-hidden="true" className="text-lg leading-none">+</span> Add New Material
             </Link>
           </div>
         </section>
@@ -120,7 +120,7 @@ export default function Materials() {
           <EmptyState
             title="No material passports yet"
             body="Add your material, quantity, location, and photos to create its digital record."
-            action={<Link to={selectedProjectId ? `/app/materials/new?project=${encodeURIComponent(selectedProjectId)}` : "/app/materials/new"} className="inline-flex min-h-11 items-center rounded-lg bg-[#315c3d] px-6 text-sm font-semibold text-white hover:bg-[#254a30]">Add Material</Link>}
+            action={<Link to={selectedProjectId ? `/app/materials/new?project=${encodeURIComponent(selectedProjectId)}` : "/app/materials/new"} className="inline-flex min-h-11 items-center rounded-lg bg-[#315c3d] px-6 text-sm font-semibold text-white hover:bg-[#254a30]">Add New Material</Link>}
           />
         </RevealItem>
       ) : (
@@ -206,7 +206,7 @@ export default function Materials() {
                             </div>
                           </div>
 
-                          {material.pricePerT !== undefined && <div className="mt-3 flex flex-wrap justify-between gap-2 rounded-md bg-[#f6f5f0] px-3 py-2 dark:bg-white/[0.04]"><span className="text-[10px] font-medium text-[#778078]">{formatINRPerT(material.pricePerT)}</span><span className="text-xs font-bold text-[#26362c] dark:text-white">{formatINR(material.pricePerT * material.quantityT)} total</span></div>}
+                          <div className="mt-3 flex flex-wrap justify-between gap-2 rounded-md bg-[#f6f5f0] px-3 py-2 dark:bg-white/[0.04]"><span className="text-[10px] font-medium text-[#778078]">{material.pricePerT !== undefined ? formatINRPerT(material.pricePerT) : "Price on request"}</span>{material.pricePerT !== undefined && <span className="text-xs font-bold text-[#26362c] dark:text-white">{formatINR(material.pricePerT * material.quantityT)} total</span>}</div>
 
                           {matchedReceiver ? (
                             <p className="mt-3 flex items-start gap-1.5 text-[10px] leading-4 text-[#778078] dark:text-gray-400">
@@ -220,7 +220,7 @@ export default function Materials() {
                               View passport <span aria-hidden="true">→</span>
                             </Link>
                             {!allocation && (
-                              <Link to="/app/receivers" state={{ materialId: material.id }} className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-[#cbd4ca] bg-white px-3 text-xs font-semibold text-[#3f5946] transition hover:bg-[#f0f4ef] dark:border-steel-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-white/[0.05]">
+                              <Link to="/app/market-demand?view=receivers" state={{ materialId: material.id }} className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-[#cbd4ca] bg-white px-3 text-xs font-semibold text-[#3f5946] transition hover:bg-[#f0f4ef] dark:border-steel-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-white/[0.05]">
                                 Find receiver
                               </Link>
                             )}

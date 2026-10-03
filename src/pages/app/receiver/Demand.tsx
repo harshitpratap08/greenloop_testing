@@ -44,6 +44,9 @@ export default function Demand() {
   const [capacityDate, setCapacityDate] = useState("");
   const [capacityT, setCapacityT] = useState("");
   const [capacityError, setCapacityError] = useState("");
+  const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
+  const [editedCapacity, setEditedCapacity] = useState("");
+  const [editCapacityError, setEditCapacityError] = useState("");
   const [error, setError] = useState("");
   const [location, setLocation] = useState(user?.location || user?.organization || "");
   const [geo, setGeo] = useState<GeoPoint | undefined>();
@@ -203,7 +206,7 @@ export default function Demand() {
               {error && <p role="alert" className="text-sm text-error-500 sm:col-span-2">{error}</p>}
               <div className="flex gap-4 sm:col-span-2">
                 <Button size="md" type="submit">Send request</Button>
-                <Button size="md" variant="outline" type="button" onClick={() => setIsAdding(false)}>Cancel</Button>
+                <Button size="md" variant="outline" type="button" onClick={() => { setIsAdding(false); setRequiredT(""); setPeriod(""); setBudgetPerT(""); setNotes(""); setError(""); }}>Delete draft</Button>
               </div>
             </form>
           </div>
@@ -241,9 +244,29 @@ export default function Demand() {
         {receiverSlots.length > 0 ? <ul className="mt-5 grid gap-3 border-t border-steel-100 pt-5 sm:grid-cols-2 lg:grid-cols-3 dark:border-steel-800/60">
           {receiverSlots.map((slot) => {
             const ledger = slotLedger(dataset, slot.id);
-            return <li key={slot.id} className="flex items-center justify-between gap-3 bg-steel-50 px-4 py-3 dark:bg-white/[0.03]">
-              <span className="text-sm font-medium capitalize text-ink-900 dark:text-white">{TYPE_LABEL[slot.materialType] ?? slot.materialType} · {slot.date}</span>
-              <span className="ledger-numeral text-sm font-semibold text-loop-700 dark:text-loop-300">{ledger?.available.toFixed(1) ?? "0.0"} t available</span>
+            const isEditing = editingSlotId === slot.id;
+            return <li key={slot.id} className="bg-steel-50 px-4 py-3 dark:bg-white/[0.03]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium capitalize text-ink-900 dark:text-white">{TYPE_LABEL[slot.materialType] ?? slot.materialType} · {slot.date}</span>
+                <span className="ledger-numeral text-sm font-semibold text-loop-700 dark:text-loop-300">{ledger?.available.toFixed(1) ?? "0.0"} t available</span>
+              </div>
+              {isEditing ? <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={async (event) => {
+                event.preventDefault();
+                if (!await updateCapacityAction(slot.id, Number(editedCapacity))) {
+                  setEditCapacityError("Capacity must be positive and cannot be lower than reserved tonnes.");
+                  return;
+                }
+                setEditingSlotId(null);
+                setEditedCapacity("");
+                setEditCapacityError("");
+              }}>
+                <label className="flex-1 text-xs font-medium text-steel-600 dark:text-gray-300">Total capacity (t)
+                  <input aria-label={`Total capacity for ${slot.materialType} ${slot.date}`} type="number" min={ledger?.reserved ?? 0} step="0.1" required value={editedCapacity} onChange={(event) => setEditedCapacity(event.target.value)} className="mt-1 block h-9 w-full rounded-sm border-steel-300 text-sm dark:border-steel-700 dark:bg-black dark:text-white" />
+                </label>
+                <Button size="sm" type="submit">Save</Button>
+                <Button size="sm" variant="outline" type="button" onClick={() => { setEditingSlotId(null); setEditCapacityError(""); }}>Cancel</Button>
+                {editCapacityError && <p role="alert" className="basis-full text-xs text-error-500">{editCapacityError}</p>}
+              </form> : <Button size="sm" variant="outline" className="mt-3" onClick={() => { setEditingSlotId(slot.id); setEditedCapacity(slot.capacityT.toString()); setEditCapacityError(""); }}>Manage capacity</Button>}
             </li>;
           })}
         </ul> : <p className="mt-4 border-t border-steel-100 pt-4 text-sm text-steel-500 dark:border-steel-800/60 dark:text-gray-400">No receiving capacity is scheduled yet.</p>}
@@ -423,7 +446,7 @@ export default function Demand() {
                                   <p className="text-sm font-semibold text-ink-900 dark:text-gray-100">Provider offer · {receiverDistanceKm ?? "—"} km away</p>
                                   <p className="mt-1 font-archivo text-lg font-bold text-ink-900 dark:text-white">{offer.offeredQuantityT.toFixed(1)} t {TYPE_LABEL[passport?.type ?? ""] ?? passport?.type ?? demand.materialType}</p>
                                   <p className="text-sm text-steel-600 dark:text-gray-400">{passport?.condition ?? "Details unavailable"} condition · Grade {passport?.grade ?? "—"} · {passport?.evidence.length ?? 0} Evidence items</p>
-                                  {offer.pricePerT !== undefined && <p className="mt-1 text-sm font-semibold text-ink-900 dark:text-white">{formatINRPerT(offer.counters?.at(-1)?.pricePerT ?? offer.pricePerT)} · Total {formatINR((offer.counters?.at(-1)?.pricePerT ?? offer.pricePerT) * offer.offeredQuantityT)}</p>}
+                                  <p className="mt-1 text-sm font-semibold text-ink-900 dark:text-white">{offer.pricePerT !== undefined ? <>{formatINRPerT(offer.counters?.at(-1)?.pricePerT ?? offer.pricePerT)} · Total {formatINR((offer.counters?.at(-1)?.pricePerT ?? offer.pricePerT) * offer.offeredQuantityT)}</> : "Price on request"}</p>
                                   <details className="mt-2 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Provider: {offer.providerId} · Material Passport: {offer.passportId} · Offer: {offer.id}</span>{passport?.evidence.map((item) => <span key={`${offer.id}-${item.label}`} className="mt-1 block">Evidence: {item.label}</span>)}</details>
                                 </div>
                               </div>
@@ -434,7 +457,7 @@ export default function Demand() {
                               {!hasCapacity && <p className="text-xs text-warning-600 sm:basis-full">Add receiving capacity by the requested date before accepting this offer.</p>}
                               {hasCapacity && offer.offeredQuantityT > passportAvailableT && <p className="text-xs text-warning-600 sm:basis-full">Only {passportAvailableT.toFixed(1)} t remains on this passport.</p>}
                               {offer.offeredQuantityT > offerRemainingT && <p className="text-xs text-warning-600 sm:basis-full">Only {offerRemainingT.toFixed(1)} t remains available for an offer on this request.</p>}
-                              {(offer.pricePerT !== undefined || offer.counters?.length) && <div className="basis-full"><NegotiationPanel offer={offer} canCounter onCounter={(price) => counterOfferAction(offer.id, price)} /></div>}
+                              <div className="basis-full"><NegotiationPanel offer={offer} canCounter onCounter={(price) => counterOfferAction(offer.id, price)} /></div>
                             </div>
                           );
                         })}

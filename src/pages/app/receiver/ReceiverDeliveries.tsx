@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { uploadFile } from "@/lib/api";
+import type { Evidence } from "@/domain/types";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion, AnimatePresence } from "motion/react";
@@ -24,6 +26,23 @@ export default function ReceiverDeliveries() {
 
   const [receivingId, setReceivingId] = useState<string | null>(null);
   const [actualT, setActualT] = useState<string>("");
+  const [ticket, setTicket] = useState<Evidence | null>(null);
+  const [uploadingTicket, setUploadingTicket] = useState(false);
+  const [ticketError, setTicketError] = useState("");
+
+  const handleTicketUpload = async (file?: File) => {
+    if (!file) return;
+    setUploadingTicket(true);
+    setTicketError("");
+    try {
+      const ref = await uploadFile(file);
+      setTicket({ kind: "weighbridge-ticket", label: file.name, ref, recordedAt: new Date().toISOString() });
+    } catch (cause) {
+      setTicketError(cause instanceof Error ? cause.message : "Could not upload the weighbridge ticket.");
+    } finally {
+      setUploadingTicket(false);
+    }
+  };
 
   return (
     <div className="relative min-h-screen pb-24">
@@ -92,7 +111,7 @@ export default function ReceiverDeliveries() {
                         <div className="flex flex-wrap items-center gap-3">
                           <StatusBadge status="confirmed" size="sm" />
                           <p className="font-semibold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t {material?.type} from {project?.name ?? "provider"}</p>
-                          {unitPrice !== undefined && <p className="text-xs font-semibold text-loop-700 dark:text-loop-300">{formatINRPerT(unitPrice)} · {formatINR(unitPrice * booking.tonnesT)}</p>}
+                          <p className="text-xs font-semibold text-loop-700 dark:text-loop-300">{unitPrice !== undefined ? `${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * booking.tonnesT)}` : "Price on request"}</p>
                         </div>
 
                         <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -136,22 +155,26 @@ export default function ReceiverDeliveries() {
                               step="0.1"
                             />
                           </div>
+                          <label className="text-xs font-medium text-steel-600 dark:text-gray-300">Weighbridge ticket
+                            <input type="file" accept="image/png,image/jpeg,image/webp,application/pdf" disabled={uploadingTicket} onChange={(event) => handleTicketUpload(event.target.files?.[0])} className="mt-1 block max-w-full text-xs file:me-3 file:border file:border-steel-300 file:bg-white file:px-2 file:py-1 file:text-xs dark:file:border-steel-700 dark:file:bg-black" />
+                            {uploadingTicket && <span role="status" className="mt-1 block">Uploading ticket…</span>}
+                            {ticket && <span className="mt-1 block text-loop-700 dark:text-loop-300">Attached: {ticket.label}</span>}
+                            {ticketError && <span role="alert" className="mt-1 block text-error-500">{ticketError}</span>}
+                          </label>
                           <div className="flex gap-3">
                             <Button
                               size="sm"
-                              disabled={!actualT || !Number.isFinite(Number(actualT)) || Number(actualT) < 0}
+                              disabled={!actualT || !Number.isFinite(Number(actualT)) || Number(actualT) < 0 || !ticket || uploadingTicket}
                               onClick={async () => {
-                                if (!await receiveLoadAction(booking.id, Number(actualT), [{
-                                  kind: "weighbridge-ticket",
-                                  label: `Manual entry`,
-                                  recordedAt: new Date().toISOString()
-                                }])) return;
+                                if (!ticket || !await receiveLoadAction(booking.id, Number(actualT), [ticket])) return;
                                 setReceivingId(null);
+                                setTicket(null);
+                                setTicketError("");
                               }}
                             >
                               Record arrival
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => setReceivingId(null)}>
+                            <Button size="sm" variant="outline" onClick={() => { setReceivingId(null); setTicket(null); setTicketError(""); }}>
                               Cancel
                             </Button>
                           </div>

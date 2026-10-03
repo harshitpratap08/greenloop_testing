@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { MaterialOffer } from "@/domain/types";
 import { formatINR, formatINRPerT } from "@/utils";
 import Button from "@/components/ui/button/Button";
+import StatusBadge from "@/components/greenloop/StatusBadge";
 
 export default function NegotiationPanel({ offer, canCounter, onCounter }: {
   offer: MaterialOffer;
@@ -34,7 +35,7 @@ export default function NegotiationPanel({ offer, canCounter, onCounter }: {
         <p className="eyebrow-label text-steel-500 dark:text-steel-400">Transaction analysis</p>
         <h4 className="mt-1 font-archivo text-base font-bold text-ink-900 dark:text-white">Price negotiation</h4>
       </div>
-      <p className="text-xs font-medium text-steel-600 dark:text-gray-300">{offer.offeredQuantityT.toLocaleString("en-IN")} t · {finalPrice !== undefined ? formatINR(finalPrice * offer.offeredQuantityT) : "Price not set"}</p>
+      <div className="flex flex-wrap items-center gap-2"><StatusBadge status={offer.status} /><p className="text-xs font-medium text-steel-600 dark:text-gray-300">{offer.offeredQuantityT.toLocaleString("en-IN")} t · {finalPrice !== undefined ? formatINR(finalPrice * offer.offeredQuantityT) : "Price on request"}</p></div>
     </div>
 
     <ol className="mt-4 space-y-2 border-s-2 border-loop-300 ps-4 dark:border-loop-700">

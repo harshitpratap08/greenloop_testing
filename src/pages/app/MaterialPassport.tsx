@@ -80,7 +80,7 @@ export default function MaterialPassport() {
     ) : booking ? (
       <Link to="/app/deliveries" className="inline-flex min-h-11 items-center bg-ink-900 px-5 text-sm font-bold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">View booking & delivery</Link>
     ) : (
-      <Link to="/app/receivers" state={{ materialId: material.id }} className="inline-flex min-h-11 items-center bg-ink-900 px-5 text-sm font-bold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">Find a receiver</Link>
+      <Link to="/app/market-demand?view=receivers" state={{ materialId: material.id }} className="inline-flex min-h-11 items-center bg-ink-900 px-5 text-sm font-bold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">Find a receiver</Link>
     );
 
   // Workflow stage from the material's own lifecycle.
@@ -141,7 +141,7 @@ export default function MaterialPassport() {
                 <dd className="ledger-numeral mt-1 font-medium text-ink-900 dark:text-white">{Math.round(material.confidence * 100)}%</dd>
               </div>
               {material.availableFrom && <div><dt className="eyebrow-label text-steel-500 dark:text-steel-400">Available from</dt><dd className="mt-1 font-medium text-ink-900 dark:text-white">{formatDate(material.availableFrom)}</dd></div>}
-              {material.pricePerT !== undefined && <div><dt className="eyebrow-label text-steel-500 dark:text-steel-400">Price / unit</dt><dd className="mt-1 font-medium text-ink-900 dark:text-white">{formatINRPerT(material.pricePerT)}</dd><dd className="mt-1 text-xs text-gray-500 dark:text-gray-400">Total value {formatINR(material.pricePerT * material.quantityT)}</dd></div>}
+              <div><dt className="eyebrow-label text-steel-500 dark:text-steel-400">Price / unit</dt><dd className="mt-1 font-medium text-ink-900 dark:text-white">{material.pricePerT !== undefined ? formatINRPerT(material.pricePerT) : "Price on request"}</dd>{material.pricePerT !== undefined && <dd className="mt-1 text-xs text-gray-500 dark:text-gray-400">Total value {formatINR(material.pricePerT * material.quantityT)}</dd>}</div>
             </dl>
             <div className="mt-auto">
               <p className="eyebrow-label text-steel-500 dark:text-steel-400">Next</p>

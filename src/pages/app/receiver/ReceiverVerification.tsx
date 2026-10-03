@@ -95,7 +95,7 @@ export default function ReceiverVerification() {
                       
                       <div className="mt-5 flex flex-wrap items-baseline gap-x-6 gap-y-3 sm:mt-6 sm:gap-x-8">
                         <p className="font-archivo text-xl font-bold text-ink-900 dark:text-white">{material?.type} · {vr.plannedT.toFixed(1)} t expected, {vr.actualT.toFixed(1)} t arrived</p>
-                        {unitPrice !== undefined && <p className="basis-full text-sm font-semibold text-loop-700 dark:text-loop-300">{formatINRPerT(unitPrice)} · {formatINR(unitPrice * vr.actualT)} delivered value</p>}
+                        <p className="basis-full text-sm font-semibold text-loop-700 dark:text-loop-300">{unitPrice !== undefined ? `${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * vr.actualT)} delivered value` : "Price on request"}</p>
                         <details className="text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Load: {vr.loadRef} · Booking: {booking?.id} · Variance: {varianceNum > 0 ? "+" : ""}{varianceNum.toFixed(1)} t</span></details>
                       </div>
                       

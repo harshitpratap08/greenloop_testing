@@ -360,7 +360,7 @@ export default function NewSurvey() {
               
               <div className="mt-10 flex justify-center gap-4">
                 <button onClick={() => navigate(`/app/materials/${createdPassport.id}`)} className="border-2 border-steel-300 px-8 py-4 font-bold uppercase tracking-wide hover:border-ink-900 dark:border-steel-700 dark:text-white dark:hover:border-white">View Passport</button>
-                <button onClick={() => navigate('/app/receivers', { state: { materialId: createdPassport.id } })} className="bg-ink-900 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">Find a Receiver</button>
+                <button onClick={() => navigate('/app/market-demand?view=receivers', { state: { materialId: createdPassport.id } })} className="bg-ink-900 px-8 py-4 font-bold text-white uppercase tracking-wide hover:bg-loop-600 dark:bg-white dark:text-ink-900 dark:hover:bg-loop-500">Find a Receiver</button>
               </div>
             </motion.div>
           )}

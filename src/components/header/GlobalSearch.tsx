@@ -47,7 +47,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
     }
     for (const r of dataset.receivers) {
       if (r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q)) {
-        out.push({ group: "Receivers", label: r.name, hint: `${r.distanceKm} km · ${r.location}`, to: "/app/receivers" });
+        out.push({ group: "Receivers", label: r.name, hint: `${r.distanceKm} km · ${r.location}`, to: "/app/market-demand?view=receivers" });
       }
     }
     const dispatchedKinds = new Set(dataset.events.filter((e) => e.kind === "load.dispatched").flatMap((e) => e.subjectIds));

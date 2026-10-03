@@ -150,7 +150,7 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
                 {receiver?.name ?? verification.receiverId} <span className="px-1 text-steel-300">·</span>
                 <span className="ledger-numeral">Ref: {verification.loadRef}</span>
               </p>
-              {unitPrice !== undefined && <p className="mt-2 text-xs font-semibold text-loop-700 dark:text-loop-300">{formatINRPerT(unitPrice)} · {formatINR(unitPrice * verification.acceptedT)} accepted value</p>}
+              <p className="mt-2 text-xs font-semibold text-loop-700 dark:text-loop-300">{unitPrice !== undefined ? `${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * verification.acceptedT)} accepted value` : "Price on request"}</p>
             </div>
             <span className="inline-flex shrink-0 items-center gap-1.5 border border-steel-200 px-2.5 py-1 text-xs font-medium text-steel-600 dark:border-steel-700 dark:text-steel-300">
               <span className="size-1.5 rounded-full bg-loop-600" aria-hidden="true" />

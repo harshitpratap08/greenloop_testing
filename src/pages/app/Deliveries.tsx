@@ -130,7 +130,7 @@ function LoadCard({ booking }: { booking: Booking }) {
             <StatusBadge status={currentStatus} size="sm" />
           </div>
           <p className="mt-1 truncate text-xs text-[#778078] dark:text-gray-400"><span className="font-semibold text-[#405245] dark:text-gray-200">{receiver?.name ?? "Receiver"}</span> · Ref: {loadRef}</p>
-          {unitPrice !== undefined && <p className="mt-1 text-xs font-semibold text-[#426b4c] dark:text-loop-300">{formatINRPerT(unitPrice)} · {formatINR(unitPrice * booking.tonnesT)}</p>}
+          <p className="mt-1 text-xs font-semibold text-[#426b4c] dark:text-loop-300">{unitPrice !== undefined ? `${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * booking.tonnesT)}` : "Price on request"}</p>
           <details className="mt-2 text-[10px] text-[#526b58] dark:text-[#b6cfbd]">
             <summary className="w-fit cursor-pointer font-semibold">View shipment details →</summary>
             <div className="mt-3 border-t border-[#eeeae2] pt-3 dark:border-steel-800">

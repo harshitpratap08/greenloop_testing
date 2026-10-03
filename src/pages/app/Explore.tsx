@@ -106,7 +106,7 @@ export default function Explore() {
           </div>
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <ActivityCard icon={<BoxMoving className="size-5" />} label="Active Listings" value={String(activeListings)} detail="View listings" to="/app/materials" />
-            <ActivityCard icon={<TaskIcon className="size-5" />} label="Pending Matches" value={String(pendingMatches)} detail="Find a receiver" to="/app/receivers" />
+            <ActivityCard icon={<TaskIcon className="size-5" />} label="Pending Matches" value={String(pendingMatches)} detail="Find a receiver" to="/app/market-demand?view=receivers" />
             <ActivityCard icon={<TruckDelivery className="size-5" />} label="Active Transactions" value={String(activeTransactions)} detail="Review bookings" to="/app/bookings" />
             <ActivityCard icon={<CheckCircleIcon className="size-5" />} label="Material Reused" value={`${materialReusedT.toFixed(1)} t`} detail="View impact" to="/app/reports" />
           </div>
