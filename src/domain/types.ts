@@ -49,6 +49,11 @@ export interface DomainEvent {
   subjectIds: string[];
 }
 
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -57,6 +62,7 @@ export interface Project {
   /** Earliest of any material's survey timestamp; demo seed only. */
   surveyedAt: string;
   lastActivityAt: string;
+  geo?: GeoPoint;
 }
 
 export interface MaterialPassport {
@@ -75,6 +81,10 @@ export interface MaterialPassport {
   confidence: number;
   surveyNotes?: string;
   evidence: Evidence[];
+  pricePerT?: number;
+  availableFrom?: string;
+  geo?: GeoPoint;
+  archivedAt?: string;
 }
 
 export interface Evidence {
@@ -85,7 +95,27 @@ export interface Evidence {
   recordedAt: string;
 }
 
+export interface ProviderMaterialListing {
+  materialId: string;
+  providerId: string;
+  providerName: string;
+  organization: string;
+  location: string;
+  projectId: string;
+  projectName: string;
+  projectLocation: string;
+  materialType: MaterialTypeKey;
+  quantityT: number;
+  availableT: number;
+  condition: MaterialCondition;
+  grade: MaterialGrade;
+  pricePerT?: number;
+  availableFrom?: string;
+  geo?: GeoPoint;
+}
+
 export interface ReceiverFacility {
+  geo?: GeoPoint;
   distanceKnown?: boolean;
   id: string;
   name: string;
@@ -170,6 +200,8 @@ export interface Booking {
   /** Populated when a confirmed booking is released. */
   cancelledAt?: string;
   cancelledReason?: string;
+  agreedPricePerT?: number;
+  archivedAt?: string;
 }
 
 export interface MaterialOffer {
@@ -180,6 +212,16 @@ export interface MaterialOffer {
   offeredQuantityT: number;
   status: "pending" | "accepted" | "declined";
   createdAt: string;
+  pricePerT?: number;
+  agreedPricePerT?: number;
+  counters?: OfferCounter[];
+  archivedAt?: string;
+}
+
+export interface OfferCounter {
+  actor: "provider" | "receiver";
+  pricePerT: number;
+  at: string;
 }
 
 export interface VerificationRecord {
@@ -212,6 +254,9 @@ export interface DemandRecord {
   status: DemandStatus;
   createdAt: string;
   notes?: string;
+  budgetPerT?: number;
+  geo?: GeoPoint;
+  archivedAt?: string;
 }
 
 export interface SupportRequest {
@@ -223,6 +268,7 @@ export interface SupportRequest {
 }
 
 export interface GreenLoopDataset {
+  providerListings?: ProviderMaterialListing[];
   supportRequests?: SupportRequest[];
   projects: Project[];
   materials: MaterialPassport[];

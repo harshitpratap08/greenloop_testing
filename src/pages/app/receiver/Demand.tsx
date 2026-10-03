@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { AnimatePresence, motion } from "motion/react";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
@@ -25,21 +26,33 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function Demand() {
   const { t } = useTranslation();
-  const { dataset, addDemandAction, acceptOfferAction, declineOfferAction } = useGreenLoopStore();
+  const { dataset, addDemandAction, acceptOfferAction, declineOfferAction, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
   const { user } = useAuth();
   const receiverId = user?.receiverId ?? "";
-  
-  const [isAdding, setIsAdding] = useState(false);
+  const [searchParams] = useSearchParams();
+  const initialType = searchParams.get("materialType");
+  const [isAdding, setIsAdding] = useState(Boolean(searchParams.get("materialType")));
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [type, setType] = useState<MaterialTypeKey>("concrete");
-  const [requiredT, setRequiredT] = useState("");
+  const [type, setType] = useState<MaterialTypeKey>(initialType && ["concrete", "brick", "steel", "timber", "plasterboard", "glass"].includes(initialType) ? initialType as MaterialTypeKey : "concrete");
+  const [requiredT, setRequiredT] = useState(searchParams.get("quantityT") ?? "");
   const [period, setPeriod] = useState("");
+  const [budgetPerT, setBudgetPerT] = useState(searchParams.get("budgetPerT") ?? "");
+  const [capacityOpen, setCapacityOpen] = useState(searchParams.get("capacity") === "1");
+  const [capacityType, setCapacityType] = useState<MaterialTypeKey>("concrete");
+  const [capacityDate, setCapacityDate] = useState("");
+  const [capacityT, setCapacityT] = useState("");
+  const [capacityError, setCapacityError] = useState("");
   const [error, setError] = useState("");
   const [location, setLocation] = useState(user?.location || user?.organization || "");
   const [notes, setNotes] = useState("");
   const [sentMessage, setSentMessage] = useState("");
 
   const receiverDemands = dataset.demands?.filter((d) => d.receiverId === receiverId) ?? [];
+  const receiverSlots = dataset.slots.filter((slot) => slot.receiverId === receiverId).sort((a, b) => a.date.localeCompare(b.date));
+
+  useEffect(() => {
+    if (searchParams.get("capacity") === "1") window.setTimeout(() => document.getElementById("receiving-capacity")?.scrollIntoView({ behavior: "smooth" }), 0);
+  }, [searchParams]);
 
   const handleAddDemand = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +68,7 @@ export default function Demand() {
       period: period || "Q4 2026",
       location: location || user?.organization || "Receiving facility",
       notes: notes,
+      ...(budgetPerT !== "" ? { budgetPerT: Number(budgetPerT) } : {}),
     });
     
     if (!demand) return;
@@ -63,9 +77,21 @@ export default function Demand() {
     setRequiredT("");
     setPeriod("");
     setNotes("");
+    setBudgetPerT("");
   };
 
   // Helper to calculate how much of a material type is covered by confirmed bookings
+  const handleAddCapacity = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const capacity = Number(capacityT);
+    if (!capacityDate || !Number.isFinite(capacity) || capacity <= 0) { setCapacityError("Choose a date and enter capacity greater than zero."); return; }
+    const existing = receiverSlots.find((slot) => slot.date === capacityDate && slot.materialType === capacityType);
+    if (existing) {
+      if (!await updateCapacityAction(existing.id, existing.capacityT + capacity)) { setCapacityError("Capacity could not be increased below its reserved amount."); return; }
+    } else if (!await addCapacityAction({ receiverId, date: capacityDate, materialType: capacityType, capacityT: capacity })) return;
+    setCapacityError(""); setCapacityT(""); setCapacityDate(""); setCapacityOpen(false);
+  };
+
   const calculateCoveredT = (demandId: string) => {
     return dataset.bookings
       .filter((booking) => booking.demandId === demandId && booking.status === "confirmed")
@@ -74,10 +100,10 @@ export default function Demand() {
 
   return (
     <div className="relative min-h-screen pb-24">
-      <PageMeta title="Material Requests | GreenLoop" description="Tell providers what material your facility needs." />
+      <PageMeta title="Request Material | GreenLoop" description="Publish material requirements and receiving capacity for your facility." />
       <WorkflowPageHeader
-        title="Material Requests"
-        description="Tell providers what you need. Offers come to you. A material request describes the type, amount, and date your facility needs."
+        title="Request Material"
+        description="Publish the material, quantity, needed-by date, budget, and receiving capacity your facility can accept."
         status={`${receiverDemands.length} request${receiverDemands.length === 1 ? "" : "s"} from this facility`}
         action={!isAdding ? { label: "Request material", onClick: () => { setIsAdding(true); setSentMessage(""); } } : undefined}
       />
@@ -144,6 +170,11 @@ export default function Demand() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Budget per tonne (₹, optional)</label>
+                <input type="number" min="0" step="1" value={budgetPerT} onChange={(event) => setBudgetPerT(event.target.value)} className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white" />
+              </div>
+
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Notes (Optional)</label>
                 <input
@@ -182,7 +213,7 @@ export default function Demand() {
             const coveredT = calculateCoveredT(demand.id);
             const heldT = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status === "hold")
               .reduce((total, booking) => total + booking.tonnesT, 0);
-            const remainingT = Math.max(0, demand.requiredT - coveredT - heldT);
+            const remainingT = Math.max(0, demand.requiredT - coveredT);
             const percentCovered = Math.min(100, (coveredT / demand.requiredT) * 100);
             const media = materialMediaFor(demand.materialType);
             const typeLabel = TYPE_LABEL[demand.materialType] ?? demand.materialType;
@@ -219,20 +250,19 @@ export default function Demand() {
 
                     <div className="flex flex-wrap items-start gap-x-12 gap-y-5">
                       <div>
-                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Required</p>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Requested</p>
                         <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-ink-900 dark:text-white">
                           {demand.requiredT.toFixed(1)} <span className="text-xl font-bold text-steel-400">t</span>
                         </p>
                       </div>
                       <div>
-                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Open</p>
-                        <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-loop-600 dark:text-loop-400">
-                          {remainingT.toFixed(1)} <span className="text-xl font-bold text-steel-400">t</span>
-                        </p>
-                        <p className="mt-1 text-xs text-steel-500 dark:text-gray-400">
-                          {coveredT.toFixed(1)} t filled · {remainingT.toFixed(1)} t open
-                          {heldT > 0 ? ` · ${heldT.toFixed(1)} t waiting on capacity` : ""}
-                        </p>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Received</p>
+                        <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-loop-600 dark:text-loop-400">{coveredT.toFixed(1)} <span className="text-xl font-bold text-steel-400">t</span></p>
+                      </div>
+                      <div>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Remaining</p>
+                        <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-ink-900 dark:text-white">{remainingT.toFixed(1)} <span className="text-xl font-bold text-steel-400">t</span></p>
+                        {heldT > 0 && <p className="mt-1 text-xs text-steel-500 dark:text-gray-400">{heldT.toFixed(1)} t waiting on capacity</p>}
                       </div>
                     </div>
 
@@ -295,6 +325,7 @@ export default function Demand() {
                             <div>
                               <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material specification</p>
                               <p className="mt-1.5 text-sm font-semibold text-ink-900 dark:text-white">{typeLabel}</p>
+                              {demand.budgetPerT !== undefined && <p className="mt-1 text-xs text-steel-500">Budget ₹{demand.budgetPerT.toLocaleString("en-IN")}/tonne</p>}
                             </div>
                           </div>
                         </div>

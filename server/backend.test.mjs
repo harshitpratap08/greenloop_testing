@@ -38,6 +38,11 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     await outsider('/actions', 'POST', { action: 'updateCapacityAction', args: [slot.id, 20] }, 403);
     const project = (await act(provider, 'addProjectAction', { name: 'Demolition', location: 'Delhi', status: 'active' })).result;
     const material = (await act(provider, 'addMaterialAction', { projectId: project.id, type: 'concrete', quantityT: 20, quantityRangeT: [18, 22], condition: 'good', grade: 'A', confidence: 0.9, evidence: [] })).result;
+    const listings = (await receiver('/dataset')).dataset.providerListings;
+    assert.equal(listings[0].materialId, material.id);
+    assert.equal(listings[0].availableT, 20);
+    assert.equal(listings[0].organization, 'Builder');
+    assert.equal('email' in listings[0], false);
     await outsider('/actions', 'POST', { action: 'addMaterialAction', args: [{ projectId: project.id }] }, 403);
     await provider('/actions', 'POST', { action: 'requestCapacityAction', args: [{ materialId: material.id, receiverId: facility, slotId: slot.id, tonnesT: -2 }] }, 400);
     const reserved = await act(provider, 'requestCapacityAction', { materialId: material.id, receiverId: facility, slotId: slot.id, tonnesT: 10 });

@@ -33,6 +33,8 @@ export default function NewSurvey() {
   const [rangeMax, setRangeMax] = useState("12");
   const [condition, setCondition] = useState<MaterialCondition>("good");
   const [grade, setGrade] = useState<MaterialGrade>("A");
+  const [availableFrom, setAvailableFrom] = useState("");
+  const [pricePerT, setPricePerT] = useState("");
   const [surveyNotes, setSurveyNotes] = useState("");
   const [confidence] = useState("0.85");
   const [showProjectForm, setShowProjectForm] = useState(dataset.projects.length === 0);
@@ -93,7 +95,9 @@ export default function NewSurvey() {
       grade,
       confidence: parseFloat(confidence) || 0,
       surveyNotes: surveyNotes.trim() || undefined,
-      evidence
+      evidence,
+      ...(availableFrom ? { availableFrom } : {}),
+      ...(pricePerT !== "" ? { pricePerT: Number(pricePerT) } : {}),
     });
     if (!passport) return;
     setCreatedPassport(passport);
@@ -227,6 +231,14 @@ export default function NewSurvey() {
                     <option value="C">Grade C</option>
                   </select>
                 </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Available from</label>
+                  <input type="date" value={availableFrom} onChange={(event) => setAvailableFrom(event.target.value)} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Price per tonne (₹, optional)</label>
+                  <input type="number" min="0" step="1" value={pricePerT} onChange={(event) => setPricePerT(event.target.value)} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" />
+                </div>
                 <div className="sm:col-span-2">
                   <label htmlFor="survey-notes" className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Survey notes</label>
                   <textarea id="survey-notes" value={surveyNotes} onChange={(event) => setSurveyNotes(event.target.value)} rows={3} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" />
@@ -306,6 +318,11 @@ export default function NewSurvey() {
                   <dt className="text-xs font-semibold uppercase text-steel-500">Quantity</dt>
                   <dd className="font-bold text-ink-900 dark:text-white">{quantity} t</dd>
                 </div>
+                <div className="flex flex-col gap-1">
+                  <dt className="text-xs font-semibold uppercase text-steel-500">Availability</dt>
+                  <dd className="font-bold text-ink-900 dark:text-white">{availableFrom || "Not specified"}</dd>
+                </div>
+                {pricePerT !== "" && <div className="flex flex-col gap-1"><dt className="text-xs font-semibold uppercase text-steel-500">Price / tonne</dt><dd className="font-bold text-ink-900 dark:text-white">₹{Number(pricePerT).toLocaleString("en-IN")}</dd></div>}
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Range</dt>
                   <dd className="font-bold text-ink-900 dark:text-white">{estimateRange[0]}–{estimateRange[1]} t</dd>

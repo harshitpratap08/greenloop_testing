@@ -19,6 +19,7 @@ const text = (value, name, max = 500, optional = false) => {
 const number = (value, name, zero = false) => { requireThat(typeof value === 'number' && Number.isFinite(value) && value >= (zero ? 0 : 0.1) && value <= 1000000, `Invalid ${name}.`); return value; };
 const choice = (value, choices, name) => { requireThat(choices.includes(value), `Invalid ${name}.`); return value; };
 const date = value => { requireThat(typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value, 'Invalid date.'); return value; };
+const geo = value => { if (value === undefined) return undefined; requireThat(value && typeof value === 'object' && !Array.isArray(value) && typeof value.lat === 'number' && Number.isFinite(value.lat) && value.lat >= -90 && value.lat <= 90 && typeof value.lng === 'number' && Number.isFinite(value.lng) && value.lng >= -180 && value.lng <= 180, 'Invalid location coordinates.'); return { lat: value.lat, lng: value.lng }; };
 const emailAddress = value => { const email = text(value, 'email', 254).toLowerCase(); requireThat(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), 'Enter a valid email address.'); return email; };
 const passwordHash = password => { text(password, 'password', 256); requireThat(password.length >= 8, 'Use a password of at least 8 characters.'); const salt = randomBytes(16).toString('hex'); return `${salt}:${scryptSync(password, salt, 64).toString('hex')}`; };
 const passwordMatches = (password, stored) => { if (typeof password !== 'string' || password.length > 256 || !stored) return false; const [salt, key] = stored.split(':'); return timingSafeEqual(Buffer.from(key, 'hex'), scryptSync(password, salt, 64)); };
@@ -83,7 +84,18 @@ export function createBackend(options = {}) {
     const subjects = new Set([...materials, ...bookings, ...offers, ...dataset.projects.filter(p => mine(p.id)), ...dataset.receivers.filter(r => mine(r.id)), ...dataset.demands.filter(d => mine(d.receiverId))].map(x => x.id));
     // Public ledger quantities allow matching without exposing other providers' bookings.
     const slots = dataset.slots.filter(s => receiving || s.date >= new Date().toISOString().slice(0, 10) || bookings.some(b => b.slotId === s.id)).map(s => ({ ...s, reservedT: dataset.bookings.filter(b => b.slotId === s.id && b.status === 'confirmed' && !bookings.some(ownBooking => ownBooking.id === b.id)).reduce((total, b) => total + b.tonnesT, 0) }));
-    return { ...dataset, projects: dataset.projects.filter(p => mine(p.id) || materials.some(m => m.projectId === p.id)), materials, slots, bookings,
+    const providerListings = receiving ? dataset.materials.flatMap(material => {
+      const providerUserId = owner(material.id);
+      const account = providerUserId && db.prepare('SELECT email, profile FROM users WHERE id=?').get(providerUserId);
+      const project = dataset.projects.find(item => item.id === material.projectId);
+      if (!account || !project || material.archivedAt) return [];
+      const profile = JSON.parse(account.profile);
+      const committedT = dataset.bookings.filter(booking => booking.materialId === material.id && booking.status !== 'cancelled').reduce((total, booking) => total + booking.tonnesT, 0);
+      const availableT = Math.max(0, material.quantityT - committedT);
+      if (availableT <= 0) return [];
+      return [{ materialId: material.id, providerName: profile.name || profile.organization || 'Provider', organization: profile.organization || profile.name || 'Provider', location: profile.location || project.location, projectId: project.id, projectName: project.name, projectLocation: project.location, materialType: material.type, quantityT: material.quantityT, availableT, condition: material.condition, grade: material.grade, ...(material.pricePerT !== undefined ? { pricePerT: material.pricePerT } : {}), ...(material.availableFrom ? { availableFrom: material.availableFrom } : {}), ...(material.geo || project.geo ? { geo: material.geo ?? project.geo } : {}) }];
+    }) : [];
+    return { ...dataset, providerListings, projects: dataset.projects.filter(p => mine(p.id) || materials.some(m => m.projectId === p.id)), materials, slots, bookings,
       allocations: dataset.allocations.filter(a => bookings.some(b => b.allocationId === a.id)), offers,
       verifications: dataset.verifications.filter(v => bookings.some(b => b.id === v.bookingId)),
       events: dataset.events.filter(e => e.subjectIds.some(id => subjects.has(id))),
@@ -119,16 +131,16 @@ export function createBackend(options = {}) {
     let result;
     switch (action) {
       case 'addProjectAction': {
-        role('provider'); const p = args[0]; result = engine.addProjectAction({ name: text(p.name, 'project name', 250), location: text(p.location, 'location', 250), status: choice(p.status, ['active', 'demolition', 'complete'], 'project status') }); assign(result.id, user); break;
+        role('provider'); const p = args[0]; result = engine.addProjectAction({ name: text(p.name, 'project name', 250), location: text(p.location, 'location', 250), status: choice(p.status, ['active', 'demolition', 'complete'], 'project status'), geo: geo(p.geo) }); assign(result.id, user); break;
       }
       case 'addMaterialAction': {
         role('provider'); const m = args[0]; own(m.projectId, user); number(m.quantityT, 'quantity'); requireThat(Array.isArray(m.quantityRangeT) && m.quantityRangeT.length === 2, 'Invalid quantity range.');
         number(m.quantityRangeT[0], 'minimum quantity', true); number(m.quantityRangeT[1], 'maximum quantity'); requireThat(m.quantityRangeT[0] <= m.quantityT && m.quantityRangeT[1] >= m.quantityT, 'Quantity must fit its estimate range.');
         number(m.confidence, 'confidence', true); requireThat(m.confidence <= 1, 'Confidence must be between zero and one.');
-        result = engine.addMaterialAction({ projectId: m.projectId, type: choice(m.type, materialTypes, 'material type'), quantityT: m.quantityT, quantityRangeT: m.quantityRangeT, condition: choice(m.condition, ['good', 'fair', 'poor'], 'condition'), grade: choice(m.grade, ['A', 'B', 'C'], 'grade'), confidence: m.confidence, surveyNotes: text(m.surveyNotes ?? '', 'notes', 5000, true), evidence: evidence(m.evidence, user, dataset) }); assign(result.id, user); break;
+        result = engine.addMaterialAction({ projectId: m.projectId, type: choice(m.type, materialTypes, 'material type'), quantityT: m.quantityT, quantityRangeT: m.quantityRangeT, condition: choice(m.condition, ['good', 'fair', 'poor'], 'condition'), grade: choice(m.grade, ['A', 'B', 'C'], 'grade'), confidence: m.confidence, surveyNotes: text(m.surveyNotes ?? '', 'notes', 5000, true), evidence: evidence(m.evidence, user, dataset), pricePerT: m.pricePerT === undefined ? undefined : number(m.pricePerT, 'price', true), availableFrom: m.availableFrom === undefined ? undefined : date(m.availableFrom), geo: geo(m.geo) }); assign(result.id, user); break;
       }
       case 'addDemandAction': {
-        role('receiver'); const d = args[0]; own(user.receiverId, user); date(d.period); requireThat(d.period >= new Date().toISOString().slice(0, 10), 'The needed-by date is in the past.'); result = engine.addDemandAction({ receiverId: user.receiverId, materialType: choice(d.materialType, materialTypes, 'material type'), requiredT: number(d.requiredT, 'required quantity'), period: d.period, location: text(d.location, 'location', 250), notes: text(d.notes ?? '', 'notes', 5000, true) }); assign(result.id, user); break;
+        role('receiver'); const d = args[0]; own(user.receiverId, user); date(d.period); requireThat(d.period >= new Date().toISOString().slice(0, 10), 'The needed-by date is in the past.'); result = engine.addDemandAction({ receiverId: user.receiverId, materialType: choice(d.materialType, materialTypes, 'material type'), requiredT: number(d.requiredT, 'required quantity'), period: d.period, location: text(d.location, 'location', 250), notes: text(d.notes ?? '', 'notes', 5000, true), budgetPerT: d.budgetPerT === undefined ? undefined : number(d.budgetPerT, 'budget per tonne', true), geo: geo(d.geo) }); assign(result.id, user); break;
       }
       case 'addCapacityAction': {
         role('receiver'); const s = args[0]; own(s.receiverId, user); date(s.date); requireThat(s.date >= new Date().toISOString().slice(0, 10), 'This receiving slot is in the past.'); choice(s.materialType, materialTypes, 'material type');

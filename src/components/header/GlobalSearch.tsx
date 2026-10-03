@@ -37,7 +37,7 @@ export default function GlobalSearch({ open, onClose }: { open: boolean; onClose
     const out: { group: string; label: string; hint: string; to: string; state?: Record<string, string> }[] = [];
     for (const p of dataset.projects) {
       if (p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)) {
-        out.push({ group: "Projects", label: p.name, hint: p.id, to: `/app/materials?project=${encodeURIComponent(p.id)}` });
+        out.push({ group: "Projects", label: p.name, hint: p.id, to: `/app/projects/${p.id}` });
       }
     }
     for (const m of dataset.materials) {

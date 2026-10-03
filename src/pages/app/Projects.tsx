@@ -234,7 +234,7 @@ export default function Projects() {
                     <p className="mt-1 text-xs leading-5 text-[#7a837b] dark:text-gray-400">{row.next.reason}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 sm:shrink-0 lg:flex-col lg:items-stretch">
-                    <Link to={`/app/materials?project=${encodeURIComponent(row.project.id)}`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#315c3d] px-4 text-sm font-semibold text-white transition hover:bg-[#254a30] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315c3d] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#1c2b22]">
+                    <Link to={`/app/projects/${row.project.id}`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#315c3d] px-4 text-sm font-semibold text-white transition hover:bg-[#254a30] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315c3d] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#1c2b22]">
                       Open Project <span aria-hidden="true">→</span>
                     </Link>
                     <Link to={row.next.to} state={{ projectId: row.project.id }} className="inline-flex min-h-9 items-center justify-center rounded-lg px-3 text-xs font-semibold text-[#496b51] transition hover:bg-[#e9eee7] dark:text-[#b8d0bd] dark:hover:bg-white/[0.06]">

@@ -5,6 +5,7 @@ import type { MaterialTypeKey } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { Link, useSearchParams } from "react-router";
 import { PageMotion, RevealItem, StatusChip, EmptyState } from "@/components/greenloop/kit";
+import { formatINR, formatINRPerT } from "@/utils";
 import { materialMediaFor, ambientMedia } from "@/config/appMedia";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -86,7 +87,7 @@ export default function Materials() {
 
   return (
     <PageMotion className="mx-auto max-w-[1320px] pb-16">
-      <PageMeta title="Materials & Passports | GreenLoop" description="Digital records connecting physical material to projects and recovery status." />
+      <PageMeta title="Inventory | GreenLoop" description="Manage recovered construction material and its digital passports." />
 
       <RevealItem>
         <section className="relative mb-7 grid min-h-[230px] overflow-hidden rounded-2xl border border-[#e5e1d8] bg-[#192c20] dark:border-steel-800 sm:min-h-[250px] lg:grid-cols-[1fr_auto]">
@@ -94,7 +95,7 @@ export default function Materials() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/95 via-[#17291e]/72 to-[#17291e]/15" />
           <div className="relative z-10 flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-9 lg:max-w-[720px]">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7d5c8]">GreenLoop Operations</p>
-            <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-white sm:text-4xl">{selectedProject?.name ?? <>Materials &amp; Passports</>}</h1>
+            <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-white sm:text-4xl">{selectedProject?.name ?? <>Inventory</>}</h1>
             <p className="mt-2 max-w-lg text-sm leading-5 text-white/85 sm:text-base sm:leading-6">Digital records connecting physical material to projects and recovery status.</p>
             <span className="mt-5 inline-flex w-fit items-center rounded-md border border-white/25 bg-[#102118]/45 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.13em] text-white/90 backdrop-blur-sm">Recovered material, recorded and ready to place</span>
           </div>
@@ -204,6 +205,8 @@ export default function Materials() {
                               <p className="mt-1 truncate text-[11px] font-medium text-[#38483e] dark:text-gray-200">{photoCount} photos · {material.evidence.length} records</p>
                             </div>
                           </div>
+
+                          {material.pricePerT !== undefined && <div className="mt-3 flex flex-wrap justify-between gap-2 rounded-md bg-[#f6f5f0] px-3 py-2 dark:bg-white/[0.04]"><span className="text-[10px] font-medium text-[#778078]">{formatINRPerT(material.pricePerT)}</span><span className="text-xs font-bold text-[#26362c] dark:text-white">{formatINR(material.pricePerT * material.quantityT)} total</span></div>}
 
                           {matchedReceiver ? (
                             <p className="mt-3 flex items-start gap-1.5 text-[10px] leading-4 text-[#778078] dark:text-gray-400">

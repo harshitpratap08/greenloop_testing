@@ -224,7 +224,7 @@ export function ProjectCard({ project }: { project: Project }) {
 
   return (
     <Link
-      to={`/app/materials?project=${encodeURIComponent(project.id)}`}
+      to={`/app/projects/${project.id}`}
       className="group surface-card block p-5 transition-colors hover:border-steel-300 dark:hover:border-steel-600"
     >
       <div className="flex items-start justify-between gap-3">

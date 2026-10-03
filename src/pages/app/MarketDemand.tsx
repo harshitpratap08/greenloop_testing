@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { motion } from "motion/react";
@@ -9,6 +10,7 @@ import { ambientMedia, materialMediaFor } from "@/config/appMedia";
 import { useAuth } from "@/context/AuthContext";
 import { formatDate } from "@/utils";
 import type { MaterialTypeKey } from "@/domain/types";
+import ReceiverDiscovery from "@/components/greenloop/ReceiverDiscovery";
 
 type DemandCategory = "all" | MaterialTypeKey | "other";
 
@@ -45,16 +47,26 @@ function DemandMetricIcon({ kind }: { kind: "requests" | "volume" | "receivers" 
 export default function MarketDemand() {
   const { dataset, addOfferAction } = useGreenLoopStore();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const providerId = user?.email ?? "P-001";
   const openDemands = useMemo(() => dataset.demands.filter((demand) => demand.status === "OPEN" || demand.status === "PARTIALLY_COVERED"), [dataset.demands]);
 
-  const [selectedDemandId, setSelectedDemandId] = useState<string | null>(null);
+  const [selectedDemandId, setSelectedDemandId] = useState<string | null>(searchParams.get("demand"));
   const [selectedPassportId, setSelectedPassportId] = useState("");
   const [offerQuantity, setOfferQuantity] = useState("");
   const [offerError, setOfferError] = useState("");
   const [category, setCategory] = useState<DemandCategory>("all");
   const [query, setQuery] = useState("");
   const myOffers = dataset.offers?.filter((offer) => offer.providerId === providerId) ?? [];
+
+  useEffect(() => {
+    if (searchParams.get("view") === "receivers") {
+      window.setTimeout(() => document.getElementById("receiver-discovery")?.scrollIntoView(), 0);
+    }
+    if (searchParams.get("demand")) {
+      window.setTimeout(() => document.getElementById(`demand-${searchParams.get("demand")}`)?.scrollIntoView(), 0);
+    }
+  }, [searchParams]);
 
   const filteredDemands = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -170,7 +182,7 @@ export default function MarketDemand() {
         ))}
       </section>
 
-      <section aria-label="Active material requests">
+      <section id="active-demand-list" aria-label="Active material requests">
         <div className="mb-3 border-b border-[#e4e1d8] dark:border-steel-800">
           <div className="flex gap-5 overflow-x-auto">
             {DEMAND_CATEGORIES.map((item) => (
@@ -204,7 +216,7 @@ export default function MarketDemand() {
               const availablePassports = dataset.materials.filter((item) => item.type === demand.materialType && item.status !== "cancelled" && item.quantityT > dataset.bookings.filter((booking) => booking.materialId === item.id && booking.status !== "cancelled").reduce((sum, booking) => sum + booking.tonnesT, 0));
               const image = materialMediaFor(demand.materialType);
               return (
-                <motion.article key={demand.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.04, 0.2) }} className="overflow-hidden rounded-xl border border-[#e5e2da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] transition hover:border-[#bfccbf] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957]">
+                <motion.article id={`demand-${demand.id}`} key={demand.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.04, 0.2) }} className="overflow-hidden rounded-xl border border-[#e5e2da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] transition hover:border-[#bfccbf] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957]">
                   <div className="grid lg:grid-cols-[180px_minmax(0,1fr)_250px]">
                     <div className="relative min-h-40 overflow-hidden lg:min-h-[188px]">
                       <img src={image.src} alt={image.alt} loading="lazy" className="absolute inset-0 size-full object-cover" />
@@ -343,6 +355,8 @@ export default function MarketDemand() {
           </div>
         )}
       </section>
+
+      {user?.activeWorkspace !== "receiver" && <ReceiverDiscovery dataset={dataset} />}
     </div>
   );
 }

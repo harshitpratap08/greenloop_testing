@@ -1,4 +1,9 @@
 {
+  "sidebar": {
+    "groups": { "menu": "Operaciones", "others": "Datos de referencia", "tools": "Herramientas" },
+    "items": { "explore": "Inicio", "dashboard": "Consola de operaciones", "projects": "Proyectos", "materials": "Inventario", "marketDemand": "Demanda activa", "receivers": "Receptores", "receiverInventory": "Inventario", "receiverDemand": "Solicitar material", "providers": "Proveedores", "bookings": "Reservas", "verification": "Prueba de recuperación", "deliveries": "Entregas", "reports": "Informes", "allocations": "Detalles de coincidencia", "publicSite": "Sitio público" },
+    "workspace": { "provider": "Proveedor", "receiver": "Receptor", "switchToProvider": "Cambiar al espacio del proveedor", "switchToReceiver": "Cambiar al espacio del receptor" }
+  },
   "backend": {
     "passwordMismatch": "Usa al menos 8 caracteres y contraseñas iguales.",
     "requestFailed": "La solicitud falló. Inténtalo de nuevo.",

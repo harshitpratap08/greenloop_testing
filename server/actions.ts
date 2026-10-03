@@ -34,7 +34,7 @@ type VerifyAction = (input: { bookingId: string } & Omit<DeliveryInput, "booking
 type AddMaterialAction = (input: Omit<MaterialPassport, "id" | "status" | "surveyedAt">) => MaterialPassport;
 type AddDemandInput = Omit<DemandRecord, "id" | "status" | "createdAt" | "receiverId"> & { receiverId?: string };
 type AddDemandAction = (input: AddDemandInput) => DemandRecord;
-type AddProjectAction = (input: Pick<Project, "name" | "location" | "status">) => Project;
+type AddProjectAction = (input: Pick<Project, "name" | "location" | "status"> & Partial<Pick<Project, "geo">>) => Project;
 type AddCapacityAction = (input: Omit<ReceiverDaySlot, "id">) => ReceiverDaySlot;
 type UpdateCapacityAction = (slotId: string, capacityT: number) => boolean;
 

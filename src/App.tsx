@@ -14,7 +14,7 @@ import Operations from "./pages/app/Dashboard/Operations";
 import Materials from "./pages/app/Materials";
 import NewSurvey from "./pages/app/NewSurvey";
 import Projects from "./pages/app/Projects";
-import Receivers from "./pages/app/Receivers";
+import ProjectDetails from "./pages/app/ProjectDetails";
 import Verification from "./pages/app/Verification";
 import Explore from "./pages/app/Explore.tsx";
 import Reports from "./pages/app/Reports.tsx";
@@ -31,10 +31,12 @@ import NotFound from "./pages/OtherPage/NotFound";
 // Receiver pages
 import ReceiverOverview from "./pages/app/receiver/Overview";
 import ReceiverDemand from "./pages/app/receiver/Demand";
-import ReceiverCapacity from "./pages/app/receiver/Capacity";
 import ReceiverIncomingRequests from "./pages/app/receiver/IncomingRequests";
 import ReceiverDeliveriesPage from "./pages/app/receiver/ReceiverDeliveries";
 import ReceiverVerificationPage from "./pages/app/receiver/ReceiverVerification";
+import ReceiverProviders from "./pages/app/receiver/Providers";
+import ProviderMaterialDetails from "./pages/app/receiver/ProviderMaterialDetails";
+import ReceiverInventory from "./pages/app/receiver/Inventory";
 
 function AppRedirect() {
   const { user } = useAuth();
@@ -64,11 +66,12 @@ export default function App() {
                 <Route path="/app/explore" element={<Explore />} />
                 <Route path="/app/dashboard" element={<Operations />} />
                 <Route path="/app/operations" element={<Operations />} />
+                <Route path="/app/projects/:id" element={<ProjectDetails />} />
                 <Route path="/app/projects" element={<Projects />} />
                 <Route path="/app/materials/new" element={<NewSurvey />} />
                 <Route path="/app/materials/:id" element={<MaterialPassport />} />
                 <Route path="/app/materials" element={<Materials />} />
-                <Route path="/app/receivers" element={<Receivers />} />
+                <Route path="/app/receivers" element={<Navigate to="/app/market-demand?view=receivers" replace />} />
                 <Route path="/app/allocations" element={<Allocations />} />
                 <Route path="/app/bookings" element={<Bookings />} />
                 <Route path="/app/deliveries" element={<Deliveries />} />
@@ -85,7 +88,10 @@ export default function App() {
                 {/* Receiver Routes */}
                 <Route path="/app/receiver/overview" element={<ReceiverOverview />} />
                 <Route path="/app/receiver/demand" element={<ReceiverDemand />} />
-                <Route path="/app/receiver/capacity" element={<ReceiverCapacity />} />
+                <Route path="/app/receiver/providers/:materialId" element={<ProviderMaterialDetails />} />
+                <Route path="/app/receiver/providers" element={<ReceiverProviders />} />
+                <Route path="/app/receiver/inventory" element={<ReceiverInventory />} />
+                <Route path="/app/receiver/capacity" element={<Navigate to="/app/receiver/demand?capacity=1" replace />} />
                 <Route path="/app/receiver/incoming-requests" element={<ReceiverIncomingRequests />} />
                 <Route path="/app/receiver/incoming" element={<Navigate to="/app/receiver/incoming-requests" replace />} />
                 <Route path="/app/receiver/deliveries" element={<ReceiverDeliveriesPage />} />

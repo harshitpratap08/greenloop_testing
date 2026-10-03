@@ -15,6 +15,14 @@ export function formatDate(iso: string): string {
   return `${parseInt(dd, 10)} ${MONTHS[parseInt(mm, 10) - 1]} ${yyyy}`;
 }
 
+export function formatINR(value: number): string {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
+}
+
+export function formatINRPerT(value: number): string {
+  return `${formatINR(value)}/tonne`;
+}
+
 export function formatStamp(iso: string): string {
   if (!iso) return "";
   const d = formatDate(iso);

@@ -1,6 +1,5 @@
 import { useSidebar } from "@/context/SidebarContext";
 import { useAuth, type Role } from "@/context/AuthContext";
-import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router";
@@ -42,128 +41,35 @@ type NavItem = {
   }[];
 };
 
-/**
- * GreenLoop navigation — friendly IA first (Home, Projects, Find a receiver,
- * Bookings, Deliveries, Verification, Reports); the technical/operational
- * surfaces (Operations console, Allocations scoring) live in the Admin group.
- */
 const providerNavItems: NavItem[] = [
-  {
-    icon: <GridIcon fontSize={24} />,
-    name: "Home",
-    key: "explore",
-    path: "/app/explore",
-  },
-  {
-    icon: <BoxIconLine fontSize={24} />,
-    name: "Projects",
-    key: "projects",
-    path: "/app/projects",
-  },
-  {
-    icon: <BoxMoving fontSize={24} />,
-    name: "Materials & Passports",
-    key: "materials",
-    path: "/app/materials",
-  },
-  {
-    icon: <ListIcon fontSize={24} />,
-    name: "Active Demand",
-    key: "marketDemand",
-    path: "/app/market-demand",
-  },
-  {
-    icon: <BoxTapped fontSize={24} />,
-    name: "Find a Receiver",
-    key: "receivers",
-    path: "/app/receivers",
-  },
-  {
-    icon: <CalenderIcon fontSize={24} />,
-    name: "Bookings",
-    key: "bookings",
-    path: "/app/bookings",
-  },
-  {
-    icon: <TruckDelivery fontSize={24} />,
-    name: "Deliveries",
-    key: "deliveries",
-    path: "/app/deliveries",
-  },
-  {
-    icon: <CheckCircleIcon fontSize={24} />,
-    name: "Proof of Recovery",
-    key: "verification",
-    path: "/app/verification",
-  },
+  { icon: <GridIcon fontSize={24} />, name: "Home", key: "explore", path: "/app/explore" },
+  { icon: <BoxMoving fontSize={24} />, name: "Inventory", key: "materials", path: "/app/materials" },
+  { icon: <ListIcon fontSize={24} />, name: "Active Demand", key: "marketDemand", path: "/app/market-demand" },
+  { icon: <BoxTapped fontSize={24} />, name: "Receivers", key: "receivers", path: "/app/market-demand?view=receivers" },
+  { icon: <CalenderIcon fontSize={24} />, name: "Bookings", key: "bookings", path: "/app/bookings" },
+  { icon: <TruckDelivery fontSize={24} />, name: "Deliveries", key: "deliveries", path: "/app/deliveries" },
+  { icon: <CheckCircleIcon fontSize={24} />, name: "Proof of Recovery", key: "verification", path: "/app/verification" },
 ];
 
-const providerOthersItems: NavItem[] = [
-  {
-    icon: <TaskIcon fontSize={24} />,
-    name: "Reports",
-    key: "reports",
-    path: "/app/reports",
-  },
-  {
-    icon: <DocsIcon fontSize={24} />,
-    name: "Operations console",
-    key: "dashboard",
-    path: "/app/dashboard",
-  },
-  {
-    icon: <LayoutIcon fontSize={24} />,
-    name: "Match Details",
-    key: "allocations",
-    path: "/app/allocations",
-  },
-  {
-    icon: <ListIcon fontSize={24} />,
-    name: "Public website",
-    key: "publicSite",
-    path: "/",
-  },
+const referenceItems: NavItem[] = [
+  { icon: <BoxIconLine fontSize={24} />, name: "Projects", key: "projects", path: "/app/projects" },
+];
+
+const toolsItems: NavItem[] = [
+  { icon: <TaskIcon fontSize={24} />, name: "Reports", key: "reports", path: "/app/reports" },
+  { icon: <DocsIcon fontSize={24} />, name: "Operations console", key: "dashboard", path: "/app/dashboard" },
+  { icon: <LayoutIcon fontSize={24} />, name: "Match Details", key: "allocations", path: "/app/allocations" },
+  { icon: <ListIcon fontSize={24} />, name: "Public website", key: "publicSite", path: "/" },
 ];
 
 const receiverNavItems: NavItem[] = [
-  {
-    icon: <GridIcon fontSize={24} />,
-    name: "Home",
-    path: "/app/receiver/overview",
-  },
-  {
-    icon: <BoxMoving fontSize={24} />,
-    name: "Material Requests",
-    path: "/app/receiver/demand",
-  },
-  {
-    icon: <BoxIconLine fontSize={24} />,
-    name: "Receiving Capacity",
-    path: "/app/receiver/capacity",
-  },
-  {
-    icon: <BoxTapped fontSize={24} />,
-    name: "Incoming Requests",
-    path: "/app/receiver/incoming-requests",
-  },
-  {
-    icon: <TruckDelivery fontSize={24} />,
-    name: "Deliveries",
-    path: "/app/receiver/deliveries",
-  },
-  {
-    icon: <CheckCircleIcon fontSize={24} />,
-    name: "Check & Accept",
-    path: "/app/receiver/verification",
-  },
-];
-
-const receiverOthersItems: NavItem[] = [
-  {
-    icon: <ListIcon fontSize={24} />,
-    name: "Public website",
-    path: "/",
-  },
+  { icon: <GridIcon fontSize={24} />, name: "Home", key: "explore", path: "/app/receiver/overview" },
+  { icon: <BoxMoving fontSize={24} />, name: "Inventory", key: "receiverInventory", path: "/app/receiver/inventory" },
+  { icon: <BoxTapped fontSize={24} />, name: "Request Material", key: "receiverDemand", path: "/app/receiver/demand" },
+  { icon: <BoxIconLine fontSize={24} />, name: "Providers", key: "providers", path: "/app/receiver/providers" },
+  { icon: <CalenderIcon fontSize={24} />, name: "Bookings", key: "bookings", path: "/app/bookings" },
+  { icon: <TruckDelivery fontSize={24} />, name: "Deliveries", key: "deliveries", path: "/app/receiver/deliveries" },
+  { icon: <CheckCircleIcon fontSize={24} />, name: "Proof of Recovery", key: "verification", path: "/app/receiver/verification" },
 ];
 
 const accountNavItems: NavItem[] = [
@@ -212,10 +118,9 @@ const AppSidebar: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   
-  const [isSwitcherOpen, setSwitcherOpen] = useState(false);
-
   const currentNavItems = user?.activeWorkspace === 'receiver' ? receiverNavItems : providerNavItems;
-  const currentOthersItems = user?.activeWorkspace === 'receiver' ? receiverOthersItems : providerOthersItems;
+  const currentReferenceItems = referenceItems;
+  const currentToolItems = toolsItems;
   const location = useLocation();
   type Submenu = { type: "main" | "others"; index: number } | null;
   const [submenuOverride, setSubmenuOverride] = useState<{
@@ -238,19 +143,22 @@ const AppSidebar: React.FC = () => {
 
   // const isActive = (path: string) => location.pathname === path;
   const isActive = useCallback(
-    (path: string) => location.pathname === path,
-    [location.pathname],
+    (path: string) => {
+      const [pathname, search] = path.split("?");
+      return location.pathname === pathname && (search ? location.search === `?${search}` : !location.search);
+    },
+    [location.pathname, location.search],
   );
 
   const routeSubmenu = useMemo(() => {
     let match: Submenu = null;
     for (const menuType of ["main", "others"] as const) {
-      const items = menuType === "main" ? currentNavItems : currentOthersItems;
+      const items = menuType === "main" ? currentNavItems : currentToolItems;
       const index = items.findIndex((nav) => nav.subItems?.some((item) => item.path === location.pathname));
       if (index !== -1) match = { type: menuType, index };
     }
     return match;
-  }, [currentNavItems, currentOthersItems, location.pathname]);
+  }, [currentNavItems, currentToolItems, location.pathname]);
   const openSubmenu = submenuOverride?.locationKey === location.key &&
     submenuOverride.workspace === user?.activeWorkspace
     ? submenuOverride.submenu : routeSubmenu;
@@ -455,50 +363,23 @@ const AppSidebar: React.FC = () => {
         </Link>
       </div>
 
-      {(isExpanded || isHovered || isMobileOpen) && user && (
-        <div className="relative mb-5 px-1">
-          <button 
-            className="dropdown-toggle flex w-full items-center justify-between rounded-lg border border-white/15 bg-white/[0.06] p-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
-            onClick={() => setSwitcherOpen(!isSwitcherOpen)}
+      {user?.workspaces.includes("provider") && user.workspaces.includes("receiver") && (
+        <div className="mb-4 px-1">
+          <button
+            type="button"
+            onClick={async () => {
+              const nextWorkspace: Role = user.activeWorkspace === "receiver" ? "provider" : "receiver";
+              if (await setActiveWorkspace(nextWorkspace)) {
+                navigate(nextWorkspace === "receiver" ? "/app/receiver/overview" : "/app/explore");
+              }
+            }}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold uppercase tracking-wide text-white transition-colors hover:bg-white/10"
+            aria-label={t(user.activeWorkspace === "receiver" ? "sidebar.workspace.switchToProvider" : "sidebar.workspace.switchToReceiver")}
+            title={t(user.activeWorkspace === "receiver" ? "sidebar.workspace.switchToProvider" : "sidebar.workspace.switchToReceiver")}
           >
-            <span>{user.activeWorkspace === 'receiver' ? 'Material Receiver' : 'Material Provider'}</span>
-            <ChevronDownIcon className="size-4 text-white/55" />
+            <span>{isExpanded || isHovered || isMobileOpen ? t(user.activeWorkspace === "receiver" ? "sidebar.workspace.receiver" : "sidebar.workspace.provider") : user.activeWorkspace === "receiver" ? "R" : "P"}</span>
+            <span aria-hidden="true">↔</span>
           </button>
-          
-          <Dropdown isOpen={isSwitcherOpen} onClose={() => setSwitcherOpen(false)} className="w-[calc(100%-2.5rem)] top-full mt-2">
-            <div className="flex flex-col py-2">
-              {user.workspaces.includes('provider') && (
-                <button
-                  className={cn(
-                    "flex w-full items-center px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-800",
-                    user.activeWorkspace === 'provider' ? "text-loop-600 font-semibold dark:text-loop-500" : "text-ink-900 dark:text-white"
-                  )}
-                  onClick={async () => {
-                    if (!await setActiveWorkspace('provider')) return;
-                    setSwitcherOpen(false);
-                    navigate('/app/explore');
-                  }}
-                >
-                  Material Provider
-                </button>
-              )}
-              {user.workspaces.includes('receiver') && (
-                <button
-                  className={cn(
-                    "flex w-full items-center px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-800",
-                    user.activeWorkspace === 'receiver' ? "text-loop-600 font-semibold dark:text-loop-500" : "text-ink-900 dark:text-white"
-                  )}
-                  onClick={async () => {
-                    if (!await setActiveWorkspace('receiver')) return;
-                    setSwitcherOpen(false);
-                    navigate('/app/receiver/overview');
-                  }}
-                >
-                  Material Receiver
-                </button>
-              )}
-            </div>
-          </Dropdown>
         </div>
       )}
 
@@ -523,20 +404,17 @@ const AppSidebar: React.FC = () => {
             </div>
 
             <div>
-              <h2
-                className={`mb-3 flex text-[10px] font-semibold leading-5 uppercase tracking-[0.16em] text-white/40 ${
-                  !isExpanded && !isHovered
-                    ? "xl:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  t("sidebar.groups.others")
-                ) : (
-                  <HorizontaLDots className="size-6" />
-                )}
+              <h2 className={`mb-3 flex text-[10px] font-semibold leading-5 uppercase tracking-[0.16em] text-white/40 ${!isExpanded && !isHovered ? "xl:justify-center" : "justify-start"}`}>
+                {isExpanded || isHovered || isMobileOpen ? t("sidebar.groups.others") : <HorizontaLDots className="size-6" />}
               </h2>
-              {renderMenuItems(currentOthersItems, "others")}
+              {renderMenuItems(currentReferenceItems, "others")}
+            </div>
+
+            <div>
+              <h2 className={`mb-3 flex text-[10px] font-semibold leading-5 uppercase tracking-[0.16em] text-white/40 ${!isExpanded && !isHovered ? "xl:justify-center" : "justify-start"}`}>
+                {isExpanded || isHovered || isMobileOpen ? t("sidebar.groups.tools") : <HorizontaLDots className="size-6" />}
+              </h2>
+              {renderMenuItems(currentToolItems, "others")}
             </div>
 
             <AccountSidebarWidget render={renderMenuItems} />
