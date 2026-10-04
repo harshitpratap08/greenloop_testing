@@ -1,21 +1,8 @@
-import { useTranslation } from "react-i18next";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
-export type Role = "provider" | "receiver";
-export interface User {
-  id: string; email: string; name?: string; organization?: string; location?: string;
-  vat?: string; phone?: string; receiverId?: string; workspaces: Role[]; activeWorkspace?: Role;
-}
-interface AuthContextType {
-  user: User | null; ready: boolean; error: string;
-  login: (email: string, password: string, remember: boolean) => Promise<User>;
-  createAccount: (details: Pick<User, "email" | "name" | "organization">, password: string) => Promise<User>;
-  addWorkspaces: (roles: Role[]) => Promise<boolean>;
-  setActiveWorkspace: (role: Role) => Promise<boolean>;
-  updateUser: (updates: Partial<User>) => Promise<boolean>;
-  logout: () => Promise<boolean>;
-}
-const AuthContext = createContext<AuthContextType | null>(null);
+import { useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { AuthContext, type User } from "./AuthContext.helpers";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
@@ -53,8 +40,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     {children}
   </AuthContext.Provider>;
 }
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
-}
+

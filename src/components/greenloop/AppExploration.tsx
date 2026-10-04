@@ -1,3 +1,4 @@
+import { bookingStatusToUnified, currentStepIndex, formatStamp, materialIdsInProject, materialMedia, projectNextAction, projectSteps, STEP_LABELS, type ReceiverOption, type UnifiedStatus } from "./AppExploration.helpers";
 /**
  * AppExploration kit — the friendly layer over the operational engine.
  *
@@ -6,98 +7,27 @@
  * (Allocations, ledger internals) stay available deeper in the app.
  */
 
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { STORY } from "@/domain/demoData";
 import { slotLedger } from "@/domain/capacity";
 import type {
-  Booking,
-  BookingStatus,
-  GreenLoopDataset,
-  MaterialPassport,
-  Project,
+Booking,
+Project
 } from "@/domain/types";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
 import { cn, formatDate } from "@/utils";
+import { type ReactNode } from "react";
 import { Link } from "react-router";
-import { useState, type ReactNode } from "react";
 
 /* ------------------------------------------------------------------ */
 /* Step engine — SURVEY → MATCH → RESERVE → DELIVER → VERIFY          */
 /* ------------------------------------------------------------------ */
 
-export interface ProjectSteps {
-  survey: boolean;
-  match: boolean;
-  reserve: boolean;
-  deliver: boolean;
-  verify: boolean;
-}
-
-export function projectSteps(dataset: GreenLoopDataset, projectId: string): ProjectSteps {
-  const materials = dataset.materials.filter((m) => m.projectId === projectId);
-  const materialIds = new Set(materials.map((m) => m.id));
-  const allocations = dataset.allocations.filter((a) => materialIds.has(a.materialId));
-  const bookingIds = new Set(allocations.map((a) => a.id));
-  const bookings = dataset.bookings.filter((b) => bookingIds.has(b.allocationId));
-
-  const survey = materials.length > 0;
-  const match = allocations.length > 0;
-  const reserve = bookings.some((b) => b.status === "confirmed" || b.status === "cancelled");
-  // Dispatch/verify live on the event trail and verification records, not on
-  // BookingStatus — a booking stays "confirmed" while its load is on the road.
-  const dispatchedBookings = bookings.filter((b) =>
-    dataset.events.some((e) => e.kind === "load.dispatched" && e.subjectIds.includes(b.id)),
-  );
-  const deliver = dispatchedBookings.length > 0;
-  const verify = dataset.verifications.some((v) => v.status !== "pending" && dispatchedBookings.some((b) => b.id === v.bookingId));
-
-  return { survey, match, reserve, deliver, verify };
-}
-
 /** 0-based index of the current step (first incomplete). */
-export function currentStepIndex(steps: ProjectSteps): number {
-  if (!steps.survey) return 0;
-  if (!steps.match) return 1;
-  if (!steps.reserve) return 2;
-  if (!steps.deliver) return 3;
-  if (!steps.verify) return 4;
-  return 5; // complete
-}
-
-export const STEP_LABELS = ["Add Material", "Find receiver", "Request slot", "Send load", "Proof of Recovery"] as const;
 
 /** The seeded story project (Project A) for the default exploration view. */
-export const STORY_PROJECT_ID = STORY.projectAId;
 
 /* ------------------------------------------------------------------ */
 /* Role switch                                                        */
 /* ------------------------------------------------------------------ */
-
-export type AppRole = "site" | "receiver" | "admin";
-
-const ROLE_STORAGE_KEY = "greenloop.role";
-
-function loadRole(): AppRole {
-  try {
-    const stored = localStorage.getItem(ROLE_STORAGE_KEY);
-    if (stored === "site" || stored === "receiver" || stored === "admin") return stored;
-  } catch {
-    /* SSR / private mode — fall through */
-  }
-  return "site";
-}
-
-export function useAppRole(): [AppRole, (role: AppRole) => void] {
-  const [role, setRole] = useState<AppRole>(loadRole);
-  const change = (next: AppRole) => {
-    setRole(next);
-    try {
-      localStorage.setItem(ROLE_STORAGE_KEY, next);
-    } catch {
-      /* ignore */
-    }
-  };
-  return [role, change];
-}
 
 /* ------------------------------------------------------------------ */
 /* Guided workflow rail — the project's progress path                 */
@@ -134,7 +64,7 @@ export function WorkflowRail({ projectId, compact = false, inverse = false }: { 
             )}
             <span
               className={cn(
-                "flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-semibold leading-none",
+                "flex h-5 w-5 items-center justify-center rounded-full border text-xs font-semibold leading-none",
                 complete && "border-loop-500 bg-loop-500 text-white",
                 active && (inverse ? "border-white bg-white text-ink-900" : "border-ink-900 bg-ink-900 text-white dark:border-white dark:bg-white dark:text-ink-900"),
                 !complete && !active && (inverse ? "border-white/30 text-white/45" : "border-gray-300 text-gray-400 dark:border-gray-700"),
@@ -168,43 +98,6 @@ export function WorkflowRail({ projectId, compact = false, inverse = false }: { 
 /* ------------------------------------------------------------------ */
 /* Next action — one obvious thing to do next                         */
 /* ------------------------------------------------------------------ */
-
-export interface NextAction {
-  label: string;
-  to: string;
-  reason: string;
-}
-
-export function projectNextAction(dataset: GreenLoopDataset, projectId: string): NextAction {
-  const steps = projectSteps(dataset, projectId);
-  const current = currentStepIndex(steps);
-  const projectName = dataset.projects.find((p) => p.id === projectId)?.name ?? "Project";
-  switch (current) {
-    case 0:
-      return { label: "Add Material", to: "/app/materials/new", reason: `${projectName} has no material records yet.` };
-    case 1:
-      return { label: "Find a receiver", to: "/app/market-demand?view=receivers", reason: "Materials are surveyed — match them to a facility." };
-    case 2: {
-      const held = dataset.bookings.find(
-        (b) => b.status === "hold" && dataset.allocations.some((a) => a.id === b.allocationId && materialInProject(dataset, a.materialId, projectId)),
-      );
-      if (held) {
-        return { label: "Review booking", to: "/app/bookings", reason: held.holdReason ?? "Waiting on Capacity — check another available slot." };
-      }
-      return { label: "Request slot", to: "/app/bookings", reason: "A receiver is matched — request an intake slot." };
-    }
-    case 3:
-      return { label: "Send load", to: "/app/deliveries", reason: "The receiver approved the slot — get the material on the road." };
-    case 4:
-      return { label: "View Proof of Recovery", to: "/app/verification", reason: "The receiver has checked the load and recorded what arrived." };
-    default:
-      return { label: "View project report", to: "/app/dashboard", reason: "Every stage is complete — review the outcomes." };
-  }
-}
-
-function materialInProject(dataset: GreenLoopDataset, materialId: string, projectId: string): boolean {
-  return dataset.materials.some((m) => m.id === materialId && m.projectId === projectId);
-}
 
 /* ------------------------------------------------------------------ */
 /* Project card — visual, with embedded workflow rail                 */
@@ -264,10 +157,6 @@ export function ProjectCard({ project }: { project: Project }) {
   }
 }
 
-function materialIdsInProject(dataset: GreenLoopDataset, projectId: string): Set<string> {
-  return new Set(dataset.materials.filter((m) => m.projectId === projectId).map((m) => m.id));
-}
-
 export function ProjectStatusChip({ status }: { status: Project["status"] }) {
   const map: Record<Project["status"], { label: string; className: string }> = {
     active: {
@@ -292,19 +181,6 @@ export function ProjectStatusChip({ status }: { status: Project["status"] }) {
 /* ------------------------------------------------------------------ */
 /* Human receiver card — decisions, not algorithm dumps               */
 /* ------------------------------------------------------------------ */
-
-export interface ReceiverOption {
-  receiverId: string;
-  name: string;
-  location: string;
-  distanceKm: number;
-  acceptsMaterial: boolean;
-  slotAvailableT: number;
-  slotCapacityT: number;
-  slotDate: string;
-  recommended: boolean;
-  reasons: string[];
-}
 
 export function ReceiverOptionCard({
   option,
@@ -383,11 +259,11 @@ export function ReceiverOptionCard({
 
 export function CheckDot({ ok }: { ok: boolean }) {
   return ok ? (
-    <span aria-hidden="true" className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-loop-500 text-[9px] font-bold text-white">
+    <span aria-hidden="true" className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-loop-500 text-xs font-bold text-white">
       ✓
     </span>
   ) : (
-    <span aria-hidden="true" className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-current text-[9px] font-bold">
+    <span aria-hidden="true" className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-current text-xs font-bold">
       ✕
     </span>
   );
@@ -396,26 +272,6 @@ export function CheckDot({ ok }: { ok: boolean }) {
 /* ------------------------------------------------------------------ */
 /* Material media — evidence gallery for receivers/purchasers         */
 /* ------------------------------------------------------------------ */
-
-export interface MaterialMediaItem {
-  id: string;
-  kind: "photo" | "video";
-  src: string;
-  caption: string;
-  recordedAt: string;
-}
-
-export function materialMedia(material: MaterialPassport): MaterialMediaItem[] {
-  return material.evidence
-    .filter((e) => e.kind === "site-photo" && e.ref && (e.ref.startsWith("/") || e.ref.startsWith("data:image/") || e.ref.startsWith("https://") || e.ref.startsWith("http://")))
-    .map((e, idx) => ({
-      id: `${material.id}-ev-${idx}`,
-      kind: "photo",
-      src: e.ref!,
-      caption: e.label,
-      recordedAt: e.recordedAt,
-    }));
-}
 
 /** Project site-media timeline: timestamped photo/video evidence per project. */
 export function ProjectSiteMedia({ projectId }: { projectId: string }) {
@@ -452,27 +308,9 @@ export function ProjectSiteMedia({ projectId }: { projectId: string }) {
   );
 }
 
-function formatStamp(iso: string): string {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  return `${date} · ${time}`;
-}
-
 /* ------------------------------------------------------------------ */
 /* Status chip — one consistent status language                        */
 /* ------------------------------------------------------------------ */
-
-export type UnifiedStatus =
-  | "surveyed"
-  | "matched"
-  | "reserved"
-  | "confirmed"
-  | "hold"
-  | "dispatched"
-  | "verified"
-  | "rejected"
-  | "cancelled";
 
 export function StatusChip({ status }: { status: UnifiedStatus }) {
   const map: Record<UnifiedStatus, string> = {
@@ -491,19 +329,6 @@ export function StatusChip({ status }: { status: UnifiedStatus }) {
       {status}
     </span>
   );
-}
-
-export function bookingStatusToUnified(status: BookingStatus): UnifiedStatus {
-  switch (status) {
-    case "confirmed":
-      return "confirmed";
-    case "hold":
-      return "hold";
-    case "pending":
-      return "reserved";
-    case "cancelled":
-      return "cancelled";
-  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -539,14 +364,6 @@ export function EmptyState({
 /* Welcome greeting — time-of-day, no invented figures                */
 /* ------------------------------------------------------------------ */
 
-export function useGreeting(): string {
-  const [greeting] = useState(() => {
-    const hour = new Date().getHours();
-    return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  });
-  return greeting;
-}
-
 /* ------------------------------------------------------------------ */
 /* Primary action tiles — the "What would you like to do?" row         */
 /* ------------------------------------------------------------------ */
@@ -564,7 +381,7 @@ export function PrimaryActions() {
   ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid gap-detail sm:grid-cols-3">
       {tiles.map((tile) => (
         <Link
           key={tile.label}

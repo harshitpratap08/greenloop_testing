@@ -1,4 +1,4 @@
-import type { GreenLoopDataset, MaterialPassport, DemandRecord, Project, ReceiverDaySlot, SupportRequest, MaterialOffer, Evidence } from "@/domain/types";
+import type { GreenLoopDataset, MaterialPassport, DemandRecord, Project, ReceiverDaySlot, SupportRequest, MaterialOffer, Evidence, MaterialUpdate, DemandUpdate } from "@/domain/types";
 import type { DeliveryInput } from "@/domain/capacity";
 type RequestCapacityAction = (input: {
   materialId: string;
@@ -22,8 +22,13 @@ export interface GreenLoopStoreValue {
   requestCapacityAction: RequestCapacityAction;
   cancelBookingAction: CancelBookingAction;
   dispatchAction: DispatchAction;
+  updateDeliveryAction: (bookingId: string, stage: "ready" | "picked-up" | "arrived") => Promise<boolean>;
   verifyAction: VerifyAction;
   addMaterialAction: AddMaterialAction;
+  updateMaterialAction: (id: string, input: MaterialUpdate) => Promise<boolean>;
+  deleteMaterialAction: (id: string) => Promise<boolean>;
+  updateDemandAction: (id: string, input: DemandUpdate) => Promise<boolean>;
+  deleteDemandAction: (id: string) => Promise<boolean>;
   addDemandAction: AddDemandAction;
   saveDemandDraftAction: AddDemandAction;
   deleteDemandDraftAction: (demandId: string) => Promise<boolean>;

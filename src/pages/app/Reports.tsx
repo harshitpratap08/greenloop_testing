@@ -1,43 +1,13 @@
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import PageMeta from "@/components/common/PageMeta";
-import type { GreenLoopDataset } from "@/domain/types";
-import { recoveryFlowTotals as computeFlow, receiverCapacityTotals } from "@/domain/metrics";
-import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
-import { cn } from "@/utils";
-import { Link } from "react-router";
 import { MediaPanel } from "@/components/greenloop/kit";
 import { ambientMedia, materialMediaFor } from "@/config/appMedia";
-
-export const TYPE_COLORS: Record<string, string> = {
-  concrete: "bg-ink-900 dark:bg-white",
-  brick: "bg-steel-600 dark:bg-steel-400",
-  timber: "bg-steel-400 dark:bg-steel-500",
-  steel: "bg-steel-800 dark:bg-steel-300",
-  plasterboard: "bg-steel-300 dark:bg-steel-600",
-  glass: "bg-gray-500 dark:bg-gray-400",
-};
-
-export const FLOW_STAGES = ["Surveyed", "Matched", "Reserved", "Dispatched", "Verified"] as const;
-
-function useCountUp(target: number, durationMs = 1500): number {
-  const reduce = useReducedMotion();
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    if (reduce) return;
-    let raf = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const p = Math.min(1, (now - start) / durationMs);
-      const eased = 1 - Math.pow(1 - p, 4);
-      setValue(target * eased);
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, durationMs, reduce]);
-  return reduce ? target : value;
-}
+import { recoveryFlowTotals as computeFlow, receiverCapacityTotals } from "@/domain/metrics";
+import type { GreenLoopDataset } from "@/domain/types";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { cn } from "@/utils";
+import { motion } from "motion/react";
+import { Link } from "react-router";
+import { FLOW_STAGES, TYPE_COLORS, useCountUp, type TimelineStep } from "./Reports.helpers";
 
 export default function Reports() {
   const { dataset } = useGreenLoopStore();
@@ -60,20 +30,20 @@ export default function Reports() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
-        className="relative mb-4 min-h-40 overflow-hidden rounded-xl border border-[#e5e1d8] bg-[#17291e] sm:min-h-44 dark:border-steel-800"
+        className="relative mb-4 min-h-40 overflow-hidden border border-[#e5e1d8] bg-[#17291e] sm:min-h-44 dark:border-steel-800 rounded-surface"
       >
         <img src={ambientMedia.sortingFacility.src} alt={ambientMedia.sortingFacility.alt} className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/95 via-[#17291e]/75 to-[#17291e]/20" aria-hidden="true" />
         <div className="relative flex min-h-40 max-w-3xl flex-col justify-end px-5 py-5 text-white sm:min-h-44 sm:px-7 sm:py-6">
           <p className="eyebrow-label text-loop-300">GreenLoop intelligence</p>
-          <h1 className="mt-1 font-archivo text-3xl font-bold tracking-tight sm:text-4xl">System Analytics</h1>
+          <h1 className="mt-1 font-archivo font-bold tracking-tight gl-page-title">System Analytics</h1>
           <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/85">
             Six animated charts answering real questions from the live dataset. Every figure reflects current operations.
           </p>
         </div>
       </motion.header>
 
-      <div className="mb-4 overflow-x-auto rounded-lg border border-[#e5e1d8] bg-white px-4 py-3 dark:border-steel-800 dark:bg-white/[0.02]">
+      <div className="mb-4 overflow-x-auto border border-[#e5e1d8] bg-white px-4 py-3 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
         <ol className="flex min-w-[650px] items-center gap-3 sm:min-w-0" aria-label="Recovery process">
           {FLOW_STAGES.map((stage, index) => {
             const stageValues = [flow.surveyed, flow.matched, flow.reserved, flow.dispatched, flow.verified];
@@ -87,8 +57,8 @@ export default function Reports() {
                 className="flex min-w-0 flex-1 items-center gap-2"
               >
                 <div className="flex shrink-0 flex-col">
-                  <span className="ledger-numeral text-[9px] font-bold text-steel-400 dark:text-steel-500">0{index + 1}</span>
-                  <span className={cn("font-archivo text-[10px] font-bold uppercase tracking-wider sm:text-[11px]", supported ? "text-loop-800 dark:text-loop-400" : "text-steel-400 dark:text-steel-600")}>{stage}</span>
+                  <span className="ledger-numeral text-xs font-bold text-steel-400 dark:text-steel-500">0{index + 1}</span>
+                  <span className={cn("font-archivo text-xs font-bold uppercase tracking-wider sm:text-xs", supported ? "text-loop-800 dark:text-loop-400" : "text-steel-400 dark:text-steel-600")}>{stage}</span>
                 </div>
                 {index < FLOW_STAGES.length - 1 && <span aria-hidden="true" className={cn("h-px min-w-3 flex-1", supported ? "bg-loop-300 dark:bg-loop-800" : "bg-steel-200 dark:bg-steel-700")} />}
               </motion.li>
@@ -109,7 +79,7 @@ export default function Reports() {
         <KpiCard label="Bookings placed" value={dataset.bookings.length} decimals={0} hint={`${activeBookingCount} active now`} icon="bookings" />
       </motion.div>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-detail lg:grid-cols-2">
         <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.05 }}>
           <CompositionChart dataset={dataset} />
         </motion.div>
@@ -140,7 +110,7 @@ export default function Reports() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="mt-8"
+        className="mt-section"
         aria-label="Material breakdown"
       >
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-steel-200 pb-5 dark:border-steel-800">
@@ -150,7 +120,7 @@ export default function Reports() {
           </div>
           <p className="ledger-numeral text-2xl font-bold text-ink-900 dark:text-white">{grandTotal.toFixed(1)} t</p>
         </div>
-        <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <ul className="mt-4 grid grid-cols-2 gap-detail sm:grid-cols-3 lg:grid-cols-6">
           {typeRows.map(([type, t]) => {
             const media = materialMediaFor(type);
             return (
@@ -197,7 +167,7 @@ export function KpiCard({
       <div className="min-w-0">
         <p className="eyebrow-label truncate text-steel-500 dark:text-steel-400">{label}</p>
         <p className="ledger-numeral mt-0.5 text-xl font-bold leading-none text-ink-900 dark:text-white">{animatedValue.toFixed(decimals)}{suffix}</p>
-        <p className="mt-1 truncate text-[10px] text-steel-500 dark:text-gray-400">{hint}</p>
+        <p className="mt-1 truncate text-xs text-steel-500 dark:text-gray-400">{hint}</p>
       </div>
     </section>
   );
@@ -224,7 +194,7 @@ export function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
   const animatedGrand = useCountUp(grand);
 
   return (
-    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="h-full border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
       <ChartHeader
         question="What materials do we have?"
         note="Surveyed tonnage by material type across all projects."
@@ -235,7 +205,7 @@ export function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
           const pct = (t / grand) * 100;
           return (
             <div key={type} className="group flex items-center gap-2.5">
-              <span className="w-24 shrink-0 font-archivo text-[11px] font-bold uppercase tracking-wider text-ink-900 dark:text-white sm:w-28 sm:text-xs">{type}</span>
+              <span className="w-24 shrink-0 font-archivo text-xs font-bold uppercase tracking-wider text-ink-900 dark:text-white sm:w-28 sm:text-xs">{type}</span>
               <div className="h-4 grow overflow-hidden bg-steel-100 dark:bg-steel-900">
                 <motion.div
                   initial={{ width: 0 }}
@@ -259,7 +229,7 @@ export function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
 export function RecoveryFlowChart({ dataset }: { dataset: GreenLoopDataset }) {
   const flow = computeFlow(dataset);
   return (
-    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="h-full border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
       <ChartHeader
         question="Where is material in the process?"
         note="Tonnage at each lifecycle stage right now."
@@ -302,7 +272,7 @@ export function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }
   const max = Math.max(...totals.map((t) => t.capacity), 1);
 
   return (
-    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="h-full border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
       <ChartHeader
         question="Where can this material go?"
         note="Current receiving capacity, reserved vs available."
@@ -362,7 +332,7 @@ export function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset })
   const max = Math.max(...rows.map((r) => r.surveyed), 1);
 
   return (
-    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="h-full border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
       <ChartHeader
         question="How are projects progressing?"
         note="Surveyed tonnage vs verified recovery per project."
@@ -421,7 +391,7 @@ export function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
   ];
 
   return (
-    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="h-full border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
       <ChartHeader
         question="What actually arrived?"
         note={`${v.loadRef} at ${dataset.receivers.find((r) => r.id === v.receiverId)?.name}.`}
@@ -456,13 +426,6 @@ export function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
   );
 }
 
-interface TimelineStep {
-  time: string;
-  label: string;
-  availableT: number;
-  tone: "confirmed" | "hold" | "released" | "recheck";
-}
-
 export function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
   const story = dataset.bookings;
   const slot = dataset.slots.find((s) => s.id === "SL-R1-CONC-0924");
@@ -478,7 +441,7 @@ export function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }
   ];
 
   return (
-    <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+    <section className="h-full border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
       <ChartHeader
         question="How does the ledger resolve conflicts?"
         note={`Riverstone Aggregates ${capacity.toFixed(0)} t concrete slot — receiving capacity timeline.`}

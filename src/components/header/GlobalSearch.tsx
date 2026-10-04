@@ -1,9 +1,9 @@
+import { useAuth } from "@/context/AuthContext.helpers";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { cn } from "@/utils";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { useAuth } from "@/context/AuthContext";
-import { cn } from "@/utils";
 
 /**
  * Global operational search — projects, materials, receivers and bookings

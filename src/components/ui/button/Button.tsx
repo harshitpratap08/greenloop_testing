@@ -25,8 +25,8 @@ const Button: React.FC<ButtonProps> = ({
 }) => {
   // Size Classes
   const sizeClasses = {
-    sm: "px-4 py-3 text-sm",
-    md: "px-5 py-3.5 text-sm",
+    sm: "min-h-10 px-4 py-2 text-sm",
+    md: "min-h-11 px-5 py-2.5 text-sm",
   };
 
   // Variant Classes — GreenLoop: charcoal primary, steel outline, squared

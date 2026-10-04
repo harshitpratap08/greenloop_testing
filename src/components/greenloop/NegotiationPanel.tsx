@@ -29,7 +29,7 @@ export default function NegotiationPanel({ offer, canCounter, onCounter }: {
     setError("");
   };
 
-  return <section className="mt-4 border border-steel-200 bg-steel-50/70 p-4 dark:border-steel-800 dark:bg-white/[0.03]" aria-label="Negotiation ledger">
+  return <section className="mt-4 border border-steel-200 bg-steel-50/70 p-4 dark:border-steel-800 dark:bg-white/[0.03] rounded-surface" aria-label="Negotiation ledger">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <p className="eyebrow-label text-steel-500 dark:text-steel-400">Transaction analysis</p>

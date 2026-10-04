@@ -6,20 +6,23 @@
  * matching, capacity, history) sits underneath. All figures from the store.
  */
 
-import { useParams, Link } from "react-router";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import PageMeta from "@/components/common/PageMeta";
-import { materialMedia } from "@/components/greenloop/AppExploration";
+import { materialMedia } from "@/components/greenloop/AppExploration.helpers";
+import { CapacityMeter, Counter, EvidenceGallery, MediaPanel, PageMotion, RevealItem, StatusChip, WorkflowRail7 } from "@/components/greenloop/kit";
+import { type EvidenceItem } from "@/components/greenloop/kit.helpers";
+import RecordActions from "@/components/greenloop/RecordActions";
+import { materialMediaFor, receiverMediaFor } from "@/config/appMedia";
+import { useAuth } from "@/context/AuthContext.helpers";
 import { computeMatch, slotLedger } from "@/domain/capacity";
 import { eventsForSubjects } from "@/domain/events";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
 import { formatDate, formatINR, formatINRPerT, materialTypeLabel } from "@/utils";
-import { PageMotion, RevealItem, MediaPanel, CapacityMeter, StatusChip, WorkflowRail7, Counter, EvidenceGallery, type EvidenceItem } from "@/components/greenloop/kit";
-import { materialMediaFor, receiverMediaFor } from "@/config/appMedia";
-
+import { Link, useParams } from "react-router";
 
 export default function MaterialPassport() {
   const { id } = useParams<{ id: string }>();
   const { dataset } = useGreenLoopStore();
+  const { user } = useAuth();
 
   const material = dataset.materials.find((m) => m.id === id);
   const project = dataset.projects.find((p) => p.id === material?.projectId);
@@ -90,8 +93,9 @@ export default function MaterialPassport() {
       </RevealItem>
 
       {/* HERO — what is this material, how much, where from, condition, next */}
+      {user?.activeWorkspace === "provider" && <div className="mb-5"><RecordActions kind="passport" id={material.id} redirectAfterDelete="/app/materials" /></div>}
       <RevealItem>
-        <header className="grid border border-steel-200 bg-white shadow-sm dark:border-steel-800 dark:bg-white/[0.02] lg:grid-cols-[1.1fr_0.9fr]">
+        <header className="grid border border-steel-200 bg-white shadow-sm dark:border-steel-800 dark:bg-white/[0.02] lg:gl-golden-columns rounded-surface">
           <MediaPanel
             media={materialMediaFor(material.type)}
             aspect="min-h-[300px] lg:min-h-[380px]"
@@ -152,17 +156,17 @@ export default function MaterialPassport() {
 
       {/* WORKFLOW */}
       <RevealItem>
-        <section className="mt-6 border border-steel-200 bg-white p-5 dark:border-steel-800 dark:bg-white/[0.02]" aria-label="Workflow position">
+        <section className="mt-6 border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface" aria-label="Workflow position">
           <WorkflowRail7 current={workflowStage} />
         </section>
       </RevealItem>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid gap-card lg:grid-cols-3">
         {/* Main column */}
         <div className="space-y-6 lg:col-span-2">
           {/* Quantities */}
           <RevealItem>
-            <section className="border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
+            <section className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
               <h2 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">Quantities</h2>
               <div className="mt-4">
                 <div className="relative h-2.5 w-full overflow-hidden rounded-sm bg-steel-100 dark:bg-white/10" aria-label={`Survey range ${material.quantityRangeT[0]} to ${material.quantityRangeT[1]} tonnes`}>
@@ -192,7 +196,7 @@ export default function MaterialPassport() {
 
           {/* Evidence */}
           <RevealItem>
-            <section className="border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
+            <section className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
               <h2 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">Evidence</h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Site photos and survey records attached to this passport.</p>
               <EvidenceGallery items={evidenceItems} className="mt-4" />
@@ -204,7 +208,7 @@ export default function MaterialPassport() {
 
           {/* Matching */}
           <RevealItem>
-            <section className="border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
+            <section className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">Matching</h2>
                 <StatusChip status={receiver ? "confirmed" : candidates.length > 0 ? "available" : "draft"} label={receiver ? "Matched" : candidates.length > 0 ? "Candidates found" : "No candidates"} />
@@ -244,7 +248,7 @@ export default function MaterialPassport() {
         <div className="space-y-6">
           {/* Capacity at the matched slot */}
           <RevealItem>
-            <section className="border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
+            <section className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
               <h2 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">Capacity</h2>
               {ledger && allocation ? (
                 <div className="mt-4">
@@ -266,7 +270,7 @@ export default function MaterialPassport() {
 
           {/* Booking & verification summary */}
           <RevealItem>
-            <section className="border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
+            <section className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
               <h2 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">Recovery</h2>
               {booking ? (
                 <div className="mt-3 space-y-2 text-theme-sm">
@@ -293,7 +297,7 @@ export default function MaterialPassport() {
 
           {/* History */}
           <RevealItem>
-            <section className="border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
+            <section className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
               <h2 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">History</h2>
               {events.length > 0 ? (
                 <ol className="relative ms-2 mt-4 space-y-5 border-s-2 border-steel-200 dark:border-steel-700">

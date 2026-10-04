@@ -1,11 +1,11 @@
-import { useTranslation } from "react-i18next";
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useAuth } from "@/context/AuthContext.helpers";
 import type { GreenLoopDataset } from "@/domain/types";
-import type { GreenLoopStoreValue } from "./contracts";
 import { api } from "@/lib/api";
-import { useAuth } from "@/context/AuthContext";
-const empty = (): GreenLoopDataset => ({ projects: [], materials: [], receivers: [], slots: [], allocations: [], bookings: [], verifications: [], events: [], demands: [], offers: [], supportRequests: [] });
-const Context = createContext<GreenLoopStoreValue | null>(null);
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import type { GreenLoopStoreValue } from "./contracts";
+import { Context, empty } from "./GreenLoopStore.helpers";
+
 export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const { user, ready } = useAuth();
@@ -56,8 +56,13 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
     requestCapacityAction: input => run("requestCapacityAction", [input], false),
     cancelBookingAction: input => run("cancelBookingAction", [input], false),
     dispatchAction: input => run("dispatchAction", [input], false),
+    updateDeliveryAction: (id, stage) => run("updateDeliveryAction", [id, stage], false),
     verifyAction: input => run("verifyAction", [input], false),
     addMaterialAction: input => run("addMaterialAction", [input], null),
+    updateMaterialAction: (id, input) => run("updateMaterialAction", [id, input], false),
+    deleteMaterialAction: id => run("deleteMaterialAction", [id], false),
+    updateDemandAction: (id, input) => run("updateDemandAction", [id, input], false),
+    deleteDemandAction: id => run("deleteDemandAction", [id], false),
     addDemandAction: input => run("addDemandAction", [input], null),
     saveDemandDraftAction: input => run("saveDemandDraftAction", [input], null),
     deleteDemandDraftAction: id => run("deleteDemandDraftAction", [id], false),
@@ -87,8 +92,4 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
     {loading ? <div role="status" className="flex min-h-screen items-center justify-center text-steel-600 dark:text-steel-400">{t("backend.loadingWorkspace")}</div> : children}
   </Context.Provider>;
 }
-export function useGreenLoopStore(): GreenLoopStoreValue {
-  const context = useContext(Context);
-  if (!context) throw new Error("useGreenLoopStore must be used within GreenLoopStoreProvider");
-  return context;
-}
+

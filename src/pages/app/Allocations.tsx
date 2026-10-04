@@ -1,12 +1,12 @@
-import { Link } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
+import { EmptyState } from "@/components/greenloop/AppExploration";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { motion } from "motion/react";
-import { cn } from "@/utils";
-import { EmptyState } from "@/components/greenloop/AppExploration";
 import { ambientMedia, materialMediaFor, receiverMediaFor } from "@/config/appMedia";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { cn } from "@/utils";
+import { motion } from "motion/react";
+import { Link } from "react-router";
 
 export default function Allocations() {
   const { dataset } = useGreenLoopStore();
@@ -30,13 +30,13 @@ export default function Allocations() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
-        className="relative mb-4 min-h-40 overflow-hidden rounded-xl border border-[#e5e1d8] bg-[#17291e] sm:min-h-44 dark:border-steel-800"
+        className="relative mb-4 min-h-40 overflow-hidden border border-[#e5e1d8] bg-[#17291e] sm:min-h-44 dark:border-steel-800 rounded-surface"
       >
         <img src={ambientMedia.sortingFacility.src} alt={ambientMedia.sortingFacility.alt} className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/95 via-[#17291e]/75 to-[#17291e]/20" aria-hidden="true" />
         <div className="relative flex min-h-40 max-w-3xl flex-col justify-end px-5 py-5 text-white sm:min-h-44 sm:px-7 sm:py-6">
           <p className="eyebrow-label text-loop-300">Provider operations</p>
-          <h1 className="mt-1 font-archivo text-3xl font-bold tracking-tight sm:text-4xl">Material matches</h1>
+          <h1 className="mt-1 font-archivo font-bold tracking-tight gl-page-title">Material matches</h1>
           <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/85">
             GreenLoop compares receivers that can process each material. Open a match to review the capacity, distance, and scoring details.
           </p>
@@ -53,7 +53,7 @@ export default function Allocations() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.3 }}
-              className="overflow-hidden rounded-lg border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02]"
+              className="overflow-hidden border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02] rounded-surface"
             >
               <div className="flex flex-wrap items-center gap-3 bg-[#f8f7f2] p-3 sm:p-3.5 dark:bg-white/[0.03]">
                 <Link to={`/app/materials/${allocation.materialId}`} className="group relative size-[68px] shrink-0 overflow-hidden border border-steel-200 dark:border-steel-700" aria-label={`View passport ${allocation.materialId}`}>
@@ -185,10 +185,10 @@ export default function Allocations() {
                   </ul>
 
                   <div className="border-t border-steel-200 bg-[#f8f7f2] px-3 py-2.5 dark:border-steel-800 dark:bg-white/[0.02] sm:px-4">
-                    <p className="text-[10px] leading-relaxed text-steel-600 dark:text-steel-400">
+                    <p className="text-xs leading-relaxed text-steel-600 dark:text-steel-400">
                       Composite score: suitability 40% · demand 25% · slot availability 20% · proximity 15%. Recommended = best score among receivers whose slot fits the load.
                     </p>
-                    <p className="mt-1.5 break-words text-[10px] text-steel-500 dark:text-steel-400">Match ID: {allocation.id} · Receiving slot: {allocation.slotId} · Capacity {allocation.capacityBeforeT.toFixed(1)} → {allocation.capacityAfterT.toFixed(1)} t free</p>
+                    <p className="mt-1.5 break-words text-xs text-steel-500 dark:text-steel-400">Match ID: {allocation.id} · Receiving slot: {allocation.slotId} · Capacity {allocation.capacityBeforeT.toFixed(1)} → {allocation.capacityAfterT.toFixed(1)} t free</p>
                   </div>
                 </div>
               </details>
@@ -211,8 +211,8 @@ export default function Allocations() {
 function CandidateMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[9px] font-semibold uppercase tracking-wide text-steel-500 dark:text-steel-400">{label}</dt>
-      <dd className="ledger-numeral mt-0.5 truncate text-[11px] font-semibold text-ink-800 dark:text-gray-200">{value}</dd>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-steel-500 dark:text-steel-400">{label}</dt>
+      <dd className="ledger-numeral mt-0.5 truncate text-xs font-semibold text-ink-800 dark:text-gray-200">{value}</dd>
     </div>
   );
 }

@@ -1,8 +1,127 @@
 {
+  "recordCrud": {
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "save": "Guardar cambios",
+    "cancel": "Cancelar",
+    "saving": "Guardando…",
+    "saved": "Cambios guardados.",
+    "failed": "No se pudo guardar. Revisa el mensaje abajo e inténtalo de nuevo.",
+    "confirmDelete": "¿Eliminar este registro? También se eliminarán sus ofertas vinculadas. Los planes de recepción existentes se conservarán.",
+    "material": "Material",
+    "quantity": "Cantidad (toneladas)",
+    "availableFrom": "Disponible desde",
+    "neededBy": "Necesario para",
+    "price": "Precio / tonelada (opcional)",
+    "budget": "Presupuesto / tonelada (opcional)",
+    "condition": "Condición",
+    "grade": "Grado",
+    "location": "Lugar de entrega",
+    "notes": "Notas",
+    "good": "Bueno",
+    "fair": "Regular",
+    "poor": "Malo",
+    "passportLinked": "Este pasaporte está vinculado a pedidos. Sus datos e historial se conservan; crea un pasaporte nuevo para material adicional.",
+    "requestLinked": "Esta solicitud tiene pedidos y no se puede eliminar. Puedes editar cantidad y plazo respetando los compromisos existentes.",
+    "typeLocked": "Los datos del material están bloqueados mientras existan ofertas o pedidos vinculados."
+  },
+  "offerChecks": {
+    "requirement": "Solicitado: {total} toneladas · Ya pedido: {booked} · Falta: {remaining}",
+    "dateReady": "Fecha de recepción lista: {date} — espacio para {quantity} toneladas.",
+    "blocked": "Por qué Aceptar está desactivado",
+    "closed": "Esta solicitud ya no acepta pedidos nuevos.",
+    "quantity": "Esta oferta es de {offered} toneladas, pero solo necesitas {remaining} más.",
+    "quantityAction": "Pide al proveedor una oferta nueva de {remaining} toneladas o menos. Añadir fechas de recepción no aumenta la cantidad solicitada.",
+    "fulfilled": "Toda la cantidad solicitada ya está en pedidos. Puedes rechazar esta oferta adicional.",
+    "stock": "Al proveedor solo le quedan {quantity} toneladas. Se necesita una oferta menor.",
+    "automaticDate": "Al aceptar, usamos la primera fecha guardada con suficiente espacio antes del plazo. La fecha aparece en cada oferta abajo."
+  },
+  "receivingPlan": {
+    "title": "Tu plan de recepción",
+    "intro": "Elige cuándo puedes recibir {material}, a más tardar el {deadline}.",
+    "date": "¿Cuándo puedes recibirlo?",
+    "tonnes": "Toneladas que puedes recibir",
+    "save": "Guardar plan",
+    "saving": "Guardando…",
+    "hint": "Cantidad sugerida: {quantity} toneladas. Cada oferta necesita espacio suficiente en una fecha.",
+    "saved": "Plan de recepción guardado.",
+    "invalid": "Elige una fecha entre hoy y el plazo de la solicitud, e introduce una cantidad positiva.",
+    "failed": "No se pudo guardar. Inténtalo de nuevo.",
+    "expired": "El plazo de esta solicitud ha pasado. Necesitas una nueva solicitud con una fecha futura.",
+    "available": "{quantity} toneladas disponibles",
+    "reserved": "{quantity} toneladas ya reservadas",
+    "empty": "Todavía no hay una fecha de recepción guardada para esta solicitud.",
+    "otherDates": "Otras fechas guardadas — no disponibles para esta solicitud",
+    "past": "La fecha ha pasado",
+    "tooLate": "Después del plazo de la solicitud",
+    "edit": "Cambiar",
+    "needDate": "Guarda una fecha de recepción arriba antes de aceptar esta oferta.",
+    "needSpace": "Necesitas {quantity} toneladas disponibles en una fecha para aceptar esta oferta."
+  },
+  "orderTracking": {
+    "title": "Estado de entrega",
+    "booked": "Reservado",
+    "pendingPickup": "Pendiente de recogida",
+    "picked": "Recogido",
+    "inTransit": "En tránsito",
+    "destination": "Llegó al destino",
+    "delivered": "Entregado",
+    "cancelled": "Cancelado",
+    "awaitingAcceptance": "Esperando aceptación del receptor",
+    "loadRef": "Referencia de carga",
+    "notRecorded": "Sin registro",
+    "waiting": "Esperando actualización",
+    "explanation": "El progreso se actualiza cuando el proveedor registra una etapa o el receptor registra la llegada. Ambas partes ven las actualizaciones.",
+    "recordArrival": "Registrar llegada",
+    "verificationPending": "Entregado. Verificación pendiente.",
+    "verificationRejected": "Entregado. El receptor rechazó la carga.",
+    "verificationComplete": "Entregado y verificado.",
+    "history": "Historial del envío",
+    "hide": "Ocultar seguimiento",
+    "track": "Seguir pedido",
+    "action": {
+      "ready": "Marcar listo para recogida",
+      "picked-up": "Marcar recogido",
+      "arrived": "Marcar llegada al destino",
+      "dispatch": "Despachar carga"
+    }
+  },
+  "receiverDelivery": {
+    "arrivalRecorded": "Llegada registrada. Revisa el comprobante y confirma la cantidad aceptada abajo.",
+    "viewTicket": "Ver comprobante de pesaje",
+    "savedProof": "Comprobantes de entrega guardados"
+  },
   "sidebar": {
-    "groups": { "menu": "Operaciones", "others": "Datos de referencia", "tools": "Herramientas" },
-    "items": { "explore": "Inicio", "dashboard": "Consola de operaciones", "projects": "Proyectos", "materials": "Inventario", "marketDemand": "Demanda activa", "receivers": "Receptores", "receiverInventory": "Inventario", "receiverDemand": "Solicitar material", "providers": "Proveedores", "incomingRequests": "Solicitudes recibidas", "bookings": "Reservas", "verification": "Prueba de recuperación", "deliveries": "Entregas", "reports": "Informes", "allocations": "Detalles de coincidencia", "publicSite": "Sitio público" },
-    "workspace": { "provider": "Proveedor", "receiver": "Receptor", "switchToProvider": "Cambiar al espacio del proveedor", "switchToReceiver": "Cambiar al espacio del receptor" }
+    "groups": {
+      "menu": "Operaciones",
+      "others": "Referencia",
+      "tools": "Herramientas"
+    },
+    "items": {
+      "explore": "Inicio",
+      "dashboard": "Panel",
+      "projects": "Proyectos",
+      "materials": "Inventario",
+      "marketDemand": "Solicitudes",
+      "receivers": "Receptores",
+      "receiverInventory": "Inventario",
+      "receiverDemand": "Solicitudes",
+      "providers": "Proveedores",
+      "incomingRequests": "Solicitudes recibidas",
+      "bookings": "Reservas",
+      "bookings-deliveries": "Mis pedidos",
+      "verification": "Verificación",
+      "deliveries": "Entregas",
+      "reports": "Informes",
+      "allocations": "Detalles de coincidencia",
+      "publicSite": "Sitio web"
+    },
+    "workspace": {
+      "provider": "Proveedor",
+      "receiver": "Receptor",
+      "switchToProvider": "Cambiar al espacio del proveedor",
+      "switchToReceiver": "Cambiar al espacio del receptor"
+    }
   },
   "backend": {
     "passwordMismatch": "Usa al menos 8 caracteres y contraseñas iguales.",
@@ -37,5 +156,60 @@
     "serverUnavailable": "El servidor no está disponible. Inténtalo de nuevo.",
     "uploadLimits": "Fotos y documentos (hasta 4 MB por archivo)",
     "uploadingEvidence": "Cargando evidencia…"
+  },
+  "verificationCards": {
+    "details": "Detalles",
+    "complete": "Pedido completado · {{quantity}} toneladas aceptadas",
+    "rejected": "Pedido completado · carga rechazada",
+    "pending": "Entregado · verificación pendiente",
+    "awaiting": "Esperando llegada · registra la entrega cuando llegue"
+  },
+  "workspacePicker": {
+    "metaTitle": "Seleccionar espacio | GreenLoop",
+    "title": "Elige tu espacio de trabajo",
+    "subtitle": "Elige cómo quieres usar GreenLoop hoy.",
+    "hint": "Una tarjeta. Dos formas de trabajar. Desliza para cambiar y haz clic para entrar.",
+    "flip": "Mostrar el otro espacio",
+    "keyboardHint": "Desliza o usa las flechas para girar · Pulsa Intro o haz clic para elegir",
+    "entering": "Entrando…",
+    "failed": "No se pudo seleccionar este espacio. Inténtalo de nuevo.",
+    "provider": {
+      "short": "Proveedor",
+      "title": "Espacio del proveedor",
+      "description": "Ofrece materiales recuperados, gestiona pasaportes de materiales y sigue las entregas de tus proyectos.",
+      "enter": "Entrar como proveedor"
+    },
+    "receiver": {
+      "short": "Receptor",
+      "title": "Espacio del receptor",
+      "description": "Solicita materiales, gestiona la capacidad de recepción y verifica las cargas que llegan a tu instalación.",
+      "enter": "Entrar como receptor"
+    }
+  },
+  "directRequest": {
+    "open": "Solicitar material",
+    "title": "Solicitar a {{provider}}",
+    "linked": "{{material}} · Pasaporte {{reference}} · {{quantity}} toneladas disponibles",
+    "quantity": "Cantidad (toneladas)",
+    "date": "Necesario antes de",
+    "location": "Lugar de recepción",
+    "notes": "Notas (opcional)",
+    "flow": "Esta solicitud se envía directamente al proveedor seleccionado. Puede responder con una oferta para este material.",
+    "cancel": "Cancelar",
+    "send": "Enviar al proveedor",
+    "sending": "Enviando…",
+    "failed": "No se pudo enviar la solicitud. Inténtalo de nuevo.",
+    "invalid": "Elige una cantidad disponible, una fecha válida y el lugar de recepción.",
+    "recipient": "Enviado a {{provider}} · Pasaporte {{reference}}"
+  },
+  "projectLocationForm": {
+    "name": "Nombre del proyecto",
+    "location": "Ubicación del proyecto",
+    "placeholder": "Introduce ciudad, calle o dirección de la obra",
+    "hint": "Escribe la ubicación aquí. Las sugerencias y el marcador del mapa son opcionales.",
+    "required": "Introduce el nombre y la ubicación del proyecto.",
+    "failed": "No se pudo crear el proyecto. Inténtalo de nuevo.",
+    "create": "Crear proyecto",
+    "creating": "Creando proyecto…"
   }
 }

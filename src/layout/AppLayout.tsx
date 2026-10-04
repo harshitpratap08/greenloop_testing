@@ -1,4 +1,5 @@
-import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
+import { SidebarProvider } from "@/context/SidebarContext";
+import { useSidebar } from "@/context/SidebarContext.helpers";
 import { cn } from "@/utils";
 import { Outlet } from "react-router";
 import AppHeader from "./AppHeader";
@@ -16,13 +17,13 @@ const LayoutContent: React.FC = () => {
 
       <div
         className={cn(
-          "flex-1 transition-[margin] duration-300 ease-in-out",
+          "min-w-0 flex-1 transition-[margin] duration-300 ease-in-out",
           isExpanded || isHovered ? "xl:ms-72.5" : "xl:ms-22.5",
           isMobileOpen ? "ms-0" : "",
         )}
       >
         <AppHeader />
-        <main className="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6 xl:p-7">
+        <main className="greenloop-workspace mx-auto w-full max-w-app p-4 sm:p-card xl:p-section">
           <Outlet />
         </main>
       </div>

@@ -25,6 +25,12 @@
   --radius-surface: 1rem;
   --radius-xs: 0.5rem;
   --radius-sm: 0.75rem;
+  /* Compact Fibonacci spacing approximates the golden ratio (1.618). */
+  --spacing-detail: 0.8125rem;
+  --spacing-card: 1.3125rem;
+  --spacing-section: 2.125rem;
+  --container-app: 80rem;
+  --aspect-golden: 1.618 / 1;
 
   /* Typography — Archivo display / Inter UI / IBM Plex Mono data */
   --font-*: initial;
@@ -418,16 +424,73 @@
 }
 
 @utility surface-card {
-  @apply rounded-sm border border-steel-200 bg-gray-25 dark:border-steel-800 dark:bg-gray-dark;
+  @apply rounded-surface border border-steel-200 bg-gray-25 dark:border-steel-800 dark:bg-gray-dark;
 }
 
 /* GreenLoop AppExploration primitives */
 @utility surface-dark {
-  @apply rounded-sm bg-ink-900 text-white;
+  @apply rounded-surface bg-ink-900 text-white;
 }
 
 @utility surface-raised {
-  @apply rounded-sm border border-steel-200 bg-gray-25 dark:border-steel-800 dark:bg-gray-dark;
+  @apply rounded-surface border border-steel-200 bg-gray-25 dark:border-steel-800 dark:bg-gray-dark;
+}
+
+/* Shared geometry only: individual screens keep their colors and behavior. */
+@utility gl-card-pad {
+  padding: 1rem;
+  @media (width >= 640px) { padding: var(--spacing-card); }
+}
+
+@utility gl-page-title {
+  font-size: clamp(1.625rem, 1.35rem + 1vw, 2.125rem);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+@utility gl-golden-columns {
+  grid-template-columns: minmax(0, 1.618fr) minmax(0, 1fr);
+}
+
+@utility gl-golden-columns-reverse {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.618fr);
+}
+
+@utility workspace-perspective {
+  perspective: 75rem;
+}
+
+@utility workspace-flip {
+  transform-style: preserve-3d;
+  transition: transform 550ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@utility workspace-flipped {
+  transform: rotateY(180deg);
+}
+
+@utility workspace-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@utility workspace-back {
+  transform: rotateY(180deg);
+}
+
+@layer base {
+  .greenloop-workspace {
+    line-height: 1.618;
+  }
+  .greenloop-workspace :where(.grid > *, .flex > *) {
+    min-width: 0;
+  }
+  .greenloop-workspace :where(h1, h2, h3) {
+    overflow-wrap: anywhere;
+  }
+  .greenloop-workspace :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]), select, textarea) {
+    max-width: 100%;
+  }
 }
 
 @utility hairline-e {

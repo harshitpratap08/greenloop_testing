@@ -1,15 +1,15 @@
 import PageMeta from "@/components/common/PageMeta";
-import { useState } from "react";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { slotLedger } from "@/domain/capacity";
-import { motion } from "motion/react";
-import { cn, formatDate } from "@/utils";
-import Button from "@/components/ui/button/Button";
-import type { MaterialTypeKey } from "@/domain/types";
-import { useAuth } from "@/context/AuthContext";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
-import { materialMediaFor, ambientMedia } from "@/config/appMedia";
+import Button from "@/components/ui/button/Button";
+import { ambientMedia, materialMediaFor } from "@/config/appMedia";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { slotLedger } from "@/domain/capacity";
+import type { MaterialTypeKey } from "@/domain/types";
 import { CalenderIcon } from "@/icons";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { cn, formatDate } from "@/utils";
+import { motion } from "motion/react";
+import { useState } from "react";
 
 export default function Capacity() {
   const { dataset, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
@@ -64,7 +64,7 @@ export default function Capacity() {
       />
 
       {/* Intake operations — the yard these slots schedule */}
-      <figure className="relative mb-8 h-40 w-full overflow-hidden border border-steel-200 sm:h-56 lg:h-64 dark:border-steel-800">
+      <figure className="relative mb-section h-40 w-full overflow-hidden border border-steel-200 sm:h-56 lg:h-64 dark:border-steel-800">
         <img
           src={ambientMedia.sortingFacility.src}
           alt={ambientMedia.sortingFacility.alt}
@@ -78,7 +78,7 @@ export default function Capacity() {
       </figure>
 
       {isAdding && (
-        <form onSubmit={handleAddCapacity} className="mb-6 grid gap-4 rounded-sm border border-steel-200 bg-white p-6 shadow-xs sm:grid-cols-4 dark:border-steel-800 dark:bg-white/[0.02]">
+        <form onSubmit={handleAddCapacity} className="mb-6 grid gap-card border border-steel-200 bg-white shadow-xs sm:grid-cols-4 dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
           <label className="text-sm font-medium text-steel-700 dark:text-gray-300">Material type
             <select value={materialType} onChange={(event) => setMaterialType(event.target.value as MaterialTypeKey)} className="mt-1 block w-full rounded-sm border-steel-300 dark:border-steel-700 dark:bg-black dark:text-white">
               {["concrete", "brick", "steel", "timber", "plasterboard", "glass"].map((type) => <option key={type} value={type}>{type}</option>)}
@@ -98,14 +98,14 @@ export default function Capacity() {
       )}
 
       {slots.length === 0 ? (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-sm border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01]">
+        <div className="flex min-h-[40vh] flex-col items-center justify-center border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01] rounded-surface">
           <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">How much can your facility accept?</h2>
           <p className="mt-2 max-w-md text-steel-600 dark:text-gray-400">
             Add a date, material, and amount to make receiving capacity available to providers.
           </p>
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-card sm:grid-cols-2 lg:grid-cols-3">
           {slots.map((slot, i) => {
             const ledger = slotLedger(dataset, slot.id);
             if (!ledger) return null;
@@ -120,7 +120,7 @@ export default function Capacity() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={slot.id}
-                className="flex flex-col overflow-hidden rounded-lg border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600"
+                className="flex flex-col overflow-hidden border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600 rounded-surface"
               >
                 {/* Material imagery — the commodity this slot accepts */}
                 <img
@@ -130,7 +130,7 @@ export default function Capacity() {
                   className="h-32 w-full border-b border-steel-200 object-cover sm:h-36 dark:border-steel-800"
                 />
 
-                <div className="flex flex-1 flex-col p-5 sm:p-6">
+                <div className="flex flex-1 flex-col gl-card-pad">
                   {/* Date, material, status */}
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -153,7 +153,7 @@ export default function Capacity() {
                   </div>
 
                   {/* Headline metrics */}
-                  <div className="mt-5 grid grid-cols-2 gap-4 border-t border-steel-100 pt-5 dark:border-steel-800/60">
+                  <div className="mt-5 grid grid-cols-2 gap-card border-t border-steel-100 pt-5 dark:border-steel-800/60">
                     <div>
                       <p className="eyebrow-label text-steel-500 dark:text-steel-400">Total capacity</p>
                       <p className="ledger-numeral mt-1.5 text-2xl font-bold tracking-tight text-ink-900 dark:text-white">
@@ -170,7 +170,7 @@ export default function Capacity() {
                 </div>
 
                 {/* Reservation progress + management */}
-                <div className="mt-auto border-t border-steel-100 p-5 sm:p-6 dark:border-steel-800/60">
+                <div className="mt-auto border-t border-steel-100 dark:border-steel-800/60 gl-card-pad">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium text-steel-600 dark:text-gray-400">{reserved.toFixed(1)} t reserved</span>
                     <span className="ledger-numeral font-bold text-ink-900 dark:text-white">{percent.toFixed(0)}%</span>
@@ -217,7 +217,7 @@ export default function Capacity() {
 
       {/* Empty-state guidance — always actionable, never a blank wall */}
       {slots.length > 0 && !nextOpenSlot && (
-        <div className="mt-10 flex flex-col items-start gap-5 rounded-lg border border-loop-200/70 bg-loop-50/60 p-6 sm:flex-row sm:items-center sm:justify-between dark:border-loop-500/20 dark:bg-loop-500/5 sm:p-7">
+        <div className="mt-10 flex flex-col items-start gap-5 border border-loop-200/70 bg-loop-50/60 sm:flex-row sm:items-center sm:justify-between dark:border-loop-500/20 dark:bg-loop-500/5 sm:p-7 gl-card-pad rounded-surface">
           <div className="flex items-start gap-4">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-loop-200 dark:bg-white/10 dark:ring-loop-500/30">
               <CalenderIcon className="size-5 text-loop-600 dark:text-loop-400" />

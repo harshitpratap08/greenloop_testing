@@ -1,8 +1,8 @@
-import { Link, useParams } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { formatDate, formatINRPerT } from "@/utils";
 import { LocationMap } from "@/components/greenloop/LocationMap";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { formatDate, formatINRPerT } from "@/utils";
+import { Link, useParams } from "react-router";
 
 const stages = ["Offered", "Requested", "Accepted", "Delivered", "Completed"] as const;
 
@@ -51,23 +51,23 @@ export default function ProjectDetails() {
     <main className="mx-auto max-w-[1200px] pb-16">
       <PageMeta title={`${project.name} | GreenLoop`} description={`Live recovery progress and activity for ${project.name}.`} />
       <Link to="/app/projects" className="mb-5 inline-flex text-sm font-semibold text-steel-600 hover:text-ink-900 dark:text-gray-300 dark:hover:text-white">← Projects</Link>
-      <header className="mb-8 border-b border-steel-200 pb-6 dark:border-steel-800">
+      <header className="mb-section border-b border-steel-200 pb-6 dark:border-steel-800">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-loop-700 dark:text-loop-300">Project {project.id}</p>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-4xl">{project.name}</h1>
+            <h1 className="font-archivo font-bold tracking-tight text-ink-900 dark:text-white gl-page-title">{project.name}</h1>
             <p className="mt-2 text-sm text-steel-600 dark:text-gray-400">{project.location}</p>
           </div>
           <Link to={`/app/materials/new?project=${encodeURIComponent(project.id)}`} className="inline-flex min-h-11 items-center bg-loop-700 px-5 text-sm font-semibold text-white hover:bg-loop-800">Add Material</Link>
         </div>
       </header>
 
-      <section aria-label="Recovery progress" className="mb-8 border border-steel-200 bg-white p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+      <section aria-label="Recovery progress" className="mb-section border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Recovery progress</h2>
           <span className="text-xs font-semibold uppercase tracking-wide text-steel-500">{progress.filter(Boolean).length} of {stages.length} stages</span>
         </div>
-        <ol className="mt-5 grid gap-3 sm:grid-cols-5">
+        <ol className="mt-5 grid gap-detail sm:grid-cols-5">
           {stages.map((stage, index) => (
             <li key={stage} className={`border-s-2 ps-3 py-1 ${progress[index] ? "border-loop-600" : "border-steel-200 dark:border-steel-700"}`}>
               <p className={`text-xs font-semibold uppercase tracking-wide ${progress[index] ? "text-loop-700 dark:text-loop-300" : "text-steel-500"}`}>{stage}</p>
@@ -77,8 +77,8 @@ export default function ProjectDetails() {
         </ol>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <section className="border border-steel-200 bg-white p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+      <div className="grid gap-card lg:gl-golden-columns">
+        <section className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Project inventory</h2>
             <Link to={`/app/materials?project=${encodeURIComponent(project.id)}`} className="text-sm font-semibold text-loop-700 underline dark:text-loop-300">Open inventory</Link>
@@ -89,13 +89,13 @@ export default function ProjectDetails() {
               <div className="text-end"><p className="font-archivo text-lg font-bold text-ink-900 dark:text-white">{material.quantityT.toLocaleString("en-IN")} t</p>{material.pricePerT !== undefined && <p className="text-xs text-steel-500">{formatINRPerT(material.pricePerT)}</p>}</div>
             </li>)}
           </ul> : <p className="mt-4 text-sm text-steel-500">No materials have been added to this project.</p>}
-          <div className="mt-5 grid grid-cols-2 gap-3 border-t border-steel-100 pt-4 dark:border-steel-800">
+          <div className="mt-5 grid grid-cols-2 gap-detail border-t border-steel-100 pt-4 dark:border-steel-800">
             <div><p className="text-xs uppercase tracking-wide text-steel-500">Surveyed</p><p className="mt-1 font-archivo text-xl font-bold text-ink-900 dark:text-white">{totalT.toLocaleString("en-IN")} t</p></div>
             <div><p className="text-xs uppercase tracking-wide text-steel-500">Recovered</p><p className="mt-1 font-archivo text-xl font-bold text-ink-900 dark:text-white">{acceptedT.toLocaleString("en-IN")} t</p></div>
           </div>
         </section>
 
-        <section className="border border-steel-200 bg-white p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+        <section className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
           <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Location & activity</h2>
           <p className="mt-3 rounded-md bg-steel-50 p-3 text-sm text-ink-900 dark:bg-white/[0.04] dark:text-gray-200">{project.location}</p>
           {project.geo && <LocationMap geo={project.geo} className="mt-3 h-52" />}

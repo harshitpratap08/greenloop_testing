@@ -1,12 +1,12 @@
-import { useMemo, useState } from "react";
-import { Link, useLocation } from "react-router";
+import { LocationMap } from "@/components/greenloop/LocationMap";
+import MatchDetailsPanel from "@/components/greenloop/MatchDetailsPanel";
+import SearchFilterBar from "@/components/greenloop/SearchFilterBar";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { contextualMatch } from "@/domain/capacity";
 import type { GreenLoopDataset, MaterialTypeKey } from "@/domain/types";
 import { formatDate, materialTypeLabel } from "@/utils";
-import { LocationMap } from "@/components/greenloop/LocationMap";
-import SearchFilterBar from "@/components/greenloop/SearchFilterBar";
-import MatchDetailsPanel from "@/components/greenloop/MatchDetailsPanel";
-import { contextualMatch } from "@/domain/capacity";
-import { useAuth } from "@/context/AuthContext";
+import { useMemo, useState } from "react";
+import { Link, useLocation } from "react-router";
 
 const materials: MaterialTypeKey[] = ["concrete", "brick", "steel", "timber", "plasterboard", "glass"];
 
@@ -62,10 +62,10 @@ export default function ReceiverDiscovery({ dataset }: { dataset: GreenLoopDatas
         </>
       }
     />
-    {filteredReceivers.length ? <ul className="mt-4 grid gap-3 lg:grid-cols-2">{filteredReceivers.map((receiver) => {
+    {filteredReceivers.length ? <ul className="mt-4 grid gap-detail lg:grid-cols-2">{filteredReceivers.map((receiver) => {
       const demand = activeDemands.find((item) => item.receiverId === receiver.id);
       const relatedProjects = [...new Set(dataset.bookings.filter((booking) => booking.receiverId === receiver.id).map((booking) => dataset.materials.find((item) => item.id === booking.materialId)?.projectId).filter((id): id is string => Boolean(id)))];
-      return <li key={receiver.id} className="border border-steel-200 bg-white p-4 dark:border-steel-800 dark:bg-[#17251d]"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">{receiver.name}</h3><p className="mt-1 text-sm text-steel-600 dark:text-gray-400">{receiver.location || "Location not provided"}</p></div><span className="text-xs font-semibold text-steel-500">{receiver.acceptedTypes.length ? receiver.acceptedTypes.join(", ") : "Open to requests"}</span></div>{(demand?.geo ?? receiver.geo) && <LocationMap geo={demand?.geo ?? receiver.geo} className="mt-3 h-40" />}<div className="mt-3 grid grid-cols-2 gap-3 border-y border-steel-100 py-3 text-xs dark:border-steel-800"><span>Material required<strong className="mt-1 block capitalize text-ink-900 dark:text-white">{demand?.materialType ?? "No active request"}</strong></span><span>Quantity<strong className="mt-1 block text-ink-900 dark:text-white">{demand ? `${demand.requiredT.toLocaleString("en-IN")} t` : "—"}</strong></span><span>Required date<strong className="mt-1 block text-ink-900 dark:text-white">{demand ? formatDate(demand.period) : "—"}</strong></span><span>Status<strong className="mt-1 block text-ink-900 dark:text-white">{demand?.status.replaceAll("_", " ") ?? "No active demand"}</strong></span><span className="col-span-2">Project<strong className="mt-1 block text-ink-900 dark:text-white">{relatedProjects.map((id) => dataset.projects.find((project) => project.id === id)?.name ?? id).join(", ") || "Not linked"}</strong></span></div><details className="mt-3"><summary className="cursor-pointer text-xs font-semibold text-loop-700 dark:text-loop-300">Overview and details</summary><p className="mt-2 text-xs leading-5 text-steel-600 dark:text-gray-400">{receiver.dailyIntakeT.toLocaleString("en-IN")} tonnes daily intake · currently holding {receiver.currentStockT.toLocaleString("en-IN")} tonnes. This directory shows shared facility data only.</p></details>
+      return <li key={receiver.id} className="border border-steel-200 bg-white p-4 dark:border-steel-800 dark:bg-[#17251d] rounded-surface"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-archivo text-lg font-bold text-ink-900 dark:text-white">{receiver.name}</h3><p className="mt-1 text-sm text-steel-600 dark:text-gray-400">{receiver.location || "Location not provided"}</p></div><span className="text-xs font-semibold text-steel-500">{receiver.acceptedTypes.length ? receiver.acceptedTypes.join(", ") : "Open to requests"}</span></div>{(demand?.geo ?? receiver.geo) && <LocationMap geo={demand?.geo ?? receiver.geo} className="mt-3 h-40" />}<div className="mt-3 grid grid-cols-2 gap-detail border-y border-steel-100 py-3 text-xs dark:border-steel-800"><span>Material required<strong className="mt-1 block capitalize text-ink-900 dark:text-white">{demand?.materialType ?? "No active request"}</strong></span><span>Quantity<strong className="mt-1 block text-ink-900 dark:text-white">{demand ? `${demand.requiredT.toLocaleString("en-IN")} t` : "—"}</strong></span><span>Required date<strong className="mt-1 block text-ink-900 dark:text-white">{demand ? formatDate(demand.period) : "—"}</strong></span><span>Status<strong className="mt-1 block text-ink-900 dark:text-white">{demand?.status.replaceAll("_", " ") ?? "No active demand"}</strong></span><span className="col-span-2">Project<strong className="mt-1 block text-ink-900 dark:text-white">{relatedProjects.map((id) => dataset.projects.find((project) => project.id === id)?.name ?? id).join(", ") || "Not linked"}</strong></span></div><details className="mt-3"><summary className="cursor-pointer text-xs font-semibold text-loop-700 dark:text-loop-300">Overview and details</summary><p className="mt-2 text-xs leading-5 text-steel-600 dark:text-gray-400">{receiver.dailyIntakeT.toLocaleString("en-IN")} tonnes daily intake · currently holding {receiver.currentStockT.toLocaleString("en-IN")} tonnes. This directory shows shared facility data only.</p></details>
       
       <details className="mt-3"><summary className="cursor-pointer text-xs font-semibold text-loop-700 dark:text-loop-300">View Match Analysis</summary>
         <div className="mt-2 text-left">

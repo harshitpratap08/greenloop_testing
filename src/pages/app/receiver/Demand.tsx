@@ -1,26 +1,25 @@
-import { useTranslation } from "react-i18next";
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router";
-import { AnimatePresence, motion } from "motion/react";
 import PageMeta from "@/components/common/PageMeta";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { type GeoPoint, type MaterialTypeKey } from "@/domain/types";
 import AddressLocation from "@/components/greenloop/AddressLocation";
+import { materialMedia } from "@/components/greenloop/AppExploration.helpers";
 import { LocationMap } from "@/components/greenloop/LocationMap";
-import { slotLedger, slotMatchesDemandPeriod } from "@/domain/capacity";
-import Button from "@/components/ui/button/Button";
-import StatusBadge from "@/components/greenloop/StatusBadge";
-import { cn, formatINR, formatINRPerT, materialTypeLabel } from "@/utils";
-import NegotiationPanel from "@/components/greenloop/NegotiationPanel";
-import { useAuth } from "@/context/AuthContext";
-import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
-import { materialMediaFor } from "@/config/appMedia";
-import { materialMedia } from "@/components/greenloop/AppExploration";
 import MatchDetailsPanel from "@/components/greenloop/MatchDetailsPanel";
-import { contextualMatch } from "@/domain/capacity";
-import { CalenderIcon, MapIcon, FileIcon, ChevronDownIcon } from "@/icons";
+import NegotiationPanel from "@/components/greenloop/NegotiationPanel";
+import RecordActions from "@/components/greenloop/RecordActions";
+import StatusBadge from "@/components/greenloop/StatusBadge";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import Button from "@/components/ui/button/Button";
+import { materialMediaFor } from "@/config/appMedia";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { contextualMatch, slotLedger, slotMatchesDemandPeriod } from "@/domain/capacity";
+import { type GeoPoint, type MaterialTypeKey } from "@/domain/types";
+import { CalenderIcon, ChevronDownIcon, FileIcon, MapIcon } from "@/icons";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { cn, formatDate, formatINR, formatINRPerT, materialTypeLabel } from "@/utils";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router";
 import DemandCapacity from "./DemandCapacity";
-
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -36,14 +35,16 @@ const normalizeCustomType = (value: string) => value.trim().toLowerCase().replac
 
 export default function Demand() {
   const { t } = useTranslation();
-  const { dataset, addDemandAction, saveDemandDraftAction, deleteDemandDraftAction, acceptOfferAction, declineOfferAction, counterOfferAction, cancelDemandAction, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
+  const { dataset, addDemandAction, saveDemandDraftAction, acceptOfferAction, declineOfferAction, counterOfferAction, cancelDemandAction, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
   const { user } = useAuth();
   const receiverId = user?.receiverId ?? "";
   const [searchParams] = useSearchParams();
   const initialType = searchParams.get("materialType");
   const targetMaterialId = searchParams.get("targetMaterialId") ?? undefined;
   const [isAdding, setIsAdding] = useState(Boolean(searchParams.get("materialType")));
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const query = searchParams.toString();
+  const [expandedOverride, setExpandedOverride] = useState<{ query: string; id: string | null } | null>(null);
+  const expandedId = expandedOverride?.query === query ? expandedOverride.id : searchParams.get("demand");
   const [type, setType] = useState<MaterialTypeKey>(initialType && ["concrete", "brick", "steel", "timber", "plasterboard", "glass"].includes(initialType) ? initialType as MaterialTypeKey : "concrete");
   const [requiredT, setRequiredT] = useState(searchParams.get("quantityT") ?? "");
   const [period, setPeriod] = useState("");
@@ -65,13 +66,21 @@ export default function Demand() {
   const receiverDemands = dataset.demands?.filter((d) => d.receiverId === receiverId) ?? [];
 
   useEffect(() => {
-    const demandId = searchParams.get("demand");
-    if (demandId) {
-      setExpandedId(demandId);
-      window.setTimeout(() => document.getElementById(`demand-${demandId}`)?.scrollIntoView({ behavior: "smooth" }), 0);
-    }
     if (searchParams.get("capacity") === "1") window.setTimeout(() => document.getElementById("receiving-capacity")?.scrollIntoView({ behavior: "smooth" }), 0);
   }, [searchParams]);
+
+  useEffect(() => {
+    const demandId = searchParams.get("demand");
+    if (!demandId || expandedId !== demandId) return;
+    const offerId = searchParams.get("offer");
+    const timer = window.setTimeout(() => {
+      const offer = offerId ? document.getElementById(`offer-${offerId}`) : null;
+      const target = offer ?? document.getElementById(`demand-${demandId}`);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      offer?.focus({ preventScroll: true });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [expandedId, searchParams]);
 
   const handleAddDemand = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,9 +165,9 @@ export default function Demand() {
           animate={{ opacity: 1, height: "auto" }}
           className="mb-10 overflow-hidden"
         >
-          <div id="request-form" className="border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
+          <div id="request-form" className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
             <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Tell providers what you need</h2>
-            <form onSubmit={handleAddDemand} className="mt-6 grid gap-6 sm:grid-cols-2">
+            <form onSubmit={handleAddDemand} className="mt-6 grid gap-card sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Material Type</label>
                 <select
@@ -250,11 +259,9 @@ export default function Demand() {
         </motion.div>
       )}
 
-
-
       {/* Demand List */}
       {!isAdding && receiverDemands.length === 0 ? (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-sm border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01]">
+        <div className="flex min-h-[40vh] flex-col items-center justify-center border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01] rounded-surface">
           <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">No active material demand</h2>
           <p className="mt-2 max-w-md text-steel-600 dark:text-gray-400">
             Publish a material request to tell GreenLoop what you need and start matching with recovery projects.
@@ -264,7 +271,7 @@ export default function Demand() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-8">
+        <div className="grid gap-card">
           {receiverDemands.map((demand, i) => {
             const coveredT = calculateCoveredT(demand.id);
             const heldT = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status === "hold")
@@ -282,7 +289,7 @@ export default function Demand() {
                 transition={{ delay: i * 0.05 }}
                 key={demand.id}
                 id={`demand-${demand.id}`}
-                className="overflow-hidden rounded-lg border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600"
+                className="overflow-hidden border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600 rounded-surface"
               >
                 {/* Hero material image — what this facility needs */}
                 <figure className="relative h-40 w-full overflow-hidden sm:h-52">
@@ -303,6 +310,7 @@ export default function Demand() {
                       <p className="mt-1.5 text-sm text-steel-600 dark:text-gray-400">
                         <span className="font-semibold text-ink-900 dark:text-gray-200">{demand.period}</span> · {demand.location}
                       </p>
+                      {demand.targetMaterialId && <p className="mt-2 text-sm font-semibold text-loop-700 dark:text-loop-300">{t("directRequest.recipient", { provider: demand.targetProviderName ?? dataset.providerListings?.find(item => item.materialId === demand.targetMaterialId)?.organization ?? "Provider", reference: demand.targetMaterialId })}</p>}
                     </div>
 
                     <div className="flex flex-wrap items-start gap-x-12 gap-y-5">
@@ -325,12 +333,12 @@ export default function Demand() {
 
                     <div className="flex items-center justify-between gap-4 lg:flex-col lg:items-end">
                       <StatusBadge status={demand.status} />
-                      {demand.status === "DRAFT" && <Button size="sm" variant="outline" onClick={() => deleteDemandDraftAction(demand.id)}>Delete Draft</Button>}
+                      <RecordActions kind="request" id={demand.id} />
                       {(["OPEN", "PARTIALLY_COVERED"].includes(demand.status) && !dataset.bookings.some((booking) => booking.demandId === demand.id && booking.status !== "cancelled")) && <Button size="sm" variant="outline" onClick={() => cancelDemandAction(demand.id)}>Cancel Request</Button>}
                       <button
                         type="button"
                         aria-expanded={isExpanded}
-                        onClick={() => setExpandedId(isExpanded ? null : demand.id)}
+                        onClick={() => setExpandedOverride({ query, id: isExpanded ? null : demand.id })}
                         className="inline-flex items-center gap-1.5 text-sm font-medium text-steel-600 transition-colors hover:text-ink-900 dark:text-gray-400 dark:hover:text-white"
                       >
                         View details
@@ -340,7 +348,7 @@ export default function Demand() {
                   </div>
 
                   {/* Coverage — engine output, never hardcoded */}
-                  <div className="mt-7 border-t border-steel-100 pt-5 dark:border-steel-800/60">
+                  <div className="mt-section border-t border-steel-100 pt-5 dark:border-steel-800/60">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-semibold text-steel-700 dark:text-gray-300">Coverage from confirmed slots</span>
                       <span className="ledger-numeral font-bold text-ink-900 dark:text-white">{coveredT.toFixed(1)} t covered</span>
@@ -391,7 +399,7 @@ export default function Demand() {
                         </div>
 
                         {demand.notes && (
-                          <div className="mt-5 border border-steel-200 bg-steel-50/70 p-4 dark:border-steel-800 dark:bg-white/[0.03]">
+                          <div className="mt-5 border border-steel-200 bg-steel-50/70 p-4 dark:border-steel-800 dark:bg-white/[0.03] rounded-surface">
                             <p className="eyebrow-label text-steel-500 dark:text-steel-400">Additional information</p>
                             <p className="mt-1.5 text-sm leading-relaxed text-ink-800 dark:text-gray-200">{demand.notes}</p>
                           </div>
@@ -404,7 +412,7 @@ export default function Demand() {
                   <DemandCapacity demand={demand} dataset={dataset} receiverId={receiverId} addCapacityAction={addCapacityAction} updateCapacityAction={updateCapacityAction} />
                   {/* Offers — real provider proposals on this request */}
                   {dataset.offers && dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").length > 0 && (
-                    <div className="mt-6 rounded-lg border border-loop-200 bg-loop-50/50 p-4 dark:border-loop-900/30 dark:bg-loop-900/10">
+                    <div className="mt-6 border border-loop-200 bg-loop-50/50 p-4 dark:border-loop-900/30 dark:bg-loop-900/10 rounded-surface">
                       <h4 className="mb-3 font-archivo text-sm font-bold text-ink-900 dark:text-white">Provider offers waiting for a decision</h4>
                       <div className="space-y-3">
                         {dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").map(offer => {
@@ -415,14 +423,18 @@ export default function Demand() {
                           const committedDemandT = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status !== "cancelled")
                             .reduce((total, booking) => total + booking.tonnesT, 0);
                           const offerRemainingT = Math.max(0, demand.requiredT - committedDemandT);
-                          const eligibleSlots = dataset.slots.filter((slot) => slot.receiverId === demand.receiverId && slot.materialType === demand.materialType && slot.date >= new Date().toISOString().slice(0, 10) && slotMatchesDemandPeriod(slot, demand.period));
-                          const hasCapacity = eligibleSlots.some((slot) => (slotLedger(dataset, slot.id)?.available ?? 0) >= offer.offeredQuantityT);
+                          const eligibleSlots = dataset.slots.filter((slot) => slot.receiverId === demand.receiverId && slot.materialType === demand.materialType && slot.date >= new Date().toISOString().slice(0, 10) && slotMatchesDemandPeriod(slot, demand.period)).sort((a, b) => a.date.localeCompare(b.date));
+                          const receivingSlot = eligibleSlots.find((slot) => (slotLedger(dataset, slot.id)?.available ?? 0) >= offer.offeredQuantityT);
+                          const hasCapacity = Boolean(receivingSlot);
+                          const requestOpen = ["OPEN", "PARTIALLY_COVERED"].includes(demand.status);
+                          const blockedByQuantity = offer.offeredQuantityT > offerRemainingT;
+                          const blockedByStock = offer.offeredQuantityT > passportAvailableT;
                           const photo = passport ? materialMedia(passport)[0] : undefined;
                           const receiverDistanceKm = dataset.receivers.find((item) => item.id === demand.receiverId)?.distanceKm;
                           const matchCandidates = contextualMatch(dataset, { demandId: demand.id, offerId: offer.id });
                           const bestMatch = matchCandidates.length > 0 ? matchCandidates[0] : null;
                           return (
-                            <div key={offer.id} className="flex flex-col gap-3 rounded-lg border border-steel-100 bg-white p-4 transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-gray-900 dark:hover:border-steel-600 sm:flex-row sm:items-start sm:justify-between sm:flex-wrap">
+                            <div key={offer.id} id={`offer-${offer.id}`} tabIndex={-1} className={cn("scroll-mt-24 flex flex-col gap-3 rounded-lg border border-steel-100 bg-white p-4 transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-gray-900 dark:hover:border-steel-600 sm:flex-row sm:items-start sm:justify-between sm:flex-wrap", searchParams.get("offer") === offer.id && "ring-2 ring-loop-500")}>
                               <div className="flex min-w-0 flex-1 gap-3">
                                 {photo && <img src={photo.src} alt={photo.caption} className="size-20 shrink-0 rounded-md object-cover" />}
                                 <div>
@@ -434,12 +446,21 @@ export default function Demand() {
                                 </div>
                               </div>
                               <div className="flex flex-wrap gap-2 sm:flex-col sm:w-32">
-                                <Button size="sm" className="min-h-11 w-full" disabled={!hasCapacity || offer.offeredQuantityT > passportAvailableT || offer.offeredQuantityT > offerRemainingT} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
+                                <Button size="sm" className="min-h-11 w-full" disabled={!requestOpen || !hasCapacity || blockedByStock || blockedByQuantity} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
                                 <Button size="sm" className="min-h-11 w-full" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
                               </div>
-                              {!hasCapacity && <p className="text-xs text-warning-600 sm:basis-full">{eligibleSlots.length === 0 ? "Add receiving capacity by the requested date before accepting this offer." : `No receiving slot has ${offer.offeredQuantityT.toFixed(1)} t available for this offer.`}</p>}
-                              {hasCapacity && offer.offeredQuantityT > passportAvailableT && <p className="text-xs text-warning-600 sm:basis-full">Only {passportAvailableT.toFixed(1)} t remains on this passport.</p>}
-                              {offer.offeredQuantityT > offerRemainingT && <p className="text-xs text-warning-600 sm:basis-full">Only {offerRemainingT.toFixed(1)} t remains available for an offer on this request.</p>}
+                              <div className="basis-full space-y-2 border border-steel-200 bg-steel-50 p-3 text-sm dark:border-steel-700 dark:bg-white/5 rounded-surface">
+                                <p className="text-steel-700 dark:text-steel-300">{t("offerChecks.requirement", { total: demand.requiredT.toFixed(1), booked: committedDemandT.toFixed(1), remaining: offerRemainingT.toFixed(1) })}</p>
+                                {receivingSlot && <p className="font-medium text-loop-700 dark:text-loop-300">{t("offerChecks.dateReady", { date: formatDate(receivingSlot.date), quantity: offer.offeredQuantityT.toFixed(1) })}</p>}
+                                {(!requestOpen || blockedByQuantity || blockedByStock || !hasCapacity) && <div role="status" className="space-y-1 text-warning-700 dark:text-warning-400">
+                                  <p className="font-semibold">{t("offerChecks.blocked")}</p>
+                                  {!requestOpen && <p>{t("offerChecks.closed")}</p>}
+                                  {blockedByQuantity && <p>{t("offerChecks.quantity", { offered: offer.offeredQuantityT.toFixed(1), remaining: offerRemainingT.toFixed(1) })}</p>}
+                                  {blockedByQuantity && <p>{offerRemainingT > 0 ? t("offerChecks.quantityAction", { remaining: offerRemainingT.toFixed(1) }) : t("offerChecks.fulfilled")}</p>}
+                                  {blockedByStock && <p>{t("offerChecks.stock", { quantity: passportAvailableT.toFixed(1) })}</p>}
+                                  {!hasCapacity && <p>{eligibleSlots.length === 0 ? t("receivingPlan.needDate") : t("receivingPlan.needSpace", { quantity: offer.offeredQuantityT.toFixed(1) })}</p>}
+                                </div>}
+                              </div>
                               
                               <details className="mt-1 basis-full"><summary className="cursor-pointer text-xs font-semibold text-loop-700 dark:text-loop-300">View Match Analysis</summary>
                                 <div className="mt-3 text-left">

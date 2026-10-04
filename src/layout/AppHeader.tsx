@@ -1,12 +1,12 @@
-import { useTranslation } from "react-i18next";
-import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import GlobalSearch from "@/components/header/GlobalSearch";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
-import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
-import { useSidebar } from "@/context/SidebarContext";
+import { useSidebar } from "@/context/SidebarContext.helpers";
 import { SearchIcon } from "@/icons";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 
 const AppHeader: React.FC = () => {
   const { t } = useTranslation();

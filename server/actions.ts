@@ -9,6 +9,8 @@ import {
   type DeliveryInput,
 } from "../src/domain/capacity.ts";
 import type {
+  MaterialUpdate,
+  DemandUpdate,
   Actor,
   Booking,
   DemandRecord,
@@ -93,6 +95,39 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
   const ACTOR_A = actor;
   const ACTOR_B = actor;
   const ACTOR_RECEIVER = actor;
+  const updateMaterialAction = (id: string, input: MaterialUpdate) => {
+    const record = dataset.materials.find(item => item.id === id && !item.archivedAt);
+    if (!record || dataset.bookings.some(item => item.materialId === id)) return false;
+    const activeOffers = (dataset.offers ?? []).some(item => item.passportId === id && ["pending", "accepted"].includes(item.status));
+    if (activeOffers && (input.type !== record.type || input.condition !== record.condition || input.grade !== record.grade)) return false;
+    const updated: MaterialPassport = { ...record, ...input, pricePerT: input.pricePerT ?? undefined, availableFrom: input.availableFrom ?? undefined, quantityRangeT: [Math.min(record.quantityRangeT[0], input.quantityT), Math.max(record.quantityRangeT[1], input.quantityT)], originalQuantity: input.quantityT / (record.conversionFactor || 1) };
+    dataset = { ...dataset, materials: dataset.materials.map(item => item.id === id ? updated : item), events: [...dataset.events, eventFor(dataset, "material.updated", actor, `Material passport ${id} updated`, [id, record.projectId])] };
+    return true;
+  };
+  const deleteMaterialAction = (id: string) => {
+    const record = dataset.materials.find(item => item.id === id && !item.archivedAt);
+    if (!record || dataset.bookings.some(item => item.materialId === id) || dataset.verifications.some(item => item.materialId === id)) return false;
+    dataset = { ...dataset, materials: dataset.materials.map(item => item.id === id ? { ...item, archivedAt: new Date().toISOString() } : item), allocations: dataset.allocations.map(item => item.materialId === id ? { ...item, status: "cancelled" as const } : item), offers: (dataset.offers ?? []).map(item => item.passportId === id ? { ...item, status: "withdrawn" as const, archivedAt: new Date().toISOString() } : item), events: [...dataset.events, eventFor(dataset, "material.deleted", actor, `Material passport ${id} deleted`, [id, record.projectId])] };
+    return true;
+  };
+  const updateDemandAction = (id: string, input: DemandUpdate) => {
+    const record = dataset.demands.find(item => item.id === id && !item.archivedAt);
+    if (!record || record.status === "CANCELLED") return false;
+    const bookings = dataset.bookings.filter(item => item.demandId === id);
+    const committed = bookings.filter(item => item.status !== "cancelled").reduce((sum, item) => sum + item.tonnesT, 0);
+    const activeOffers = (dataset.offers ?? []).some(item => item.demandId === id && ["pending", "accepted"].includes(item.status));
+    if (input.requiredT < committed || ((bookings.length || activeOffers) && input.materialType !== record.materialType) || (bookings.length && input.location !== record.location)) return false;
+    if (bookings.some(item => item.status !== "cancelled" && (dataset.slots.find(slot => slot.id === item.slotId)?.date ?? "") > input.period)) return false;
+    const updated: DemandRecord = { ...record, ...input, budgetPerT: input.budgetPerT ?? undefined, geo: input.location === record.location ? record.geo : undefined };
+    dataset = updateDemandCoverage({ ...dataset, demands: dataset.demands.map(item => item.id === id ? updated : item), events: [...dataset.events, eventFor(dataset, "demand.updated", actor, `Material request ${id} updated`, [id, record.receiverId])] }, id);
+    return true;
+  };
+  const deleteDemandAction = (id: string) => {
+    const record = dataset.demands.find(item => item.id === id && !item.archivedAt);
+    if (!record || dataset.bookings.some(item => item.demandId === id)) return false;
+    dataset = { ...dataset, demands: dataset.demands.map(item => item.id === id ? { ...item, archivedAt: new Date().toISOString(), status: "CANCELLED" as const } : item), offers: (dataset.offers ?? []).map(item => item.demandId === id ? { ...item, status: "withdrawn" as const, archivedAt: new Date().toISOString() } : item), events: [...dataset.events, eventFor(dataset, "demand.deleted", actor, `Material request ${id} deleted`, [id, record.receiverId])] };
+    return true;
+  };
   const requestCapacityAction: RequestCapacityAction = (input) => {
     setDataset((prev) => {
       const material = prev.materials.find((item) => item.id === input.materialId);
@@ -167,7 +202,7 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
     setDataset((prev) => {
       const event = eventFor(prev, "demand.created", ACTOR_RECEIVER,
         `${newDemand.requiredT.toFixed(1)} t of ${newDemand.materialType} demand published`,
-        [newDemand.id, newDemand.receiverId]);
+        [newDemand.id, newDemand.receiverId, ...(newDemand.targetMaterialId ? [newDemand.targetMaterialId] : [])]);
       return { ...prev, demands: [newDemand, ...prev.demands], events: [...prev.events, event] };
     });
     return newDemand;
@@ -392,6 +427,22 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
     });
   };
 
+  const updateDeliveryAction = (bookingId: string, stage: "ready" | "picked-up" | "arrived") => {
+    setDataset((prev) => {
+      const booking = prev.bookings.find(item => item.id === bookingId);
+      if (!booking || booking.status !== "confirmed" || !booking.receiverAcceptedAt || prev.verifications.some(item => item.bookingId === bookingId)) return prev;
+      const events = prev.events.filter(item => item.subjectIds.includes(bookingId));
+      const kind = `delivery.${stage}`;
+      if (events.some(item => item.kind === kind)) return prev;
+      if (stage === "ready" && (booking.loadRef || events.some(item => item.kind === "delivery.picked-up"))) return prev;
+      if (stage === "picked-up" && (booking.loadRef || !events.some(item => item.kind === "delivery.ready"))) return prev;
+      if (stage === "arrived" && !booking.loadRef) return prev;
+      const at = new Date().toISOString();
+      const labels = { ready: "Ready for pickup", "picked-up": "Picked up", arrived: "Reached destination" };
+      return { ...prev, bookings: prev.bookings.map(item => item.id === bookingId ? { ...item, updatedAt: at } : item), events: [...prev.events, eventFor(prev, kind, ACTOR_A, `${bookingId}: ${labels[stage]}`, [bookingId, booking.materialId, booking.receiverId], undefined, at)] };
+    });
+  };
+
   const receiveLoadAction = (bookingId: string, actualT: number, evidence: Evidence[]) => {
     setDataset((prev) => {
       const booking = prev.bookings.find((item) => item.id === bookingId);
@@ -597,5 +648,5 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
     });
   };
 
-  return { getDataset: () => dataset, requestCapacityAction, cancelBookingAction, dispatchAction, verifyAction, addMaterialAction, addDemandAction, saveDemandDraftAction, deleteDemandDraftAction, addProjectAction, updateCapacityAction, addSupportRequestAction, addCapacityAction, acceptRequestAction, rejectRequestAction, rescheduleRequestAction, receiveLoadAction, verifyLoadAction, addOfferAction, saveOfferDraftAction, deleteOfferDraftAction, acceptOfferAction, declineOfferAction, counterOfferAction, cancelDemandAction, withdrawOfferAction, archiveBookingAction };
+  return { getDataset: () => dataset, updateMaterialAction, deleteMaterialAction, updateDemandAction, deleteDemandAction, updateDeliveryAction, requestCapacityAction, cancelBookingAction, dispatchAction, verifyAction, addMaterialAction, addDemandAction, saveDemandDraftAction, deleteDemandDraftAction, addProjectAction, updateCapacityAction, addSupportRequestAction, addCapacityAction, acceptRequestAction, rejectRequestAction, rescheduleRequestAction, receiveLoadAction, verifyLoadAction, addOfferAction, saveOfferDraftAction, deleteOfferDraftAction, acceptOfferAction, declineOfferAction, counterOfferAction, cancelDemandAction, withdrawOfferAction, archiveBookingAction };
 }

@@ -1,12 +1,12 @@
-import { useTranslation } from "react-i18next";
-import { api } from "@/lib/api";
 import Label from "@/components/form/Label";
 import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
+import { useAuth } from "@/context/AuthContext.helpers";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
+import { api } from "@/lib/api";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import { useAuth } from "@/context/AuthContext";
 
 export default function SignUpForm() {
   const { t } = useTranslation();

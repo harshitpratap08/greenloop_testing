@@ -34,7 +34,7 @@ export default function RecoveryFlow({ dataset }: { dataset: GreenLoopDataset })
         >
           <span
             className={cn(
-              "font-mono text-[9px] font-bold tracking-[0.12em]",
+              "font-mono text-xs font-bold tracking-[0.12em]",
               stage.active
                 ? "text-loop-800 dark:text-loop-300"
                 : "text-steel-500 dark:text-steel-500",
@@ -44,7 +44,7 @@ export default function RecoveryFlow({ dataset }: { dataset: GreenLoopDataset })
           </span>
           <h4
             className={cn(
-              "mt-1 whitespace-nowrap font-archivo text-[10px] font-bold uppercase tracking-wide",
+              "mt-1 whitespace-nowrap font-archivo text-xs font-bold uppercase tracking-wide",
               stage.active
                 ? "text-loop-900 dark:text-loop-200"
                 : "text-steel-500 dark:text-steel-500",
@@ -61,7 +61,7 @@ export default function RecoveryFlow({ dataset }: { dataset: GreenLoopDataset })
             )}
           >
             {stage.count}
-            <span className="font-sans text-[9px] font-normal text-gray-500 dark:text-gray-400">
+            <span className="font-sans text-xs font-normal text-gray-500 dark:text-gray-400">
               {stage.count === 1 ? "passport" : "passports"}
             </span>
           </p>
