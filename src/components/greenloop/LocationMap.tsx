@@ -5,9 +5,9 @@ import type { GeoPoint } from "@/domain/types";
 
 const INDIA: L.LatLngExpression = [20.5937, 78.9629];
 
-type MapProps = { geo?: GeoPoint; className?: string; onChange?: (geo: GeoPoint) => void };
+type MapProps = { geo?: GeoPoint; className?: string; onChange?: (geo: GeoPoint) => void; size?: "sm" | "md" };
 
-export function LocationMap({ geo, className = "", onChange }: MapProps) {
+export function LocationMap({ geo, className = "", onChange, size = "md" }: MapProps) {
   const element = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const marker = useRef<L.CircleMarker | null>(null);
@@ -41,7 +41,7 @@ export function LocationMap({ geo, className = "", onChange }: MapProps) {
     map.current.setView(point, Math.max(map.current.getZoom(), 12));
   }, [geo?.lat, geo?.lng]);
 
-  return <div ref={element} className={`h-56 w-full border border-steel-200 bg-steel-100 dark:border-steel-700 ${className}`} role="application" aria-label={onChange ? "Choose a location on the map" : "Location map"} />;
+  return <div ref={element} className={`${size === "sm" ? "h-28" : "h-56"} w-full border border-steel-200 bg-steel-100 dark:border-steel-700 ${className}`} role="application" aria-label={onChange ? "Choose a location on the map" : "Location map"} />;
 }
 
 export function LocationPicker({ geo, onChange, className }: { geo?: GeoPoint; onChange: (geo: GeoPoint) => void; className?: string }) {

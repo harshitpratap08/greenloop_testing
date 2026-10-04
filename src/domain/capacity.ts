@@ -24,7 +24,10 @@ import type {
   MaterialTypeKey,
   ReceiverDaySlot,
   VerificationRecord,
-} from "./types.ts";
+  ReceiverFacility,
+  DemandRecord,
+  MaterialOffer
+} from "./types";
 
 // ---------------------------------------------------------------------------
 // Capacity arithmetic
@@ -181,6 +184,328 @@ function transportCostPerT(distanceKm: number): number {
   return round2(2 + 0.14 * distanceKm);
 }
 
+export interface MatchFilterState {
+  materialType?: string;
+  locationQuery?: string;
+  minimumQuantityT?: number;
+  maximumBudget?: number;
+  neededBy?: string;
+}
+
+export function evaluateMatch(
+  dataset: GreenLoopDataset,
+  context: {
+    material: MaterialPassport;
+    receiver: ReceiverFacility;
+    demand?: DemandRecord;
+    offer?: MaterialOffer;
+    asOf?: string;
+    filters?: MatchFilterState;
+  }
+): AllocationCandidate {
+  const { material, receiver, demand, offer, asOf, filters } = context;
+
+  const out: AllocationCandidate = {
+    receiverId: receiver.id,
+    materialId: material.id,
+    demandId: demand?.id,
+    offerId: offer?.id,
+    suitability: 0,
+    demand: 0,
+    distanceKm: receiver.distanceKm,
+    distanceKnown: receiver.distanceKnown,
+    availableT: 0,
+    transportCostPerT: transportCostPerT(receiver.distanceKm),
+    handlingCostPerT: HANDLING_COST_PER_T[material.type] ?? 3.5,
+    score: 0,
+    recommended: false,
+    
+    isEligible: true,
+    factors: {},
+    advantages: [],
+    drawbacks: [],
+    nonMatchReasons: [],
+    missingDataNotes: [],
+  };
+
+  // 1. Hard Constraints
+  if (!receiver.acceptedTypes.includes(material.type)) {
+    out.isEligible = false;
+    out.nonMatchReasons!.push(`Not eligible: material type '${material.type}' is not accepted by this receiver.`);
+  }
+  
+  if (material.status === 'cancelled') {
+    out.isEligible = false;
+    out.nonMatchReasons!.push('Not eligible: material is cancelled or unavailable.');
+  }
+
+  if (demand && ['CANCELLED', 'COVERED'].includes(demand.status)) {
+    out.isEligible = false;
+    out.nonMatchReasons!.push(`Not eligible: demand is ${demand.status.toLowerCase()}.`);
+  }
+
+  if (filters?.materialType && material.type !== filters.materialType) {
+    out.isEligible = false;
+    out.nonMatchReasons!.push(`Filtered out: does not match selected material type.`);
+  }
+
+  // 2. Quantity & Capacity
+  const targetReqQuantity = demand ? demand.requiredT : material.quantityT;
+  const targetAvailQuantity = offer ? offer.offeredQuantityT : material.quantityT;
+  
+  out.requestedQuantityT = targetReqQuantity;
+  out.availableQuantityT = targetAvailQuantity;
+  
+  // Calculate coverage for partial fulfillment
+  const coveragePercent = targetReqQuantity > 0 ? clamp01(targetAvailQuantity / targetReqQuantity) : 0;
+  out.coveragePercent = round2(coveragePercent * 100);
+  out.remainingQuantityT = Math.max(0, targetReqQuantity - targetAvailQuantity);
+  out.isFullMatch = targetAvailQuantity >= targetReqQuantity;
+  out.isPartialMatch = targetAvailQuantity > 0 && targetAvailQuantity < targetReqQuantity;
+
+  // Capacity slot checking
+  const slot = earliestSlotFor(dataset, receiver.id, material.type, asOf);
+  const availCapacity = slot ? availableT(slot, bookingsForSlot(dataset, slot.id)) : 0;
+  out.availableT = availCapacity;
+  
+  if (availCapacity === 0) {
+    out.isEligible = false;
+    out.nonMatchReasons!.push(`Not eligible: receiving capacity is insufficient for this quantity.`);
+  }
+
+  // 3. Date constraints
+  let dateConflict = false;
+  const availableFrom = material.availableFrom || asOf;
+  const neededBy = filters?.neededBy || demand?.period;
+
+  if (availableFrom && neededBy) {
+    if (availableFrom > neededBy) {
+      dateConflict = true;
+      out.isEligible = false;
+      out.nonMatchReasons!.push(`Date conflict: material becomes available after the requested date.`);
+    }
+  } else if (!availableFrom || !neededBy) {
+      out.missingDataNotes!.push('Availability or needed-by date is missing.');
+  }
+
+  // Calculate Base Factors (The original 4)
+  const suitability = suitabilityFor(material);
+  out.suitability = round2(suitability);
+  if (out.factors) {
+    out.factors.suitability = {
+      value: suitability,
+      score: suitability,
+      impact: suitability >= 0.75 ? "positive" : "neutral",
+      reason: `Based on material grade (${material.grade}) and condition (${material.condition}).`
+    };
+  }
+
+  const demandScore = demand ? clamp01(targetReqQuantity / Math.max(availCapacity, targetReqQuantity, 1)) : demandFor(dataset, receiver.id, material.type);
+  out.demand = round2(demandScore);
+  if (out.factors) {
+    out.factors.demand = {
+      value: demandScore,
+      score: demandScore,
+      impact: demandScore >= 0.5 ? "positive" : "neutral",
+      reason: `Reflects the receiver's demand signal and capacity for this material.`
+    };
+  }
+
+  const availabilityRatio = clamp01(targetAvailQuantity === 0 ? 0 : availCapacity / targetAvailQuantity);
+  if (out.factors) {
+    out.factors.availability = {
+      value: availCapacity,
+      score: availabilityRatio,
+      impact: availabilityRatio >= 1 ? "positive" : availabilityRatio > 0 ? "neutral" : "negative",
+      reason: `Receiver slot has ${availCapacity.toFixed(1)}t available capacity.`
+    };
+  }
+
+  const proximity = receiver.distanceKnown === false ? 0.5 : clamp01(1 - receiver.distanceKm / 80);
+  if (out.factors) {
+    out.factors.proximity = {
+      value: receiver.distanceKnown === false ? 'Unknown' : `${receiver.distanceKm} km`,
+      score: proximity,
+      impact: receiver.distanceKnown === false ? "unknown" : proximity >= 0.5 ? "positive" : "negative",
+      reason: receiver.distanceKnown === false ? `Location is unavailable, so distance could not be evaluated.` : `Distance relative to the 80km standard.`
+    };
+  }
+  
+  if (receiver.distanceKnown === false) {
+    out.missingDataNotes!.push(`Location is unavailable, so distance could not be evaluated.`);
+  }
+
+  // Additional Contextual Factors
+  
+  // Price vs Budget
+  let priceFitScore = 1;
+  const price = offer?.pricePerT ?? material.pricePerT;
+  const budget = filters?.maximumBudget ?? demand?.budgetPerT;
+  
+  if (price !== undefined && budget !== undefined) {
+    if (price <= budget) {
+      priceFitScore = 1.0;
+      out.advantages?.push('Price is within budget.');
+      if (out.factors) {
+        out.factors.budget = {
+          value: `₹${price}/t vs ₹${budget}/t`, score: priceFitScore, impact: 'positive', reason: 'Price is within budget limit.'
+        };
+      }
+    } else {
+      priceFitScore = clamp01(budget / price); // Soft penalty if over budget
+      out.drawbacks?.push(`Offered price (₹${price}/t) exceeds the stated budget (₹${budget}/t).`);
+      if (out.factors) {
+        out.factors.budget = {
+          value: `₹${price}/t vs ₹${budget}/t`, score: priceFitScore, impact: 'negative', reason: 'Price exceeds budget limit.'
+        };
+      }
+    }
+  } else {
+    out.missingDataNotes!.push('Price or budget information is missing.');
+    if (out.factors) {
+      out.factors.budget = {
+        value: 'Unknown', score: 0.5, impact: 'unknown', reason: 'Price or budget information is missing.'
+      };
+    }
+  }
+
+  // Project Compatibility
+  out.missingDataNotes!.push('Project compatibility cannot be evaluated because project data is unavailable.');
+  if (out.factors) {
+    out.factors.project = {
+      value: 'Unknown', score: 0.5, impact: 'unknown', reason: 'Project compatibility cannot be evaluated because project data is unavailable.'
+    };
+  }
+
+  // Logistics Suitability
+  out.missingDataNotes!.push('Logistics suitability cannot be fully evaluated because logistics data is unavailable.');
+  if (out.factors) {
+    out.factors.logistics = {
+      value: 'Unknown', score: 0.5, impact: 'unknown', reason: 'Logistics suitability cannot be fully evaluated because logistics data is unavailable.'
+    };
+  }
+
+  // Evidence
+  const hasEvidence = material.evidence && material.evidence.length > 0;
+  if (!hasEvidence) {
+    out.missingDataNotes!.push('No evidence documents attached.');
+  }
+
+  // Calculate final score dynamically based on available data
+  let totalWeight = 0;
+  let accumulatedScore = 0;
+  
+  // Original 4 factors weights: 0.4, 0.25, 0.2, 0.15
+  accumulatedScore += 0.4 * suitability; totalWeight += 0.4;
+  accumulatedScore += 0.25 * demandScore; totalWeight += 0.25;
+  accumulatedScore += 0.2 * availabilityRatio; totalWeight += 0.2;
+  accumulatedScore += 0.15 * proximity; totalWeight += 0.15;
+  
+  // Apply additional factors if they exist in context (e.g., price vs budget)
+  if (price !== undefined && budget !== undefined) {
+      // Add price as a 20% factor, scaling other weights down proportionally
+      accumulatedScore += 0.2 * priceFitScore; totalWeight += 0.2;
+  }
+  
+  out.score = out.isEligible ? round3(accumulatedScore / totalWeight) : 0;
+  out.recommended = Boolean(out.isEligible && availabilityRatio >= 1 && priceFitScore >= 0.8 && !dateConflict);
+
+  // Build Summaries
+  if (!out.isEligible) {
+      out.summary = "Not eligible.";
+  } else if (out.score >= 0.75) {
+      out.summary = "Strong match based on current factors.";
+  } else if (out.score >= 0.5) {
+      out.summary = "Moderate match. Some constraints may require negotiation.";
+  } else {
+      out.summary = "Weak match.";
+  }
+
+  if (out.isFullMatch) {
+      out.advantages?.push("Full quantity requested is available.");
+  } else if (out.isPartialMatch) {
+      out.drawbacks?.push(`Only ${out.coveragePercent}% of the requested quantity is available.`);
+      out.nonMatchReasons?.push(`Weak match: provider can fulfil only ${out.coveragePercent}% of the requested quantity.`);
+  }
+
+  if (availCapacity < targetReqQuantity) {
+      out.drawbacks?.push(`Insufficient receiving capacity for the full requested load (${availCapacity}t available).`);
+  }
+
+  return out;
+}
+
+export function contextualMatch(
+  dataset: GreenLoopDataset,
+  context: {
+    materialId?: string;
+    receiverId?: string;
+    demandId?: string;
+    offerId?: string;
+  },
+  filters?: MatchFilterState,
+  asOf?: string
+): AllocationCandidate[] {
+  let candidates: AllocationCandidate[] = [];
+  
+  const targetMaterial = context.materialId ? dataset.materials.find(m => m.id === context.materialId) : undefined;
+  const targetReceiver = context.receiverId ? dataset.receivers.find(r => r.id === context.receiverId) : undefined;
+  const targetDemand = context.demandId ? dataset.demands.find(d => d.id === context.demandId) : undefined;
+  const targetOffer = context.offerId ? dataset.offers?.find(o => o.id === context.offerId) : undefined;
+  
+  if (targetMaterial && !targetDemand && !targetReceiver) {
+      // Provider Material -> All Receivers (and their Demands)
+      candidates = dataset.receivers.map(rec => {
+          // Find best open demand for this material type at this receiver
+          const demand = dataset.demands.find(d => d.receiverId === rec.id && d.materialType === targetMaterial.type && ['OPEN', 'PARTIALLY_COVERED'].includes(d.status));
+          return evaluateMatch(dataset, { material: targetMaterial, receiver: rec, demand, asOf, filters });
+      });
+  } else if (targetDemand && !targetMaterial && !targetOffer) {
+      // Receiver Request -> All Provider Materials
+      const receiver = dataset.receivers.find(r => r.id === targetDemand.receiverId);
+      if (receiver) {
+          candidates = dataset.materials.map(mat => {
+              return evaluateMatch(dataset, { material: mat, receiver, demand: targetDemand, asOf, filters });
+          });
+      }
+  } else if (targetOffer && targetDemand) {
+      // Receiver Requirement -> Provider Offer
+      const receiver = dataset.receivers.find(r => r.id === targetDemand.receiverId);
+      const material = dataset.materials.find(m => m.id === targetOffer.passportId);
+      if (receiver && material) {
+          candidates = [evaluateMatch(dataset, { material, receiver, demand: targetDemand, offer: targetOffer, asOf, filters })];
+      }
+  } else if (targetMaterial && targetReceiver) {
+      // Specific Material -> Specific Receiver (e.g. for booking creation checks)
+      const demand = targetDemand || dataset.demands.find(d => d.receiverId === targetReceiver.id && d.materialType === targetMaterial.type && ['OPEN', 'PARTIALLY_COVERED'].includes(d.status));
+      candidates = [evaluateMatch(dataset, { material: targetMaterial, receiver: targetReceiver, demand, asOf, filters })];
+  } else {
+      // Fallback
+      if (targetMaterial) {
+         candidates = dataset.receivers.map(rec => evaluateMatch(dataset, { material: targetMaterial, receiver: rec, asOf, filters }));
+      }
+  }
+
+  // Tie-breaking order:
+  // 1. isEligible (true first)
+  // 2. score
+  // 3. coveragePercent
+  // 4. distanceKm
+  // 5. stable ID (materialId or receiverId)
+  
+  return candidates.sort((a, b) => {
+    if (a.isEligible !== b.isEligible) return a.isEligible ? -1 : 1;
+    if (Math.abs(b.score - a.score) > 0.001) return b.score - a.score;
+    const aCov = a.coveragePercent ?? 0;
+    const bCov = b.coveragePercent ?? 0;
+    if (Math.abs(bCov - aCov) > 0.1) return bCov - aCov;
+    if (a.distanceKm !== b.distanceKm) return a.distanceKm - b.distanceKm;
+    
+    // Stable fallback
+    return (a.receiverId || "").localeCompare(b.receiverId || "");
+  });
+}
+
 /**
  * Score every receiver that can process the material. Deterministic composite:
  * suitability 40% · demand 25% · availability 20% · proximity 15%.
@@ -192,39 +517,16 @@ export function computeMatch(
   materialId: string,
   asOf?: string,
 ): AllocationCandidate[] {
-  const material = dataset.materials.find((m) => m.id === materialId);
-  if (!material) return [];
-
-  const candidates = dataset.receivers
-    .filter((r) => r.acceptedTypes.includes(material.type))
-    .map<AllocationCandidate>((receiver) => {
-      const slot = earliestSlotFor(dataset, receiver.id, material.type, asOf);
-      const avail = slot ? availableT(slot, bookingsForSlot(dataset, slot.id)) : 0;
-      const suitability = suitabilityFor(material);
-      const demand = demandFor(dataset, receiver.id, material.type);
-      const proximity = receiver.distanceKnown === false ? 0.5 : clamp01(1 - receiver.distanceKm / 80);
-      const availabilityRatio = clamp01(material.quantityT === 0 ? 0 : avail / material.quantityT);
-      const score = round3(
-        0.4 * suitability + 0.25 * demand + 0.2 * availabilityRatio + 0.15 * proximity,
-      );
-      return {
-        receiverId: receiver.id,
-        suitability: round2(suitability),
-        demand: round2(demand),
-        distanceKm: receiver.distanceKm,
-        distanceKnown: receiver.distanceKnown,
-        availableT: avail,
-        transportCostPerT: transportCostPerT(receiver.distanceKm),
-        handlingCostPerT: HANDLING_COST_PER_T[material.type],
-        score,
-        recommended: false,
-      };
-    })
-    .sort((a, b) => b.score - a.score);
-
-  const fitting = candidates.filter((c) => c.availableT >= material.quantityT);
-  const best = (fitting.length > 0 ? fitting : candidates)[0];
-  if (best) best.recommended = true;
+  const candidates = contextualMatch(dataset, { materialId }, undefined, asOf);
+  // Replicate previous `recommended` logic exactly for backward compatibility if needed:
+  // The old logic found all fitting candidates (avail >= qty) and picked the best score.
+  // Actually, evaluateMatch already calculates `recommended`, but to perfectly mirror:
+  const material = dataset.materials.find(m => m.id === materialId);
+  if (material) {
+     const fitting = candidates.filter((c) => c.availableT >= material.quantityT);
+     const best = (fitting.length > 0 ? fitting : candidates)[0];
+     if (best) best.recommended = true;
+  }
   return candidates;
 }
 

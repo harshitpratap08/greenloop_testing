@@ -1,11 +1,14 @@
 import Badge from "@/components/ui/badge/Badge";
 import type { AllocationStatus, BookingStatus, MaterialStatus, VerificationStatus, DemandStatus, MaterialOffer } from "@/domain/types";
 
-type AnyStatus = AllocationStatus | BookingStatus | MaterialStatus | VerificationStatus | DemandStatus | MaterialOffer["status"];
+type AnyStatus = AllocationStatus | BookingStatus | MaterialStatus | VerificationStatus | DemandStatus | MaterialOffer["status"] | "completed" | "archived";
 
 const COLOR: Record<AnyStatus, "success" | "warning" | "error" | "info" | "primary" | "light"> = {
+  DRAFT: "light",
   confirmed: "success",
   accepted: "success",
+  completed: "success",
+  archived: "light",
   verified: "success",
   reserved: "success",
   allocated: "success",
@@ -18,15 +21,20 @@ const COLOR: Record<AnyStatus, "success" | "warning" | "error" | "info" | "prima
   rejected: "error",
   declined: "error",
   withdrawn: "light",
+  draft: "light",
   OPEN: "info",
   PARTIALLY_COVERED: "warning",
   COVERED: "success",
   PAUSED: "light",
+  CANCELLED: "light",
 };
 
 const LABEL: Record<AnyStatus, string> = {
+  DRAFT: "Draft",
   confirmed: "Confirmed",
   accepted: "Accepted",
+  completed: "Completed",
+  archived: "Archived",
   verified: "Verified",
   reserved: "Reserved",
   allocated: "Matched",
@@ -39,10 +47,12 @@ const LABEL: Record<AnyStatus, string> = {
   rejected: "Rejected",
   declined: "Declined",
   withdrawn: "Withdrawn",
+  draft: "Draft",
   OPEN: "Open",
   PARTIALLY_COVERED: "Partially covered",
   COVERED: "Covered",
   PAUSED: "Paused",
+  CANCELLED: "Cancelled",
 };
 
 /** One mapping for every status pill in the product — no ad-hoc colors. */

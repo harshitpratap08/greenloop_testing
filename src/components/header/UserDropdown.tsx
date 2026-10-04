@@ -4,6 +4,7 @@ import { getLanguage, languages, type Locale } from "@/i18n/languages";
 import { cn } from "@/utils";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { useAuth } from "@/context/AuthContext";
@@ -13,6 +14,7 @@ export default function UserDropdown() {
   const [isSubDropdownOpen, setIsSubDropdownOpen] = useState(false);
   const subDropdownRef = useRef<HTMLLIElement>(null);
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { language: locale, setLanguage } = useLanguage();
   const { user, logout } = useAuth();
   const currentLang = getLanguage(locale as Locale);

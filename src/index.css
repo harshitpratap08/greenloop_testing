@@ -64,37 +64,37 @@
   --color-current: currentColor;
   --color-transparent: transparent;
   --color-white: #ffffff;
-  --color-black: #141613;
+  --color-black: #111111;
 
   /* `brand` kept as an alias of charcoal-ink so every TailAdmin consumer
      keeps compiling; new GreenLoop work should prefer `ink`/`steel`. */
-  --color-brand-25: #f7f7f5;
-  --color-brand-50: #f2f2ef;
-  --color-brand-100: #e7e5df;
-  --color-brand-200: #d7d4cb;
+  --color-brand-25: #f6f5f2;
+  --color-brand-50: #eeebe3;
+  --color-brand-100: #e5e2da;
+  --color-brand-200: #d6d3c9;
   --color-brand-300: #c2beb2;
   --color-brand-400: #a8a397;
   --color-brand-500: #55594f;
   --color-brand-600: #3d423a;
   --color-brand-700: #2e332c;
   --color-brand-800: #23271f;
-  --color-brand-900: #191d17;
-  --color-brand-950: #141613;
+  --color-brand-900: #111111;
+  --color-brand-950: #090909;
 
   /* `gray` re-graded from cool slate to warm concrete/steel */
-  --color-gray-25: #fbfaf7;
-  --color-gray-50: #f4f2ed;
-  --color-gray-100: #e9e6df;
-  --color-gray-200: #dbd7cc;
-  --color-gray-300: #c7c2b4;
+  --color-gray-25: #f6f5f2;
+  --color-gray-50: #eeebe3;
+  --color-gray-100: #e5e2da;
+  --color-gray-200: #d6d3c9;
+  --color-gray-300: #c2beb2;
   --color-gray-400: #a8a397;
   --color-gray-500: #8a8d82;
   --color-gray-600: #55594f;
   --color-gray-700: #3d423a;
   --color-gray-800: #23271f;
-  --color-gray-900: #141613;
-  --color-gray-950: #0d0f0c;
-  --color-gray-dark: #181a17;
+  --color-gray-900: #111111;
+  --color-gray-950: #090909;
+  --color-gray-dark: #17251d;
 
   /* Structural steel neutrals */
   --color-steel-50: #f1f2f0;
@@ -110,17 +110,17 @@
   --color-steel-950: #141613;
 
   /* Charcoal ink */
-  --color-ink-50: #f4f3f0;
-  --color-ink-100: #e8e7e2;
-  --color-ink-200: #d4d2ca;
+  --color-ink-50: #f6f5f2;
+  --color-ink-100: #eeebe3;
+  --color-ink-200: #d6d3c9;
   --color-ink-300: #b4b1a5;
   --color-ink-400: #8a8d82;
   --color-ink-500: #55594f;
   --color-ink-600: #333832;
   --color-ink-700: #23271f;
   --color-ink-800: #191d17;
-  --color-ink-900: #141613;
-  --color-ink-950: #0d0f0c;
+  --color-ink-900: #111111;
+  --color-ink-950: #090909;
 
   /* Loop — restrained recovery green. VERIFIED / CONFIRMED only. */
   --color-loop-25: #f2f8f4;
@@ -133,8 +133,8 @@
   --color-loop-600: #256a4c;
   --color-loop-700: #1d543d;
   --color-loop-800: #16412f;
-  --color-loop-900: #0f2e22;
-  --color-loop-950: #0a2018;
+  --color-loop-900: #17251d;
+  --color-loop-950: #0d1712;
 
   /* Signal — HOLD / caution. Print amber, not neon. */
   --color-signal-25: #fbf6ee;

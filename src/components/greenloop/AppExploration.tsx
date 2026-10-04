@@ -198,7 +198,7 @@ export function projectNextAction(dataset: GreenLoopDataset, projectId: string):
     case 4:
       return { label: "View Proof of Recovery", to: "/app/verification", reason: "The receiver has checked the load and recorded what arrived." };
     default:
-      return { label: "View project report", to: "/app/reports", reason: "Every stage is complete — review the outcomes." };
+      return { label: "View project report", to: "/app/dashboard", reason: "Every stage is complete — review the outcomes." };
   }
 }
 

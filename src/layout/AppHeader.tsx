@@ -58,7 +58,7 @@ const AppHeader: React.FC = () => {
                 readOnly
                 onFocus={() => setSearchOpen(true)}
                 onClick={() => setSearchOpen(true)}
-                placeholder={t("searchPlaceholder")}
+                placeholder={t("header.searchPlaceholder")}
                 className="h-10 w-full cursor-pointer rounded-lg border border-[#deded5] bg-white py-2.5 ps-10 pe-14 text-sm text-[#28342b] placeholder:text-[#818980] transition-colors focus:border-[#548866] focus:ring-3 focus:ring-[#548866]/10 focus:outline-hidden"
               />
               <button type="button" onClick={() => setSearchOpen(true)} className="absolute inset-e-2 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-[#e5e3dc] bg-[#f6f5f0] px-1.5 py-1 text-[10px] text-[#737c74]" aria-label="Open search">

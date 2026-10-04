@@ -10,7 +10,7 @@ type CancelBookingAction = (input: { bookingId: string; reason?: string }) => Pr
 type DispatchAction = (input: { bookingId: string }) => Promise<boolean>;
 type VerifyAction = (input: { bookingId: string } & Omit<DeliveryInput, "bookingId" | "actor" | "at">) => Promise<boolean>;
 type AddMaterialAction = (input: Omit<MaterialPassport, "id" | "status" | "surveyedAt">) => Promise<MaterialPassport | null>;
-type AddDemandInput = Omit<DemandRecord, "id" | "status" | "createdAt" | "receiverId"> & { receiverId?: string };
+type AddDemandInput = Omit<DemandRecord, "id" | "status" | "createdAt" | "receiverId"> & { receiverId?: string; targetProviderId?: string; targetMaterialId?: string };
 type AddDemandAction = (input: AddDemandInput) => Promise<DemandRecord | null>;
 type AddProjectAction = (input: Pick<Project, "name" | "location" | "status"> & Partial<Pick<Project, "geo">>) => Promise<Project | null>;
 type AddCapacityAction = (input: Omit<ReceiverDaySlot, "id">) => Promise<ReceiverDaySlot | null>;
@@ -18,17 +18,22 @@ type UpdateCapacityAction = (slotId: string, capacityT: number) => Promise<boole
 
 export interface GreenLoopStoreValue {
   dataset: GreenLoopDataset;
+  markNotificationsReadAction: (eventIds: string[]) => Promise<string[]>;
   requestCapacityAction: RequestCapacityAction;
   cancelBookingAction: CancelBookingAction;
   dispatchAction: DispatchAction;
   verifyAction: VerifyAction;
   addMaterialAction: AddMaterialAction;
   addDemandAction: AddDemandAction;
+  saveDemandDraftAction: AddDemandAction;
+  deleteDemandDraftAction: (demandId: string) => Promise<boolean>;
   addProjectAction: AddProjectAction;
   addCapacityAction: AddCapacityAction;
   updateCapacityAction: UpdateCapacityAction;
   addSupportRequestAction: (input: Omit<SupportRequest, "id" | "submittedAt">) => Promise<SupportRequest | null>;
   addOfferAction: (offer: Omit<MaterialOffer, "id" | "status" | "createdAt">) => Promise<boolean>;
+  saveOfferDraftAction: (offer: Omit<MaterialOffer, "id" | "status" | "createdAt">) => Promise<boolean>;
+  deleteOfferDraftAction: (offerId: string) => Promise<boolean>;
   acceptOfferAction: (offerId: string) => Promise<boolean>;
   declineOfferAction: (offerId: string) => Promise<boolean>;
   counterOfferAction: (offerId: string, pricePerT: number) => Promise<boolean>;

@@ -32,9 +32,9 @@ const toneText: Record<ActivityItem["tone"], string> = {
 };
 
 export default function NotificationDropdown() {
-  const { dataset } = useGreenLoopStore();
+  const { dataset, markNotificationsReadAction } = useGreenLoopStore();
   const { user } = useAuth();
-  const items: ActivityItem[] = [...dataset.events].reverse().slice(0, 5).map((event) => {
+  const items: ActivityItem[] = [...dataset.events].reverse().map((event) => {
     const [firstId = "", secondId = ""] = event.subjectIds;
     const activeReceiver = user?.activeWorkspace === "receiver";
     const href = event.kind.startsWith("demand.")
@@ -69,10 +69,8 @@ export default function NotificationDropdown() {
     };
   });
   const [isOpen, setIsOpen] = useState(false);
-  const [seen, setSeen] = useState({ identity: "", eventId: "" });
-  const identity = `${user?.id ?? ""}:${user?.activeWorkspace ?? ""}`;
-  const latestEventId = dataset.events.at(-1)?.id ?? "";
-  const notifying = Boolean(latestEventId && (seen.identity !== identity || seen.eventId !== latestEventId));
+  const readIds = new Set(dataset.readEventIds ?? []);
+  const unreadCount = dataset.events.filter(event => !readIds.has(event.id)).length;
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -83,8 +81,12 @@ export default function NotificationDropdown() {
   };
 
   const handleClick = () => {
-    toggleDropdown();
-    setSeen({ identity, eventId: latestEventId });
+    const opening = !isOpen;
+    setIsOpen(opening);
+    if (opening) {
+      const unreadIds = items.filter(item => !readIds.has(item.id)).slice(0, 1000).map(item => item.id);
+      if (unreadIds.length) void markNotificationsReadAction(unreadIds);
+    }
   };
 
   return (
@@ -92,17 +94,10 @@ export default function NotificationDropdown() {
       <button
         className="dropdown-toggle relative flex h-8 w-8 items-center justify-center rounded-lg border border-[#deded5] bg-white text-[#526157] transition-colors hover:bg-[#e9eee8] sm:h-9 sm:w-9 xl:h-10 xl:w-10"
         onClick={handleClick}
-        aria-label="Activity"
+        aria-label={unreadCount ? `Activity, ${unreadCount} unread` : "Activity"}
         aria-expanded={isOpen}
       >
-        <span
-          className={cn(
-            "absolute inset-e-0 top-0.5 z-10 h-2 w-2 rounded-full bg-signal-500",
-            !notifying ? "hidden" : "flex",
-          )}
-        >
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-signal-500 opacity-75"></span>
-        </span>
+        {unreadCount > 0 && <span className="absolute -end-1 -top-1 z-10 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-signal-500 px-1 text-[9px] font-bold leading-none text-white" aria-hidden="true">{unreadCount}</span>}
         <svg
           className="fill-current"
           width="20"
@@ -157,13 +152,13 @@ export default function NotificationDropdown() {
               <DropdownItem
                 tag="a"
                 to={item.href}
-                onItemClick={closeDropdown}
+                onItemClick={() => { closeDropdown(); void markNotificationsReadAction([item.id]); }}
                 className="flex gap-3 border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
               >
                 <span
                   className={cn(
                     "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                    toneDot[item.tone],
+                    readIds.has(item.id) ? "bg-steel-300" : toneDot[item.tone],
                   )}
                   aria-hidden="true"
                 />

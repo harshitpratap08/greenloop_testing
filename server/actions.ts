@@ -68,7 +68,7 @@ function eventFor(
 
 function updateDemandCoverage(dataset: GreenLoopDataset, demandId: string): GreenLoopDataset {
   const demand = dataset.demands.find((item) => item.id === demandId);
-  if (!demand || demand.status === "PAUSED") return dataset;
+  if (!demand || demand.status === "DRAFT" || demand.status === "PAUSED" || demand.status === "CANCELLED") return dataset;
   const coveredT = dataset.bookings
     .filter((booking) => booking.demandId === demandId && booking.status === "confirmed")
     .reduce((total, booking) => total + booking.tonnesT, 0);
@@ -161,6 +161,8 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
       receiverId: input.receiverId ?? "",
       status: "OPEN",
       createdAt: new Date().toISOString(),
+      targetProviderId: input.targetProviderId,
+      targetMaterialId: input.targetMaterialId,
     };
     setDataset((prev) => {
       const event = eventFor(prev, "demand.created", ACTOR_RECEIVER,
@@ -169,6 +171,19 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
       return { ...prev, demands: [newDemand, ...prev.demands], events: [...prev.events, event] };
     });
     return newDemand;
+  };
+
+  const saveDemandDraftAction: AddDemandAction = (input) => {
+    const draft: DemandRecord = { ...input, id: nextId("DM", dataset.demands, 3), receiverId: input.receiverId ?? "", status: "DRAFT", createdAt: new Date().toISOString(), targetProviderId: input.targetProviderId, targetMaterialId: input.targetMaterialId };
+    setDataset((prev) => ({ ...prev, demands: [draft, ...prev.demands], events: [...prev.events, eventFor(prev, "demand.draft_saved", ACTOR_RECEIVER, "Receiver saved a material request draft", [draft.id, draft.receiverId])] }));
+    return draft;
+  };
+
+  const deleteDemandDraftAction = (demandId: string) => {
+    const draft = dataset.demands.find((item) => item.id === demandId);
+    if (!draft || draft.status !== "DRAFT") return false;
+    setDataset((prev) => ({ ...prev, demands: prev.demands.filter((item) => item.id !== demandId), events: [...prev.events, eventFor(prev, "demand.draft_deleted", ACTOR_RECEIVER, "Receiver deleted a material request draft", [demandId, draft.receiverId])] }));
+    return true;
   };
 
   const addProjectAction: AddProjectAction = (input) => {
@@ -457,6 +472,19 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
     }));
   };
 
+  const saveOfferDraftAction = (input: Omit<MaterialOffer, "id" | "status" | "createdAt">) => {
+    const draft: MaterialOffer = { ...input, id: nextId("OF", dataset.offers ?? [], 4), status: "draft", createdAt: new Date().toISOString(), counters: [] };
+    setDataset((prev) => ({ ...prev, offers: [draft, ...(prev.offers ?? [])], events: [...prev.events, eventFor(prev, "offer.draft_saved", ACTOR_A, "Provider saved a material offer draft", [draft.id, draft.demandId, draft.passportId])] }));
+    return true;
+  };
+
+  const deleteOfferDraftAction = (offerId: string) => {
+    const draft = dataset.offers?.find((item) => item.id === offerId);
+    if (!draft || draft.status !== "draft") return false;
+    setDataset((prev) => ({ ...prev, offers: (prev.offers ?? []).filter((item) => item.id !== offerId), events: [...prev.events, eventFor(prev, "offer.draft_deleted", ACTOR_A, "Provider deleted a material offer draft", [offerId, draft.demandId, draft.passportId])] }));
+    return true;
+  };
+
   const acceptOfferAction = (offerId: string) => {
     setDataset((prev) => {
       const offers = prev.offers ?? [];
@@ -464,7 +492,7 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
       if (!offer || offer.status !== "pending") return prev;
       const demand = prev.demands.find((item) => item.id === offer.demandId);
       const material = prev.materials.find((item) => item.id === offer.passportId);
-      if (!demand || !material || material.type !== demand.materialType || demand.status === "PAUSED") return prev;
+      if (!demand || !material || material.type !== demand.materialType || demand.status === "PAUSED" || demand.status === "CANCELLED") return prev;
       const eligibleSlots = prev.slots
         .filter((item) => item.receiverId === demand.receiverId && item.materialType === demand.materialType && item.date >= new Date().toISOString().slice(0, 10) && slotMatchesDemandPeriod(item, demand.period))
         .sort((a, b) => a.date.localeCompare(b.date));
@@ -479,7 +507,8 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
       const demandRemainingT = Math.max(0, demand.requiredT - committedDemandT);
       const requested = offer.offeredQuantityT;
       if (requested > materialAvailableT || requested > demandRemainingT) return prev;
-      const slot = eligibleSlots.find((item) => availableT(item, prev.bookings) >= requested) ?? eligibleSlots[0];
+      const slot = eligibleSlots.find((item) => availableT(item, prev.bookings) >= requested);
+      if (!slot) return prev;
       const capacityResult = requestCapacity(prev, {
         materialId: material.id,
         receiverId: demand.receiverId,
@@ -528,7 +557,7 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
       if (!demand || !["OPEN", "PARTIALLY_COVERED"].includes(demand.status)) return prev;
       const pendingOffers = (prev.offers ?? []).filter((offer) => offer.demandId === demand.id && offer.status === "pending");
       const event = eventFor(prev, "demand.cancelled", ACTOR_RECEIVER, "Receiver cancelled material request", [demand.id, ...pendingOffers.map((offer) => offer.id)]);
-      return { ...prev, demands: prev.demands.map((item) => item.id === demandId ? { ...item, status: "PAUSED" } : item), offers: (prev.offers ?? []).map((offer) => offer.demandId === demand.id && offer.status === "pending" ? { ...offer, status: "declined" } : offer), events: [...prev.events, event] };
+      return { ...prev, demands: prev.demands.map((item) => item.id === demandId ? { ...item, status: "CANCELLED" } : item), offers: (prev.offers ?? []).map((offer) => offer.demandId === demand.id && offer.status === "pending" ? { ...offer, status: "declined" } : offer), events: [...prev.events, event] };
     });
     return true;
   };
@@ -568,5 +597,5 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
     });
   };
 
-  return { getDataset: () => dataset, requestCapacityAction, cancelBookingAction, dispatchAction, verifyAction, addMaterialAction, addDemandAction, addProjectAction, updateCapacityAction, addSupportRequestAction, addCapacityAction, acceptRequestAction, rejectRequestAction, rescheduleRequestAction, receiveLoadAction, verifyLoadAction, addOfferAction, acceptOfferAction, declineOfferAction, counterOfferAction, cancelDemandAction, withdrawOfferAction, archiveBookingAction };
+  return { getDataset: () => dataset, requestCapacityAction, cancelBookingAction, dispatchAction, verifyAction, addMaterialAction, addDemandAction, saveDemandDraftAction, deleteDemandDraftAction, addProjectAction, updateCapacityAction, addSupportRequestAction, addCapacityAction, acceptRequestAction, rejectRequestAction, rescheduleRequestAction, receiveLoadAction, verifyLoadAction, addOfferAction, saveOfferDraftAction, deleteOfferDraftAction, acceptOfferAction, declineOfferAction, counterOfferAction, cancelDemandAction, withdrawOfferAction, archiveBookingAction };
 }

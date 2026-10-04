@@ -23,6 +23,23 @@ export function formatINRPerT(value: number): string {
   return `${formatINR(value)}/tonne`;
 }
 
+/** Human label for a material type key, including provider-defined custom types. */
+export function materialTypeLabel(type: string): string {
+  const known: Record<string, string> = {
+    concrete: "Concrete",
+    brick: "Brick",
+    steel: "Steel",
+    timber: "Timber",
+    plasterboard: "Plasterboard",
+    glass: "Glass",
+  };
+  if (known[type]) return known[type];
+  if (!type) return "Material";
+  return type
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
 export function formatStamp(iso: string): string {
   if (!iso) return "";
   const d = formatDate(iso);

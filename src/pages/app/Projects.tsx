@@ -58,7 +58,7 @@ export default function Projects() {
     const stageIndex = currentStepIndex(steps);
     const complete = project.status === "complete";
     const next = complete
-      ? { label: "View project report", to: "/app/reports", reason: "Project marked complete." }
+      ? { label: "View project report", to: "/app/dashboard", reason: "Project marked complete." }
       : projectNextAction(dataset, project.id);
     const materialTypes = [...new Set(materials.map((material) => material.type))];
 

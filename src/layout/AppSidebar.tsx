@@ -5,15 +5,12 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router";
 import {
   BoxIconLine,
-  CalenderIcon,
   ChevronDownIcon,
   DocsIcon,
   GridIcon,
   HorizontaLDots,
   LayoutIcon,
   ListIcon,
-  TaskIcon,
-  TruckDelivery,
   BoxMoving,
   CheckCircleIcon,
   BoxTapped,
@@ -44,10 +41,10 @@ type NavItem = {
 const providerNavItems: NavItem[] = [
   { icon: <GridIcon fontSize={24} />, name: "Home", key: "explore", path: "/app/explore" },
   { icon: <BoxMoving fontSize={24} />, name: "Inventory", key: "materials", path: "/app/materials" },
+  // Combined discovery: active demand + receiver discovery in one destination.
   { icon: <ListIcon fontSize={24} />, name: "Active Demand", key: "marketDemand", path: "/app/market-demand" },
-  { icon: <BoxTapped fontSize={24} />, name: "Receivers", key: "receivers", path: "/app/market-demand?view=receivers" },
-  { icon: <CalenderIcon fontSize={24} />, name: "Bookings", key: "bookings", path: "/app/bookings" },
-  { icon: <TruckDelivery fontSize={24} />, name: "Deliveries", key: "deliveries", path: "/app/deliveries" },
+  { icon: <DocsIcon fontSize={24} />, name: "Dashboard", key: "dashboard", path: "/app/dashboard" },
+  { icon: <BoxMoving fontSize={24} />, name: "Bookings & Deliveries", key: "bookings-deliveries", path: "/app/bookings-deliveries" },
   { icon: <CheckCircleIcon fontSize={24} />, name: "Proof of Recovery", key: "verification", path: "/app/verification" },
 ];
 
@@ -56,8 +53,6 @@ const referenceItems: NavItem[] = [
 ];
 
 const toolsItems: NavItem[] = [
-  { icon: <TaskIcon fontSize={24} />, name: "Reports", key: "reports", path: "/app/reports" },
-  { icon: <DocsIcon fontSize={24} />, name: "Operations console", key: "dashboard", path: "/app/dashboard" },
   { icon: <LayoutIcon fontSize={24} />, name: "Match Details", key: "allocations", path: "/app/allocations" },
   { icon: <ListIcon fontSize={24} />, name: "Public website", key: "publicSite", path: "/" },
 ];
@@ -67,8 +62,8 @@ const receiverNavItems: NavItem[] = [
   { icon: <BoxMoving fontSize={24} />, name: "Inventory", key: "receiverInventory", path: "/app/receiver/inventory" },
   { icon: <BoxTapped fontSize={24} />, name: "Request Material", key: "receiverDemand", path: "/app/receiver/demand" },
   { icon: <BoxIconLine fontSize={24} />, name: "Providers", key: "providers", path: "/app/receiver/providers" },
-  { icon: <CalenderIcon fontSize={24} />, name: "Bookings", key: "bookings", path: "/app/bookings" },
-  { icon: <TruckDelivery fontSize={24} />, name: "Deliveries", key: "deliveries", path: "/app/receiver/deliveries" },
+  { icon: <DocsIcon fontSize={24} />, name: "Dashboard", key: "dashboard", path: "/app/dashboard" },
+  { icon: <BoxMoving fontSize={24} />, name: "Bookings & Deliveries", key: "bookings-deliveries", path: "/app/bookings-deliveries" },
   { icon: <CheckCircleIcon fontSize={24} />, name: "Proof of Recovery", key: "verification", path: "/app/receiver/verification" },
 ];
 

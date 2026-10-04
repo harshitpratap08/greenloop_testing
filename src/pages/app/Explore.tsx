@@ -69,7 +69,7 @@ export default function Explore() {
   const shortcuts: HomeCard[] = [
     { title: "Materials", description: "Manage your listings and available materials.", action: "View materials", to: "/app/materials", image: materialMediaFor("brick") },
     { title: "Bookings", description: "Review active requests, confirmations, and transaction status.", action: "View bookings", to: "/app/bookings", image: ambientMedia.authTruck },
-    { title: "Impact", description: "See the recovery recorded across your workspace.", action: "View impact", to: "/app/reports", image: ambientMedia.inspectionWorker },
+    { title: "Impact", description: "See the recovery recorded across your workspace.", action: "View impact", to: "/app/dashboard", image: ambientMedia.inspectionWorker },
     { title: "Recent Activity", description: "Review the latest recorded project events.", action: "View activity", to: "/app/audit-trail", image: ambientMedia.sortingFacility },
   ];
 
@@ -108,7 +108,7 @@ export default function Explore() {
             <ActivityCard icon={<BoxMoving className="size-5" />} label="Active Listings" value={String(activeListings)} detail="View listings" to="/app/materials" />
             <ActivityCard icon={<TaskIcon className="size-5" />} label="Pending Matches" value={String(pendingMatches)} detail="Find a receiver" to="/app/market-demand?view=receivers" />
             <ActivityCard icon={<TruckDelivery className="size-5" />} label="Active Transactions" value={String(activeTransactions)} detail="Review bookings" to="/app/bookings" />
-            <ActivityCard icon={<CheckCircleIcon className="size-5" />} label="Material Reused" value={`${materialReusedT.toFixed(1)} t`} detail="View impact" to="/app/reports" />
+            <ActivityCard icon={<CheckCircleIcon className="size-5" />} label="Material Reused" value={`${materialReusedT.toFixed(1)} t`} detail="View impact" to="/app/dashboard" />
           </div>
         </section>
       </RevealItem>

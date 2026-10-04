@@ -8,13 +8,16 @@
 export type ProjectStatus = "active" | "demolition" | "complete";
 export type MaterialCondition = "good" | "fair" | "poor";
 export type MaterialGrade = "A" | "B" | "C";
+/** The six surveyed catalogue types, plus provider-defined custom materials
+ * (free-form labels, e.g. "roof tiles"), which flow through the same backend. */
 export type MaterialTypeKey =
   | "concrete"
   | "brick"
   | "steel"
   | "timber"
   | "plasterboard"
-  | "glass";
+  | "glass"
+  | (string & {});
 
 export type MaterialStatus =
   | "surveyed"
@@ -28,7 +31,7 @@ export type MaterialStatus =
 export type AllocationStatus = "confirmed" | "hold" | "pending" | "cancelled";
 export type BookingStatus = "confirmed" | "hold" | "pending" | "cancelled";
 export type VerificationStatus = "verified" | "rejected" | "pending";
-export type DemandStatus = "OPEN" | "PARTIALLY_COVERED" | "COVERED" | "PAUSED";
+export type DemandStatus = "DRAFT" | "OPEN" | "PARTIALLY_COVERED" | "COVERED" | "PAUSED" | "CANCELLED";
 
 export type ActorKind = "system" | "contractor" | "receiver";
 
@@ -71,6 +74,12 @@ export interface MaterialPassport {
   type: MaterialTypeKey;
   /** Best-estimate recoverable quantity, tonnes. */
   quantityT: number;
+  /** Original unit type if not surveyed in tonnes (e.g. cubic meters, pallets). */
+  originalUnit?: string;
+  /** Original quantity in the original unit. */
+  originalQuantity?: number;
+  /** Conversion factor applied (tonnes per unit). */
+  conversionFactor?: number;
   /** Survey uncertainty band in tonnes [min, max]. */
   quantityRangeT: [number, number];
   condition: MaterialCondition;
@@ -172,6 +181,10 @@ export interface Allocation {
 export interface AllocationCandidate {
   distanceKnown?: boolean;
   receiverId: string;
+  providerId?: string; // added for reverse matching
+  materialId?: string;
+  demandId?: string;
+  offerId?: string;
   /** 0–1 suitability of the material for this receiver's process. */
   suitability: number;
   /** Receiver's current demand signal for this material, 0–1. */
@@ -186,6 +199,26 @@ export interface AllocationCandidate {
   /** Deterministic composite score; higher is better. */
   score: number;
   recommended: boolean;
+  
+  // Advanced Matching Engine fields
+  isEligible?: boolean;
+  requestedQuantityT?: number;
+  availableQuantityT?: number;
+  coveragePercent?: number;
+  remainingQuantityT?: number;
+  isFullMatch?: boolean;
+  isPartialMatch?: boolean;
+  summary?: string;
+  advantages?: string[];
+  drawbacks?: string[];
+  nonMatchReasons?: string[];
+  missingDataNotes?: string[];
+  factors?: Record<string, {
+    value: string | number;
+    score: number;
+    impact: "positive" | "negative" | "neutral" | "unknown";
+    reason: string;
+  }>;
 }
 
 export interface Booking {
@@ -219,7 +252,7 @@ export interface MaterialOffer {
   providerId: string;
   passportId: string;
   offeredQuantityT: number;
-  status: "pending" | "accepted" | "declined" | "withdrawn";
+  status: "draft" | "pending" | "accepted" | "declined" | "withdrawn";
   createdAt: string;
   pricePerT?: number;
   agreedPricePerT?: number;
@@ -265,6 +298,8 @@ export interface DemandRecord {
   notes?: string;
   budgetPerT?: number;
   geo?: GeoPoint;
+  targetProviderId?: string;
+  targetMaterialId?: string;
   archivedAt?: string;
 }
 
@@ -277,6 +312,7 @@ export interface SupportRequest {
 }
 
 export interface GreenLoopDataset {
+  readEventIds?: string[];
   providerListings?: ProviderMaterialListing[];
   transactionContacts?: TransactionContact[];
   supportRequests?: SupportRequest[];

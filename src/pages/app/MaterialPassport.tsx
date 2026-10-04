@@ -12,18 +12,10 @@ import PageMeta from "@/components/common/PageMeta";
 import { materialMedia } from "@/components/greenloop/AppExploration";
 import { computeMatch, slotLedger } from "@/domain/capacity";
 import { eventsForSubjects } from "@/domain/events";
-import { formatDate, formatINR, formatINRPerT } from "@/utils";
+import { formatDate, formatINR, formatINRPerT, materialTypeLabel } from "@/utils";
 import { PageMotion, RevealItem, MediaPanel, CapacityMeter, StatusChip, WorkflowRail7, Counter, EvidenceGallery, type EvidenceItem } from "@/components/greenloop/kit";
 import { materialMediaFor, receiverMediaFor } from "@/config/appMedia";
 
-const TYPE_LABEL: Record<string, string> = {
-  concrete: "Concrete",
-  brick: "Brick",
-  steel: "Steel",
-  timber: "Timber",
-  plasterboard: "Plasterboard",
-  glass: "Glass",
-};
 
 export default function MaterialPassport() {
   const { id } = useParams<{ id: string }>();
@@ -40,7 +32,7 @@ export default function MaterialPassport() {
           <h3 className="font-archivo text-2xl font-bold uppercase text-ink-900 dark:text-white">Passport not found</h3>
           <p className="mt-2 text-gray-500 dark:text-gray-400">The requested material passport could not be found.</p>
           <Link to="/app/materials" className="mt-6 inline-flex min-h-11 items-center bg-ink-900 px-6 font-archivo text-sm font-bold uppercase tracking-wide text-white hover:bg-loop-600 dark:bg-white dark:text-ink-900">
-            Back to Materials
+            Back to Inventory
           </Link>
         </div>
       </div>
@@ -88,12 +80,12 @@ export default function MaterialPassport() {
 
   return (
     <PageMotion className="mx-auto max-w-[1200px] pb-24">
-      <PageMeta title={`Passport ${material.id} | GreenLoop`} description={`Material passport for ${TYPE_LABEL[material.type] ?? material.type} — ${material.quantityT.toFixed(1)} t from ${project.name}.`} />
+      <PageMeta title={`Passport ${material.id} | GreenLoop`} description={`Material passport for ${materialTypeLabel(material.type)} — ${material.quantityT.toFixed(1)} t from ${project.name}.`} />
 
       {/* Breadcrumb-style back link */}
       <RevealItem>
         <Link to="/app/materials" className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-ink-900 dark:text-gray-400 dark:hover:text-white">
-          ← Materials &amp; Passports
+          ← Inventory
         </Link>
       </RevealItem>
 
@@ -110,16 +102,23 @@ export default function MaterialPassport() {
             <figcaption className="absolute bottom-4 left-5 right-5">
               <p className="eyebrow-label text-white/70">Material Passport</p>
               <p className="mt-1 font-archivo text-3xl font-bold uppercase tracking-tight text-white">
-                {TYPE_LABEL[material.type] ?? material.type}
+                {materialTypeLabel(material.type)}
               </p>
             </figcaption>
           </MediaPanel>
           <div className="flex flex-col gap-5 p-6 sm:p-8">
             <div className="flex items-start justify-between gap-3">
-              <p className="mt-1">
-                <Counter value={material.quantityT} className="text-4xl font-bold text-ink-900 dark:text-white" />
-                <span className="ms-2 font-archivo text-lg font-semibold text-gray-600 dark:text-gray-400">tonnes</span>
-              </p>
+              <div className="mt-1">
+                <p>
+                  <Counter value={material.quantityT} className="text-4xl font-bold text-ink-900 dark:text-white" />
+                  <span className="ms-2 font-archivo text-lg font-semibold text-gray-600 dark:text-gray-400">tonnes</span>
+                </p>
+                {material.originalUnit && (
+                  <p className="mt-1 text-sm font-medium text-steel-500 dark:text-steel-400">
+                    Surveyed as {material.originalQuantity} {material.originalUnit} @ {material.conversionFactor} t/{material.originalUnit}
+                  </p>
+                )}
+              </div>
               <StatusChip status={statusChip} label={material.status} />
             </div>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
@@ -181,7 +180,7 @@ export default function MaterialPassport() {
                 </div>
                 <div className="mt-2 flex justify-between text-theme-xs text-gray-500 dark:text-gray-400">
                   <span className="ledger-numeral">{material.quantityRangeT[0].toFixed(1)} t min</span>
-                  <span className="ledger-numeral font-semibold text-ink-900 dark:text-white">survey {material.quantityT.toFixed(1)} t</span>
+                  <span className="ledger-numeral font-semibold text-ink-900 dark:text-white">survey {material.quantityT.toFixed(1)} t {material.originalUnit && `(${material.originalQuantity} ${material.originalUnit})`}</span>
                   <span className="ledger-numeral">{material.quantityRangeT[1].toFixed(1)} t max</span>
                 </div>
               </div>

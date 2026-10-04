@@ -5,9 +5,9 @@ import { useLocation, useNavigate, useSearchParams } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import type { MaterialCondition, MaterialGrade, MaterialTypeKey, Evidence, MaterialPassport, GeoPoint } from "@/domain/types";
-import { LocationPicker } from "@/components/greenloop/LocationMap";
+import AddressLocation from "@/components/greenloop/AddressLocation";
 import { motion, AnimatePresence } from "motion/react";
-import { cn } from "@/utils";
+import { cn, materialTypeLabel } from "@/utils";
 import { materialMediaFor } from "@/config/appMedia";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -18,6 +18,9 @@ const TYPE_LABEL: Record<string, string> = {
   plasterboard: "Plasterboard",
   glass: "Glass",
 };
+
+const CUSTOM_TYPE = "__custom__";
+const normalizeCustomType = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
 export default function NewSurvey() {
   const { t } = useTranslation();
@@ -30,6 +33,9 @@ export default function NewSurvey() {
   const [projectId, setProjectId] = useState(location.state?.projectId || params.get("project") || dataset.projects[0]?.id || "");
   const [projectGeo, setProjectGeo] = useState<GeoPoint | undefined>(() => dataset.projects.find((project) => project.id === (location.state?.projectId || params.get("project") || dataset.projects[0]?.id))?.geo);
   const [type, setType] = useState<MaterialTypeKey>("concrete");
+  const [customName, setCustomName] = useState("");
+  const [unit, setUnit] = useState("tonnes");
+  const [conversionFactor, setConversionFactor] = useState("1");
   const [quantity, setQuantity] = useState("10");
   const [rangeMin, setRangeMin] = useState("8");
   const [rangeMax, setRangeMax] = useState("12");
@@ -47,8 +53,13 @@ export default function NewSurvey() {
   const [validationError, setValidationError] = useState("");
 
   const [createdPassport, setCreatedPassport] = useState<MaterialPassport | null>(null);
+  const typeValue = type === CUSTOM_TYPE ? normalizeCustomType(customName) : type;
+  const isTonnes = unit.toLowerCase() === 'tonnes' || unit.toLowerCase() === 't';
+  const cFactor = isTonnes ? 1 : Number(conversionFactor) || 1;
+  const quantityTValue = (Number(quantity) || 0) * cFactor;
+  
   const rangeIsValid = Number.isFinite(Number(rangeMin)) && Number.isFinite(Number(rangeMax)) && Number(rangeMin) >= 0 && Number(rangeMax) >= Number(rangeMin) && Number(rangeMin) <= Number(quantity) && Number(rangeMax) >= Number(quantity);
-  const estimateRange: [number, number] = rangeIsValid ? [Number(rangeMin), Number(rangeMax)] : [Number(quantity) || 0, Number(quantity) || 0];
+  const estimateRange: [number, number] = rangeIsValid ? [Number(rangeMin) * cFactor, Number(rangeMax) * cFactor] : [quantityTValue, quantityTValue];
 
   const [uploading, setUploading] = useState(false);
   const handleFiles = async (files: FileList | null) => {
@@ -83,6 +94,11 @@ export default function NewSurvey() {
       setStep(2);
       return;
     }
+    if (typeValue.length < 2) {
+      setValidationError("Enter a material name for the custom material.");
+      setStep(1);
+      return;
+    }
     if (!projectId) {
       setValidationError("Choose or create the project location for this material.");
       setStep(3);
@@ -91,9 +107,14 @@ export default function NewSurvey() {
     setValidationError("");
     const passport = await addMaterialAction({
       projectId,
-      type,
-      quantityT: quantityValue,
+      type: typeValue,
+      quantityT: quantityTValue,
       quantityRangeT: estimateRange,
+      ...(isTonnes ? {} : {
+        originalUnit: unit,
+        originalQuantity: Number(quantity),
+        conversionFactor: cFactor,
+      }),
       condition,
       grade,
       confidence: parseFloat(confidence) || 0,
@@ -160,20 +181,62 @@ export default function NewSurvey() {
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={type === CUSTOM_TYPE}
+                  onClick={() => setType(CUSTOM_TYPE)}
+                  className={cn(
+                    "group relative overflow-hidden border text-start transition-all",
+                    type === CUSTOM_TYPE ? "border-ink-900 ring-2 ring-ink-900 dark:border-white dark:ring-white" : "border-steel-200 hover:border-ink-900 dark:border-steel-800 dark:hover:border-white",
+                  )}
+                >
+                  <span className="relative block h-24 w-full overflow-hidden">
+                    <img src={materialMediaFor("custom").src} alt="Other material" loading="lazy" className="size-full object-cover" />
+                    <span className="absolute inset-0 bg-ink-950/45" aria-hidden="true" />
+                    <span className="absolute bottom-2 left-3 font-archivo text-sm font-bold uppercase tracking-wide text-white">Other / Custom</span>
+                    {type === CUSTOM_TYPE && <span className="absolute right-2 top-2 size-5 rounded-full border-2 border-white bg-loop-500" aria-hidden="true" />}
+                  </span>
+                </button>
               </div>
+              {type === CUSTOM_TYPE && (
+                <div className="mt-5 border border-steel-200 bg-steel-50 p-4 dark:border-steel-800 dark:bg-white/[0.03]">
+                  <label htmlFor="custom-material-name" className="block text-sm font-semibold text-ink-800 dark:text-gray-200">Material name</label>
+                  <input
+                    id="custom-material-name"
+                    type="text"
+                    value={customName}
+                    onChange={(event) => setCustomName(event.target.value)}
+                    placeholder="Enter material name, e.g. roof tiles, copper wire"
+                    required
+                    className="mt-2 block w-full rounded-sm border-2 border-steel-300 p-3 text-sm outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white"
+                  />
+                  <p className="mt-2 text-xs text-steel-500 dark:text-gray-400">Your custom material becomes a real GreenLoop material — usable in inventory, requests, offers, matching and pricing.</p>
+                </div>
+              )}
               <div className="mt-8 flex justify-end"><button onClick={() => setStep(2)} className="min-h-11 bg-ink-900 px-8 py-3 font-semibold text-white hover:bg-loop-700 dark:bg-white dark:text-ink-900">Continue</button></div>
             </motion.div>
           )}
           {step === 3 && (
             <motion.div key="choose-location" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border border-steel-200 border-t-4 border-t-loop-600 bg-white p-8 dark:border-steel-800 dark:border-t-loop-500 dark:bg-black">
               <h2 className="font-archivo text-2xl font-bold text-ink-900 dark:text-white">Where is the material?</h2>
-              <p className="mt-2 text-steel-600 dark:text-gray-400">Choose the project where the material is located. The written address remains the source of truth; map coordinates are optional.</p>
-              <div className="mt-5"><LocationPicker geo={projectGeo} onChange={setProjectGeo} /></div>
+              <p className="mt-2 text-steel-600 dark:text-gray-400">Search the address, pick a suggestion, and choose (or create) the project it belongs to. The written address remains the source of truth; map coordinates are optional.</p>
+              <div className="mt-5 max-w-xl">
+                <AddressLocation
+                  label="Project location"
+                  address={projectLocation}
+                  onAddressChange={setProjectLocation}
+                  geo={projectGeo}
+                  onGeoChange={setProjectGeo}
+                  sources={[...dataset.projects.map((project) => project.location), ...dataset.demands.map((demand) => demand.location)]}
+                  placeholder="Search project address…"
+                />
+              </div>
 
               <div className="mt-8 space-y-4">
                 {dataset.projects.map(p => (
                   <label key={p.id} className={cn("flex cursor-pointer items-center gap-4 rounded-sm border p-5 transition-all hover:border-loop-400", projectId === p.id ? "border-loop-500 bg-loop-50 ring-1 ring-loop-500 dark:bg-loop-500/10" : "border-steel-200 dark:border-steel-800")}>
-                    <input type="radio" name="project" value={p.id} checked={projectId === p.id} onChange={() => { setProjectId(p.id); setProjectGeo(p.geo); }} className="size-5 text-loop-600 focus:ring-loop-600" />
+                    <input type="radio" name="project" value={p.id} checked={projectId === p.id} onChange={() => { setProjectId(p.id); setProjectGeo(p.geo); setProjectLocation(p.location); }} className="size-5 text-loop-600 focus:ring-loop-600" />
                     <div>
                       <p className="font-archivo text-lg font-bold text-ink-900 dark:text-white">{p.name}</p>
                       <p className="text-sm text-steel-600 dark:text-gray-400">{p.location} · {p.status}</p>
@@ -183,7 +246,7 @@ export default function NewSurvey() {
                 {showProjectForm ? (
                   <div className="grid gap-3 rounded-sm border border-steel-200 p-4 dark:border-steel-800">
                     <input value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Project name" aria-label="Project name" className="w-full rounded-sm border border-steel-300 p-3 dark:border-steel-700 dark:bg-black dark:text-white" />
-                    <input value={projectLocation} onChange={(event) => setProjectLocation(event.target.value)} placeholder="Project location" aria-label="Project location" className="w-full rounded-sm border border-steel-300 p-3 dark:border-steel-700 dark:bg-black dark:text-white" />
+                    <p className="text-xs text-steel-500 dark:text-gray-400">Location: {projectLocation.trim() || "Search an address above"}{projectGeo ? ` · pinned ${projectGeo.lat.toFixed(4)}, ${projectGeo.lng.toFixed(4)}` : ""}</p>
                     <div className="flex gap-3">
                       <button type="button" onClick={handleCreateProject} disabled={!projectName.trim() || !projectLocation.trim()} className="min-h-11 bg-loop-600 px-4 py-2 font-semibold text-white disabled:opacity-50">Create project</button>
                       {dataset.projects.length > 0 && <button type="button" onClick={() => setShowProjectForm(false)} className="min-h-11 px-4 py-2 text-steel-600 dark:text-gray-300">Cancel</button>}
@@ -204,20 +267,34 @@ export default function NewSurvey() {
               <p className="mt-2 text-steel-600 dark:text-gray-400">Enter your best estimate in tonnes. You can add an estimate range, condition, and grade if you know them.</p>
               
               <div className="mt-8 grid gap-6 sm:grid-cols-2">
-                <div className="sm:col-span-2 rounded-sm border border-steel-200 bg-steel-50 px-4 py-3 text-sm font-semibold text-ink-800 dark:border-steel-800 dark:bg-white/[0.03] dark:text-gray-200">{TYPE_LABEL[type]}</div>
+                <div className="sm:col-span-2 rounded-sm border border-steel-200 bg-steel-50 px-4 py-3 text-sm font-semibold text-ink-800 dark:border-steel-800 dark:bg-white/[0.03] dark:text-gray-200">{materialTypeLabel(typeValue) || "Custom material"}</div>
+                <div className="sm:col-span-2 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Unit</label>
+                    <input type="text" value={unit} onChange={e => {
+                        setUnit(e.target.value);
+                        if (e.target.value.toLowerCase() === 'tonnes' || e.target.value.toLowerCase() === 't') setConversionFactor("1");
+                    }} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" placeholder="tonnes, m3, pallets..." />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Conversion Factor (t/unit)</label>
+                    <input type="number" step="0.01" value={conversionFactor} onChange={e => setConversionFactor(e.target.value)} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" disabled={isTonnes} />
+                  </div>
+                </div>
                 <div className="sm:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Estimated Quantity (t)</label>
+                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Estimated Quantity ({unit})</label>
                   <input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" />
+                  {!isTonnes && <p className="mt-2 text-sm text-steel-500 font-medium">Equivalent to {quantityTValue.toFixed(2)} tonnes</p>}
                 </div>
                 <details className="sm:col-span-2 rounded-sm border border-steel-200 px-4 py-3 dark:border-steel-800">
                   <summary className="cursor-pointer text-sm font-semibold text-ink-800 dark:text-gray-200">Optional details: estimate range, condition, and grade</summary>
                   <div className="mt-4 grid gap-6 sm:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Estimate range · minimum (t)</label>
+                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Estimate range · minimum ({unit})</label>
                   <input type="number" value={rangeMin} onChange={e => setRangeMin(e.target.value)} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Estimate range · maximum (t)</label>
+                  <label className="mb-2 block text-sm font-semibold uppercase text-steel-600 dark:text-gray-400">Estimate range · maximum ({unit})</label>
                   <input type="number" value={rangeMax} onChange={e => setRangeMax(e.target.value)} className="w-full rounded-sm border-2 border-steel-300 p-3 outline-none focus:border-loop-500 dark:border-steel-700 dark:bg-black dark:text-white" />
                 </div>
                 <div>
@@ -316,12 +393,12 @@ export default function NewSurvey() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Material</dt>
-                  <dd className="font-bold text-ink-900 dark:text-white">{TYPE_LABEL[type]} (Grade {grade}, {condition})</dd>
+                  <dd className="font-bold text-ink-900 dark:text-white">{materialTypeLabel(typeValue) || "Custom material"} (Grade {grade}, {condition})</dd>
                   {surveyNotes.trim() && <><dt className="text-xs font-semibold uppercase text-steel-500">Survey notes</dt><dd className="text-sm text-steel-600 dark:text-gray-400">{surveyNotes.trim()}</dd></>}
                 </div>
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Quantity</dt>
-                  <dd className="font-bold text-ink-900 dark:text-white">{quantity} t</dd>
+                  <dd className="font-bold text-ink-900 dark:text-white">{isTonnes ? `${quantity} t` : `${quantity} ${unit} (${quantityTValue.toFixed(1)} t)`}</dd>
                 </div>
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Availability</dt>
@@ -330,7 +407,7 @@ export default function NewSurvey() {
                 {pricePerT !== "" && <div className="flex flex-col gap-1"><dt className="text-xs font-semibold uppercase text-steel-500">Price / tonne</dt><dd className="font-bold text-ink-900 dark:text-white">₹{Number(pricePerT).toLocaleString("en-IN")}</dd></div>}
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Range</dt>
-                  <dd className="font-bold text-ink-900 dark:text-white">{estimateRange[0]}–{estimateRange[1]} t</dd>
+                  <dd className="font-bold text-ink-900 dark:text-white">{estimateRange[0].toFixed(1)}–{estimateRange[1].toFixed(1)} t</dd>
                 </div>
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs font-semibold uppercase text-steel-500">Evidence</dt>
@@ -355,7 +432,7 @@ export default function NewSurvey() {
               </div>
               <h2 className="font-archivo text-4xl font-bold text-ink-900 dark:text-white">Material Passport Created</h2>
               <p className="mt-4 text-lg text-steel-600 dark:text-gray-400">
-                Passport <strong className="text-ink-900 dark:text-white">{createdPassport.id}</strong> has been issued for {createdPassport.quantityT}t of {TYPE_LABEL[createdPassport.type]}.
+                Passport <strong className="text-ink-900 dark:text-white">{createdPassport.id}</strong> has been issued for {createdPassport.quantityT}t of {materialTypeLabel(createdPassport.type)}.
               </p>
               
               <div className="mt-10 flex justify-center gap-4">

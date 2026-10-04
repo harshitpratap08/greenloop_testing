@@ -36,8 +36,12 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     const slot = (await act(receiver, 'addCapacityAction', { receiverId: facility, date, materialType: 'concrete', capacityT: 15 })).result;
     await outsider('/actions', 'POST', { action: 'updateCapacityAction', args: [slot.id, 20] }, 403);
-    const project = (await act(provider, 'addProjectAction', { name: 'Demolition', location: 'Delhi', status: 'active' })).result;
-    const material = (await act(provider, 'addMaterialAction', { projectId: project.id, type: 'concrete', quantityT: 20, quantityRangeT: [18, 22], condition: 'good', grade: 'A', confidence: 0.9, evidence: [] })).result;
+    const projectGeo = { lat: 28.6139, lng: 77.209 };
+    const project = (await act(provider, 'addProjectAction', { name: 'Demolition', location: 'Delhi', status: 'active', geo: projectGeo })).result;
+    assert.deepEqual((await provider('/dataset')).dataset.projects.find(item => item.id === project.id).geo, projectGeo);
+    const materialGeo = { lat: 28.5355, lng: 77.391 };
+    const material = (await act(provider, 'addMaterialAction', { projectId: project.id, type: 'concrete', quantityT: 20, quantityRangeT: [18, 22], condition: 'good', grade: 'A', confidence: 0.9, evidence: [], geo: materialGeo })).result;
+    assert.deepEqual((await provider('/dataset')).dataset.materials.find(item => item.id === material.id).geo, materialGeo);
     const listings = (await receiver('/dataset')).dataset.providerListings;
     assert.equal(listings[0].materialId, material.id);
     assert.equal(listings[0].availableT, 20);
@@ -101,11 +105,44 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     await provider('/uploads', 'POST', { name: 'bad.png', data: 'data:image/png;base64,SGVsbG8=' }, 400);
     const evidenced = (await act(provider, 'addMaterialAction', { projectId: project.id, type: 'concrete', quantityT: 5, quantityRangeT: [5, 5], condition: 'good', grade: 'A', confidence: 1, evidence: [{ kind: 'site-photo', label: 'Photo', ref: upload.ref }] })).result;
     const nextDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
-    await act(receiver, 'addCapacityAction', { receiverId: facility, date: nextDate, materialType: 'concrete', capacityT: 10 });
-    const demand = (await act(receiver, 'addDemandAction', { materialType: 'concrete', requiredT: 5, period: nextDate, location: 'Delhi' })).result;
+    const offerSlot = (await act(receiver, 'addCapacityAction', { receiverId: facility, date: nextDate, materialType: 'concrete', capacityT: 10 })).result;
+    const requestDraft = (await act(receiver, 'saveDemandDraftAction', { materialType: 'concrete', requiredT: 3, period: nextDate, location: 'Delhi', notes: 'keep as a draft' })).result;
+    assert.equal(requestDraft.status, 'DRAFT');
+    assert.ok((await receiver('/dataset')).dataset.demands.some(item => item.id === requestDraft.id && item.status === 'DRAFT'));
+    assert.equal((await provider('/dataset')).dataset.demands.some(item => item.id === requestDraft.id), false);
+    await provider('/actions', 'POST', { action: 'deleteDemandDraftAction', args: [requestDraft.id] }, 403);
+    await act(receiver, 'deleteDemandDraftAction', requestDraft.id);
+    assert.equal((await receiver('/dataset')).dataset.demands.some(item => item.id === requestDraft.id), false);
+    await receiver('/actions', 'POST', { action: 'deleteDemandDraftAction', args: [requestDraft.id] }, 409);
+    const demandGeo = { lat: 28.4595, lng: 77.0266 };
+    const demand = (await act(receiver, 'addDemandAction', { materialType: 'concrete', requiredT: 5, period: nextDate, location: 'Delhi', geo: demandGeo })).result;
+    assert.deepEqual((await receiver('/dataset')).dataset.demands.find(item => item.id === demand.id).geo, demandGeo);
+    const receiverNotificationId = (await receiver('/dataset')).dataset.events.at(-1).id;
+    await act(receiver, 'markNotificationsReadAction', [receiverNotificationId]);
+    assert.ok((await receiver('/dataset')).dataset.readEventIds.includes(receiverNotificationId));
+    const providerNotificationId = (await provider('/dataset')).dataset.events.at(-1).id;
+    await act(provider, 'markNotificationsReadAction', [providerNotificationId]);
+    assert.ok((await provider('/dataset')).dataset.readEventIds.includes(providerNotificationId));
+    assert.equal((await receiver('/dataset')).dataset.readEventIds.includes(providerNotificationId), false);
+    await receiver('/actions', 'POST', { action: 'deleteDemandDraftAction', args: [demand.id] }, 409);
+    await act(provider, 'saveOfferDraftAction', { passportId: evidenced.id, demandId: demand.id, offeredQuantityT: 2, pricePerT: 2400 });
+    const offerDraft = (await provider('/dataset')).dataset.offers.find(item => item.status === 'draft');
+    assert.ok(offerDraft);
+    assert.ok((await provider('/dataset')).dataset.offers.some(item => item.id === offerDraft.id && item.status === 'draft'));
+    assert.equal((await receiver('/dataset')).dataset.offers.some(item => item.id === offerDraft.id), false);
+    await receiver('/actions', 'POST', { action: 'deleteOfferDraftAction', args: [offerDraft.id] }, 403);
+    await act(provider, 'deleteOfferDraftAction', offerDraft.id);
+    assert.equal((await provider('/dataset')).dataset.offers.some(item => item.id === offerDraft.id), false);
+    await provider('/actions', 'POST', { action: 'deleteOfferDraftAction', args: [offerDraft.id] }, 409);
     const offerResult = await act(provider, 'addOfferAction', { passportId: evidenced.id, demandId: demand.id, providerId: 'forged', offeredQuantityT: 5, pricePerT: 2500 });
     const offer = offerResult.dataset.offers[0]; assert.equal(offer.providerId, 'provider@example.com'); assert.equal(offer.pricePerT, 2500);
+    await provider('/actions', 'POST', { action: 'deleteOfferDraftAction', args: [offer.id] }, 409);
     assert.equal((await receiver('/dataset')).dataset.offers.find(item => item.id === offer.id).providerId, 'Provider');
+    await act(receiver, 'updateCapacityAction', offerSlot.id, 1);
+    await receiver('/actions', 'POST', { action: 'acceptOfferAction', args: [offer.id] }, 409);
+    assert.equal((await receiver('/dataset')).dataset.offers.find(item => item.id === offer.id).status, 'pending');
+    assert.equal((await receiver('/dataset')).dataset.bookings.some(item => item.demandId === demand.id), false);
+    await act(receiver, 'updateCapacityAction', offerSlot.id, 10);
     await act(provider, 'counterOfferAction', offer.id, 2750);
     await act(receiver, 'counterOfferAction', offer.id, 2600);
     await act(receiver, 'acceptOfferAction', offer.id);
@@ -114,6 +151,9 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     assert.equal(accepted.offers.find(item => item.id === offer.id).providerId, 'provider@example.com');
     assert.equal(accepted.offers.find(item => item.id === offer.id).agreedPricePerT, 2600);
     assert.equal(accepted.bookings.find(item => item.demandId === demand.id).agreedPricePerT, 2600);
+    await receiver('/actions', 'POST', { action: 'deleteDemandDraftAction', args: [demand.id] }, 409);
+    await provider('/actions', 'POST', { action: 'deleteOfferDraftAction', args: [offer.id] }, 409);
+    await provider('/actions', 'POST', { action: 'withdrawOfferAction', args: [offer.id] }, 409);
     const cancelDate = new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10);
     const cancelDemand = (await act(receiver, 'addDemandAction', { materialType: 'concrete', requiredT: 1, period: cancelDate, location: 'Delhi' })).result;
     const cancelMaterial = (await act(provider, 'addMaterialAction', { projectId: project.id, type: 'concrete', quantityT: 1, quantityRangeT: [1, 1], condition: 'good', grade: 'A', confidence: 1, evidence: [] })).result;
@@ -124,7 +164,7 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     const offerToCancel = (await act(provider, 'addOfferAction', { passportId: cancelMaterial.id, demandId: cancellableDemand.id, offeredQuantityT: 1 })).dataset.offers[0];
     await act(receiver, 'cancelDemandAction', cancellableDemand.id);
     const cancelledRecords = (await receiver('/dataset')).dataset;
-    assert.equal(cancelledRecords.demands.find(item => item.id === cancellableDemand.id).status, 'PAUSED');
+    assert.equal(cancelledRecords.demands.find(item => item.id === cancellableDemand.id).status, 'CANCELLED');
     assert.equal(cancelledRecords.offers.find(item => item.id === offerToCancel.id).status, 'declined');
     await receiver(upload.ref.slice(4));
     const support = await act(provider, 'addSupportRequestAction', { subject: 'Question', message: 'Hello' }); assert.ok(support.result.id);
@@ -138,7 +178,14 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     await provider('/actions', 'POST', { action: 'addProjectAction', args: [null] }, 400);
     // Restart preserves both sessions and workflow data.
     await new Promise(resolve => server.close(resolve)); server = createBackend({ dataDir: directory }); base = await listen();
-    assert.equal((await provider('/dataset')).dataset.projects[0].name, 'Demolition');
+    const providerAfterRestart = (await provider('/dataset')).dataset;
+    assert.equal(providerAfterRestart.projects[0].name, 'Demolition');
+    assert.ok(providerAfterRestart.readEventIds.includes(providerNotificationId));
+    assert.deepEqual(providerAfterRestart.projects.find(item => item.id === project.id).geo, projectGeo);
+    assert.deepEqual(providerAfterRestart.materials.find(item => item.id === material.id).geo, materialGeo);
+    const receiverAfterRestart = (await receiver('/dataset')).dataset;
+    assert.ok(receiverAfterRestart.readEventIds.includes(receiverNotificationId));
+    assert.deepEqual(receiverAfterRestart.demands.find(item => item.id === demand.id).geo, demandGeo);
     // Recovery requires a one-time token and invalidates existing sessions.
     await provider('/auth/forgot-password', 'POST', { email: 'provider@example.com' });
     const mail = JSON.parse(readFileSync(join(directory, 'mail-outbox.jsonl'), 'utf8').trim().split('\n').at(-1));
@@ -156,6 +203,49 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     await new Promise(resolve => server.close(resolve));
     assert.equal(dirname(resolve(directory)), resolve(tmpdir()));
     assert.match(basename(directory), /^greenloop-test-/);
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('custom materials flow through inventory, capacity, demands, offers and matching', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'greenloop-custom-'));
+  const server = createBackend({ dataDir: directory });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const client = () => {
+    let cookie = '';
+    return async (path, method = 'GET', data, expected = 200) => {
+      const response = await fetch(`${base}/api${path}`, { method, headers: { 'Content-Type': 'application/json', 'X-GreenLoop-Client': 'web', Cookie: cookie }, body: data === undefined ? undefined : JSON.stringify(data) });
+      if (response.headers.get('set-cookie')) cookie = response.headers.get('set-cookie').split(';')[0];
+      const result = (response.headers.get('content-type') ?? '').includes('application/json') ? await response.json() : await response.arrayBuffer();
+      assert.equal(response.status, expected, JSON.stringify(result)); return result;
+    };
+  };
+  const provider = client(); const receiver = client();
+  const act = (request, action, ...args) => request('/actions', 'POST', { action, args });
+  try {
+    await provider('/auth/register', 'POST', { email: 'custom-provider@example.com', password: 'password123', name: 'Custom Provider', organization: 'Salvage Co' }, 201);
+    await provider('/profile', 'PATCH', { workspaces: ['provider'], activeWorkspace: 'provider' });
+    await receiver('/auth/register', 'POST', { email: 'custom-receiver@example.com', password: 'password123', organization: 'Custom Yard' }, 201);
+    const facility = (await receiver('/profile', 'PATCH', { workspaces: ['receiver'], activeWorkspace: 'receiver', location: 'Pune' })).user.receiverId;
+    const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    // Provider adds a custom material with mixed-case and extra spaces; it is normalized on the server.
+    const material = (await act(provider, 'addMaterialAction', { projectId: (await act(provider, 'addProjectAction', { name: 'Custom Demo', location: 'Pune', status: 'active' })).result.id, type: 'Roof   Tiles', quantityT: 5, quantityRangeT: [4, 6], condition: 'good', grade: 'B', confidence: 0.8, evidence: [] })).result;
+    assert.equal(material.type, 'roof tiles');
+    // Receiver can publish demand and capacity for the same custom type.
+    const slot = (await act(receiver, 'addCapacityAction', { receiverId: facility, date, materialType: 'Roof Tiles', capacityT: 8 })).result;
+    assert.equal(slot.materialType, 'roof tiles');
+    const demand = (await act(receiver, 'addDemandAction', { materialType: 'ROOF TILES', requiredT: 4, period: date, location: 'Pune' })).result;
+    assert.equal(demand.materialType, 'roof tiles');
+    // The offer engine matches the custom material against the custom demand.
+    const offer = (await act(provider, 'addOfferAction', { demandId: demand.id, passportId: material.id, offeredQuantityT: 4, pricePerT: 900 })).dataset.offers.find(item => item.demandId === demand.id);
+    await act(receiver, 'acceptOfferAction', offer.id);
+    assert.equal((await receiver('/dataset')).dataset.bookings.some(item => item.demandId === demand.id && item.status === 'confirmed'), true);
+    // Invalid custom labels are rejected.
+    await provider('/actions', 'POST', { action: 'addMaterialAction', args: [{ projectId: material.projectId, type: 'x', quantityT: 1, quantityRangeT: [1, 1], condition: 'good', grade: 'A', confidence: 1, evidence: [] }] }, 400);
+    await receiver('/actions', 'POST', { action: 'addCapacityAction', args: [{ receiverId: facility, date, materialType: 42, capacityT: 1 }] }, 400);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
     rmSync(directory, { recursive: true, force: true });
   }
 });

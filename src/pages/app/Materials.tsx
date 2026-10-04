@@ -5,17 +5,9 @@ import type { MaterialTypeKey } from "@/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { Link, useSearchParams } from "react-router";
 import { PageMotion, RevealItem, StatusChip, EmptyState } from "@/components/greenloop/kit";
-import { formatINR, formatINRPerT } from "@/utils";
+import { formatINR, formatINRPerT, materialTypeLabel } from "@/utils";
 import { materialMediaFor, ambientMedia } from "@/config/appMedia";
 
-const TYPE_LABEL: Record<string, string> = {
-  concrete: "Concrete",
-  brick: "Brick",
-  steel: "Steel",
-  timber: "Timber",
-  plasterboard: "Plasterboard",
-  glass: "Glass",
-};
 
 type MaterialCategory = "all" | MaterialTypeKey | "other";
 
@@ -74,7 +66,7 @@ export default function Materials() {
         || (category === "other" ? isOther : material.type === category);
       const project = dataset.projects.find((item) => item.id === material.projectId)?.name ?? material.projectId;
       const matchesQuery = !normalizedQuery || [
-        TYPE_LABEL[material.type] ?? material.type,
+        materialTypeLabel(material.type),
         material.id,
         project,
         material.status,
@@ -176,14 +168,14 @@ export default function Materials() {
                         <div className="relative aspect-[16/8.5] overflow-hidden bg-[#ecebe5] dark:bg-[#24372b]">
                           <img src={materialMediaFor(material.type).src} alt={materialMediaFor(material.type).alt} loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
                           <div className="absolute inset-0 bg-gradient-to-t from-[#142319]/45 via-transparent to-transparent" />
-                          <span className="absolute bottom-3 left-3 rounded-sm border border-white/30 bg-[#17281e]/75 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-sm">{TYPE_LABEL[material.type] ?? material.type}</span>
+                          <span className="absolute bottom-3 left-3 rounded-sm border border-white/30 bg-[#17281e]/75 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-sm">{materialTypeLabel(material.type)}</span>
                           <span className="absolute right-3 top-3"><StatusChip status={chip} label={material.status} className="rounded-md px-2 py-1 text-[9px] font-semibold tracking-normal shadow-sm" /></span>
                         </div>
 
                         <div className="flex flex-1 flex-col p-4 sm:p-5">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <h2 className="truncate font-archivo text-lg font-bold tracking-tight text-[#26362c] dark:text-white">{TYPE_LABEL[material.type] ?? material.type}</h2>
+                              <h2 className="truncate font-archivo text-lg font-bold tracking-tight text-[#26362c] dark:text-white">{materialTypeLabel(material.type)}</h2>
                               <p className="mt-0.5 truncate text-[11px] text-[#7d867e] dark:text-gray-400">
                                 <Link to={`/app/materials?project=${encodeURIComponent(material.projectId)}`} className="font-medium text-[#435d49] hover:text-[#2f6b3e] dark:text-gray-200 dark:hover:text-loop-300">{projectName(material.projectId)}</Link>
                                 <span> · ID {material.id}</span>

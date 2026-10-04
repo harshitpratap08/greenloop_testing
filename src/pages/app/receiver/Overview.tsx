@@ -7,16 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useGreenLoopStore } from "@/store/GreenLoopStore";
 import { ambientMedia, materialMediaFor } from "@/config/appMedia";
 import { BoxMoving, CheckCircleIcon, TaskIcon } from "@/icons";
-import { formatDate } from "@/utils";
+import { formatDate, materialTypeLabel } from "@/utils";
 
-const TYPE_LABEL: Record<string, string> = {
-  concrete: "Concrete",
-  brick: "Brick",
-  steel: "Steel",
-  timber: "Timber",
-  plasterboard: "Plasterboard",
-  glass: "Glass",
-};
 
 type HomeCard = {
   title: string;
@@ -108,7 +100,7 @@ export default function Overview() {
               const covered = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status === "confirmed").reduce((total, booking) => total + booking.tonnesT, 0);
               const remaining = Math.max(0, demand.requiredT - covered);
               const percent = demand.requiredT ? Math.min(100, Math.round((covered / demand.requiredT) * 100)) : 0;
-              return <li key={demand.id} className="rounded-xl border border-[#e6e4dc] bg-white p-4 dark:border-white/10 dark:bg-[#17241b]"><div className="flex justify-between gap-3"><div><h3 className="font-semibold text-[#243229] dark:text-white">{TYPE_LABEL[demand.materialType] ?? demand.materialType}</h3><p className="mt-1 text-xs text-[#748078] dark:text-gray-400">Needed by {formatDate(demand.period)} · {demand.location}</p></div><span className="font-archivo text-lg font-bold text-[#243229] dark:text-white">{percent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e9ece6] dark:bg-white/10"><div className="h-full rounded-full bg-[#5c8967]" style={{ width: `${percent}%` }} /></div><div className="mt-2 flex justify-between text-xs text-[#748078] dark:text-gray-400"><span>{covered.toLocaleString("en-IN")} t received of {demand.requiredT.toLocaleString("en-IN")} t</span><span>{remaining.toLocaleString("en-IN")} t remaining</span></div></li>;
+              return <li key={demand.id} className="rounded-xl border border-[#e6e4dc] bg-white p-4 dark:border-white/10 dark:bg-[#17241b]"><div className="flex justify-between gap-3"><div><h3 className="font-semibold text-[#243229] dark:text-white">{materialTypeLabel(demand.materialType)}</h3><p className="mt-1 text-xs text-[#748078] dark:text-gray-400">Needed by {formatDate(demand.period)} · {demand.location}</p></div><span className="font-archivo text-lg font-bold text-[#243229] dark:text-white">{percent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e9ece6] dark:bg-white/10"><div className="h-full rounded-full bg-[#5c8967]" style={{ width: `${percent}%` }} /></div><div className="mt-2 flex justify-between text-xs text-[#748078] dark:text-gray-400"><span>{covered.toLocaleString("en-IN")} t received of {demand.requiredT.toLocaleString("en-IN")} t</span><span>{remaining.toLocaleString("en-IN")} t remaining</span></div></li>;
             })}
           </ul> : <div className="rounded-xl border border-dashed border-[#cbd4ca] px-5 py-8 text-sm text-[#667168] dark:border-white/15 dark:text-gray-300">No material requests yet. Create a request to start matching with providers.</div>}
         </section>

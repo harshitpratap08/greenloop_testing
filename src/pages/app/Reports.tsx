@@ -9,7 +9,7 @@ import { Link } from "react-router";
 import { MediaPanel } from "@/components/greenloop/kit";
 import { ambientMedia, materialMediaFor } from "@/config/appMedia";
 
-const TYPE_COLORS: Record<string, string> = {
+export const TYPE_COLORS: Record<string, string> = {
   concrete: "bg-ink-900 dark:bg-white",
   brick: "bg-steel-600 dark:bg-steel-400",
   timber: "bg-steel-400 dark:bg-steel-500",
@@ -18,7 +18,7 @@ const TYPE_COLORS: Record<string, string> = {
   glass: "bg-gray-500 dark:bg-gray-400",
 };
 
-const FLOW_STAGES = ["Surveyed", "Matched", "Reserved", "Dispatched", "Verified"] as const;
+export const FLOW_STAGES = ["Surveyed", "Matched", "Reserved", "Dispatched", "Verified"] as const;
 
 function useCountUp(target: number, durationMs = 1500): number {
   const reduce = useReducedMotion();
@@ -171,7 +171,7 @@ export default function Reports() {
   );
 }
 
-function KpiCard({
+export function KpiCard({
   label,
   value,
   suffix = "",
@@ -203,7 +203,7 @@ function KpiCard({
   );
 }
 
-function MetricIcon({ kind }: { kind: "materials" | "verified" | "dispatch" | "bookings" }) {
+export function MetricIcon({ kind }: { kind: "materials" | "verified" | "dispatch" | "bookings" }) {
   return (
     <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
       {kind === "materials" && <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4.3 7.6 7.7 4.3 7.7-4.3M12 12v9" /></>}
@@ -214,7 +214,7 @@ function MetricIcon({ kind }: { kind: "materials" | "verified" | "dispatch" | "b
   );
 }
 
-function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
+export function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
   const totals = new Map<string, number>();
   for (const m of dataset.materials) {
     totals.set(m.type, (totals.get(m.type) ?? 0) + m.quantityT);
@@ -256,7 +256,7 @@ function CompositionChart({ dataset }: { dataset: GreenLoopDataset }) {
   );
 }
 
-function RecoveryFlowChart({ dataset }: { dataset: GreenLoopDataset }) {
+export function RecoveryFlowChart({ dataset }: { dataset: GreenLoopDataset }) {
   const flow = computeFlow(dataset);
   return (
     <section className="h-full rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
@@ -297,7 +297,7 @@ function RecoveryFlowChart({ dataset }: { dataset: GreenLoopDataset }) {
   );
 }
 
-function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
+export function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
   const totals = receiverCapacityTotals(dataset);
   const max = Math.max(...totals.map((t) => t.capacity), 1);
 
@@ -348,7 +348,7 @@ function ReceiverCapacityChart({ dataset }: { dataset: GreenLoopDataset }) {
   );
 }
 
-function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
+export function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
   const rows = dataset.projects.map((p) => {
     const surveyed = dataset.materials.filter((m) => m.projectId === p.id).reduce((s, m) => s + m.quantityT, 0);
     const verified = dataset.verifications
@@ -404,7 +404,7 @@ function ProjectRecoveryChart({ dataset }: { dataset: GreenLoopDataset }) {
   );
 }
 
-function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
+export function PlannedActualChart({ dataset }: { dataset: GreenLoopDataset }) {
   const v = dataset.verifications[0];
   const planned = useCountUp(v?.plannedT ?? 0);
   const actual = useCountUp(v?.actualT ?? 0);
@@ -463,7 +463,7 @@ interface TimelineStep {
   tone: "confirmed" | "hold" | "released" | "recheck";
 }
 
-function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
+export function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
   const story = dataset.bookings;
   const slot = dataset.slots.find((s) => s.id === "SL-R1-CONC-0924");
   const capacity = slot?.capacityT ?? 15;
@@ -516,7 +516,7 @@ function CapacityTimelineChart({ dataset }: { dataset: GreenLoopDataset }) {
   );
 }
 
-function ChartHeader({ question, note, figure }: { question: string; note: string; figure: string }) {
+export function ChartHeader({ question, note, figure }: { question: string; note: string; figure: string }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4 border-b border-steel-200 pb-5 dark:border-steel-800">
       <div>
