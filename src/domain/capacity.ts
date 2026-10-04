@@ -27,7 +27,7 @@ import type {
   ReceiverFacility,
   DemandRecord,
   MaterialOffer
-} from "./types";
+} from "./types.ts";
 
 // ---------------------------------------------------------------------------
 // Capacity arithmetic
@@ -55,7 +55,7 @@ export function findSlot(dataset: GreenLoopDataset, slotId: string): ReceiverDay
   return dataset.slots.find((s) => s.id === slotId);
 }
 
-export function slotMatchesDemandPeriod(slot: ReceiverDaySlot, period: string): boolean {
+export function slotMatchesDemandPeriod(slot: Pick<ReceiverDaySlot, "date">, period: string): boolean {
   let deadline: string | undefined;
   if (/^\d{4}-\d{2}-\d{2}$/.test(period)) {
     deadline = period;

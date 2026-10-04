@@ -35,8 +35,9 @@ export default function AddressLocation({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [osmResults, setOsmResults] = useState<Suggestion[]>([]);
-  const [osmUnavailable, setOsmUnavailable] = useState(false);
+  const [lookup, setLookup] = useState<{ query: string; results: Suggestion[]; unavailable: boolean }>({ query: "", results: [], unavailable: false });
+  const osmResults = lookup.query === address.trim() ? lookup.results : [];
+  const osmUnavailable = lookup.query === address.trim() && lookup.unavailable;
   const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,23 +50,18 @@ export default function AddressLocation({
 
   useEffect(() => {
     const query = address.trim();
-    if (query.length < 4) {
-      setOsmResults([]);
-      setOsmUnavailable(false);
-      return;
-    }
+    if (query.length < 4) return;
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(query)}`, { signal: controller.signal, headers: { Accept: "application/json" } });
         if (!response.ok) throw new Error(String(response.status));
         const data = (await response.json()) as Array<{ display_name: string; lat: string; lon: string }>;
-        setOsmUnavailable(false);
-        setOsmResults(data.map(item => ({ label: item.display_name, geo: { lat: Number(item.lat), lng: Number(item.lon) }, source: "osm" as const })));
+        if (controller.signal.aborted) return;
+        setLookup({ query, unavailable: false, results: data.map(item => ({ label: item.display_name, geo: { lat: Number(item.lat), lng: Number(item.lon) }, source: "osm" as const })) });
       } catch (cause) {
         if ((cause as Error | undefined)?.name !== "AbortError") {
-          setOsmResults([]);
-          setOsmUnavailable(true);
+          setLookup({ query, results: [], unavailable: true });
         }
       }
     }, 400);
@@ -115,7 +111,7 @@ export default function AddressLocation({
         </span>
       </label>
       {open && (local.length > 0 || osmResults.length > 0) && (
-        <ul className="absolute z-30 mt-1 max-h-56 w-full overflow-auto border border-steel-200 bg-white shadow-lg dark:border-steel-700 dark:bg-[#101a13]" role="listbox" aria-label="Address suggestions">
+        <ul className="absolute z-30 mt-1 max-h-56 w-full overflow-auto border border-steel-200 bg-white shadow-lg dark:border-steel-700 dark:bg-[#101a13] rounded-surface" role="listbox" aria-label="Address suggestions">
           {suggestions.map(suggestion => (
             <li key={`${suggestion.source}-${suggestion.label}`}>
               <button
@@ -133,15 +129,15 @@ export default function AddressLocation({
         </ul>
       )}
       {open && local.length === 0 && osmResults.length === 0 && address.trim().length >= 4 && (
-        <p className="absolute z-30 mt-1 w-full border border-steel-200 bg-white px-3 py-2 text-xs text-steel-500 dark:border-steel-700 dark:bg-[#101a13] dark:text-gray-400">
+        <p className="absolute z-30 mt-1 w-full border border-steel-200 bg-white px-3 py-2 text-xs text-steel-500 dark:border-steel-700 dark:bg-[#101a13] dark:text-gray-400 rounded-surface">
           {osmUnavailable ? "Address suggestions are unavailable offline — your typed address is kept as written." : "Searching addresses…"}
         </p>
       )}
-      <p className="mt-1.5 text-[11px] leading-4 text-steel-500 dark:text-gray-400">Type an address or pick a suggestion. The written address is the source of truth{geo ? "; the pin is stored as optional coordinates." : "; coordinates are optional."}</p>
+      <p className="mt-1.5 text-xs leading-4 text-steel-500 dark:text-gray-400">Type an address or pick a suggestion. The written address is the source of truth{geo ? "; the pin is stored as optional coordinates." : "; coordinates are optional."}</p>
       {geo && (
         <div className="mt-2">
           <LocationMap geo={geo} size="sm" />
-          <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px] text-steel-500 dark:text-gray-400">
+          <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-steel-500 dark:text-gray-400">
             <span className="ledger-numeral">Pinned at {geo.lat.toFixed(5)}, {geo.lng.toFixed(5)}</span>
             <button type="button" onClick={() => onGeoChange(undefined)} className="font-semibold underline underline-offset-2 hover:text-ink-800 dark:hover:text-white">Remove pin</button>
           </div>

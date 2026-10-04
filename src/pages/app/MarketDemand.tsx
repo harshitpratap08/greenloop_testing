@@ -1,23 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { motion } from "motion/react";
-import Button from "@/components/ui/button/Button";
-import StatusBadge from "@/components/greenloop/StatusBadge";
-import { materialMedia } from "@/components/greenloop/AppExploration";
-import { ambientMedia, materialMediaFor } from "@/config/appMedia";
-import { useAuth } from "@/context/AuthContext";
-import { formatDate, formatINR, formatINRPerT, materialTypeLabel } from "@/utils";
+import { materialMedia } from "@/components/greenloop/AppExploration.helpers";
+import MatchDetailsPanel from "@/components/greenloop/MatchDetailsPanel";
 import NegotiationPanel from "@/components/greenloop/NegotiationPanel";
-import type { MaterialTypeKey } from "@/domain/types";
 import ReceiverDiscovery from "@/components/greenloop/ReceiverDiscovery";
 import SearchFilterBar from "@/components/greenloop/SearchFilterBar";
-import MatchDetailsPanel from "@/components/greenloop/MatchDetailsPanel";
+import StatusBadge from "@/components/greenloop/StatusBadge";
+import Button from "@/components/ui/button/Button";
+import { ambientMedia, materialMediaFor } from "@/config/appMedia";
+import { useAuth } from "@/context/AuthContext.helpers";
 import { contextualMatch } from "@/domain/capacity";
+import type { MaterialTypeKey } from "@/domain/types";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { formatDate, formatINR, formatINRPerT, materialTypeLabel } from "@/utils";
+import { motion } from "motion/react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 
 type DemandCategory = "all" | MaterialTypeKey | "other";
-
 
 const DEMAND_CATEGORIES: { id: DemandCategory; label: string }[] = [
   { id: "all", label: "All Requests" },
@@ -47,7 +46,10 @@ export default function MarketDemand() {
   const providerId = user?.email ?? "P-001";
   const openDemands = useMemo(() => dataset.demands.filter((demand) => demand.status === "OPEN" || demand.status === "PARTIALLY_COVERED"), [dataset.demands]);
 
-  const [selectedDemandId, setSelectedDemandId] = useState<string | null>(searchParams.get("demand"));
+  const navigationKey = searchParams.toString();
+  const [selectedDemandOverride, setSelectedDemandOverride] = useState<{ query: string; id: string | null } | null>(null);
+  const selectedDemandId = selectedDemandOverride?.query === navigationKey ? selectedDemandOverride.id : searchParams.get("demand");
+  const setSelectedDemandId = (id: string | null) => setSelectedDemandOverride({ query: navigationKey, id });
   const [selectedPassportId, setSelectedPassportId] = useState("");
   const [offerQuantity, setOfferQuantity] = useState("");
   const [offerPricePerT, setOfferPricePerT] = useState("");
@@ -60,18 +62,15 @@ export default function MarketDemand() {
   const myOffers = dataset.offers?.filter((offer) => offer.providerId === providerId) ?? [];
 
   type TabKey = "received" | "sent" | "receivers";
-  const [activeTab, setActiveTab] = useState<TabKey>(searchParams.get("view") === "receivers" ? "receivers" : "received");
+  const [tabOverride, setTabOverride] = useState<{ query: string; tab: TabKey } | null>(null);
+  const activeTab: TabKey = tabOverride?.query === navigationKey ? tabOverride.tab : searchParams.get("demand") ? "received" : searchParams.get("view") === "receivers" ? "receivers" : "received";
+  const setActiveTab = (tab: TabKey) => setTabOverride({ query: navigationKey, tab });
 
   useEffect(() => {
-    if (searchParams.get("view") === "receivers") {
-      setActiveTab("receivers");
-    }
     const demandId = searchParams.get("demand");
-    if (demandId) {
-      setSelectedDemandId(demandId);
-      setActiveTab("received");
-      window.setTimeout(() => document.getElementById(`demand-${demandId}`)?.scrollIntoView(), 100);
-    }
+    if (!demandId) return;
+    const timer = window.setTimeout(() => document.getElementById(`demand-${demandId}`)?.scrollIntoView(), 100);
+    return () => window.clearTimeout(timer);
   }, [searchParams]);
 
   const filteredDemands = useMemo(() => {
@@ -177,15 +176,15 @@ export default function MarketDemand() {
       : categoryCounts[id];
 
   return (
-    <div className="mx-auto max-w-[1320px] pb-16">
+    <div className="mx-auto max-w-app pb-16">
       <PageMeta title="Active Demand | GreenLoop" description="See material requests from receivers and offer your material." />
 
-      <section className="relative mb-5 grid min-h-[210px] overflow-hidden rounded-2xl border border-[#e5e1d8] bg-[#192c20] dark:border-steel-800 sm:min-h-[225px] lg:grid-cols-[1fr_230px]">
+      <section className="relative mb-5 grid min-h-[210px] overflow-hidden border border-[#e5e1d8] bg-[#192c20] dark:border-steel-800 sm:min-h-[225px] lg:grid-cols-[1fr_230px] rounded-surface">
         <img src={ambientMedia.surveyHero.src} alt={ambientMedia.surveyHero.alt} className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/95 via-[#17291e]/75 to-[#17291e]/15" />
         <div className="relative z-10 flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-9 lg:max-w-[740px]">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7d5c8]">GreenLoop Operations</p>
-          <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-white sm:text-4xl">Active Demand</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#c7d5c8]">GreenLoop Operations</p>
+          <h1 className="mt-2 font-archivo font-bold tracking-tight text-white gl-page-title">Active Demand</h1>
           <p className="mt-2 max-w-xl text-sm leading-5 text-white/85 sm:text-base sm:leading-6">Receivers are asking for material. Offer yours directly using a Material Passport, your material’s digital record.</p>
         </div>
         <div className="relative z-10 hidden flex-col justify-center gap-2 border-s border-white/15 bg-[#12241a]/50 px-5 py-5 backdrop-blur-sm lg:flex">
@@ -196,20 +195,20 @@ export default function MarketDemand() {
         </div>
       </section>
 
-      <section aria-label="Demand summary" className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section aria-label="Demand summary" className="mb-6 grid grid-cols-2 gap-detail xl:grid-cols-4">
         {metrics.map((metric) => (
-          <div key={metric.label} className="flex min-h-[88px] items-center gap-3 rounded-xl border border-[#e7e3da] bg-white px-3.5 py-3 shadow-[0_2px_10px_rgba(26,42,31,0.035)] dark:border-steel-800 dark:bg-[#17251d] sm:px-4">
+          <div key={metric.label} className="flex min-h-[88px] items-center gap-3 border border-[#e7e3da] bg-white px-3.5 py-3 shadow-[0_2px_10px_rgba(26,42,31,0.035)] dark:border-steel-800 dark:bg-[#17251d] sm:px-4 rounded-surface">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#edf3ed] text-[#487454] dark:bg-[#284233] dark:text-[#b6d1bd]"><DemandMetricIcon kind={metric.kind} /></span>
             <div className="min-w-0">
               <p className="font-archivo text-lg font-bold leading-5 text-[#1d2c23] dark:text-white sm:text-xl">{metric.value}</p>
-              <p className="mt-1 truncate text-[11px] font-semibold text-[#38483e] dark:text-gray-200 sm:text-xs">{metric.label}</p>
-              <p className="mt-0.5 hidden truncate text-[10px] text-[#828b83] dark:text-gray-400 sm:block">{metric.note}</p>
+              <p className="mt-1 truncate text-xs font-semibold text-[#38483e] dark:text-gray-200 sm:text-xs">{metric.label}</p>
+              <p className="mt-0.5 hidden truncate text-xs text-[#828b83] dark:text-gray-400 sm:block">{metric.note}</p>
             </div>
           </div>
         ))}
       </section>
 
-      <div className="mb-6 flex gap-1 rounded-xl border border-[#e5e2da] bg-[#fdfcfa] p-1 shadow-sm dark:border-steel-800 dark:bg-[#1a2b21] sm:w-max">
+      <div className="mb-6 flex gap-1 border border-[#e5e2da] bg-[#fdfcfa] p-1 shadow-sm dark:border-steel-800 dark:bg-[#1a2b21] sm:w-max rounded-surface">
         <button type="button" onClick={() => setActiveTab("receivers")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "receivers" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>All Receivers</button>
         <button type="button" onClick={() => setActiveTab("sent")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "sent" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Requests Sent</button>
         <button type="button" onClick={() => setActiveTab("received")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "received" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Requests Received</button>
@@ -221,7 +220,7 @@ export default function MarketDemand() {
           <div className="flex gap-5 overflow-x-auto">
             {DEMAND_CATEGORIES.map((item) => (
               <button key={item.id} type="button" aria-pressed={category === item.id} onClick={() => setCategory(item.id)} className={`flex shrink-0 items-center gap-1.5 border-b-2 px-0.5 pb-3 pt-1 text-xs font-semibold transition-colors ${category === item.id ? "border-[#4b7956] text-[#315c3d] dark:text-[#c5ddcb]" : "border-transparent text-[#7c857d] hover:text-[#315c3d] dark:text-gray-400 dark:hover:text-white"}`}>
-                {item.label} <span className={`text-[10px] ${category === item.id ? "text-[#66806b] dark:text-[#a9c7b0]" : "text-[#a1a79f]"}`}>({categoryCount(item.id)})</span>
+                {item.label} <span className={`text-xs ${category === item.id ? "text-[#66806b] dark:text-[#a9c7b0]" : "text-[#a1a79f]"}`}>({categoryCount(item.id)})</span>
               </button>
             ))}
           </div>
@@ -245,29 +244,29 @@ export default function MarketDemand() {
         />
 
         {filteredDemands.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[#d8ddd5] bg-white/60 px-6 py-12 text-center dark:border-steel-700 dark:bg-white/[0.02]">
+          <div className="border border-dashed border-[#d8ddd5] bg-white/60 px-6 py-12 text-center dark:border-steel-700 dark:bg-white/[0.02] rounded-surface">
             <h2 className="font-archivo text-lg font-bold text-[#2c3e31] dark:text-white">{openDemands.length ? "No matching requests" : "No open material requests"}</h2>
             <p className="mt-1 text-sm text-[#7a837b] dark:text-gray-400">{openDemands.length ? "Try another material name or category." : "New requests from receivers will appear here when they need material."}</p>
             {openDemands.length > 0 && <button type="button" onClick={() => { setQuery(""); setCategory("all"); setMinimumT(""); setMaximumBudget(""); setNeededBy(""); }} className="mt-4 text-sm font-semibold text-[#416d4b] underline underline-offset-4 dark:text-[#b8d0bd]">Clear search and filters</button>}
           </div>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-detail">
             {filteredDemands.map((demand, index) => {
               const receiver = dataset.receivers.find((item) => item.id === demand.receiverId);
               const isOffering = selectedDemandId === demand.id;
-              const availablePassports = dataset.materials.filter((item) => item.type === demand.materialType && item.status !== "cancelled" && item.quantityT > dataset.bookings.filter((booking) => booking.materialId === item.id && booking.status !== "cancelled").reduce((sum, booking) => sum + booking.tonnesT, 0));
+              const availablePassports = dataset.materials.filter((item) => item.type === demand.materialType && (!demand.targetMaterialId || item.id === demand.targetMaterialId) && item.status !== "cancelled" && item.quantityT > dataset.bookings.filter((booking) => booking.materialId === item.id && booking.status !== "cancelled").reduce((sum, booking) => sum + booking.tonnesT, 0));
               const image = materialMediaFor(demand.materialType);
               return (
-                <motion.article id={`demand-${demand.id}`} key={demand.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.04, 0.2) }} className="overflow-hidden rounded-xl border border-[#e5e2da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] transition hover:border-[#bfccbf] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957]">
+                <motion.article id={`demand-${demand.id}`} key={demand.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.04, 0.2) }} className="overflow-hidden border border-[#e5e2da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] transition hover:border-[#bfccbf] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957] rounded-surface">
                   <div className="grid lg:grid-cols-[180px_minmax(0,1fr)_250px]">
                     <div className="relative min-h-40 overflow-hidden lg:min-h-[188px]">
                       <img src={image.src} alt={image.alt} loading="lazy" className="absolute inset-0 size-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#142319]/50 via-transparent to-transparent" />
-                      <span className="absolute bottom-3 left-3 rounded-sm border border-white/30 bg-[#17281e]/75 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-sm">{materialTypeLabel(demand.materialType)}</span>
+                      <span className="absolute bottom-3 left-3 border border-white/30 bg-[#17281e]/75 px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-sm rounded-surface">{materialTypeLabel(demand.materialType)}</span>
                     </div>
 
-                    <div className="min-w-0 p-4 sm:p-5">
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-[#8a938b]">Receiver Request</p>
+                    <div className="min-w-0 gl-card-pad">
+                      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#8a938b]">Receiver Request</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2">
                         <h2 className="font-archivo text-xl font-bold tracking-tight text-[#26362c] dark:text-white">{materialTypeLabel(demand.materialType)}</h2>
                         <StatusBadge status={demand.status} />
@@ -303,19 +302,19 @@ export default function MarketDemand() {
                     <div className="flex flex-col justify-between gap-4 border-t border-[#eeeae2] bg-[#f8f7f2] p-4 dark:border-steel-800 dark:bg-[#1c2b22] sm:flex-row sm:items-center lg:flex-col lg:items-stretch lg:border-l lg:border-t-0 lg:p-4">
                       <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-1">
                         <div>
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-[#929990]">Needs</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[#929990]">Needs</p>
                           <p className="mt-0.5 font-archivo text-lg font-bold text-[#26362c] dark:text-white">{demand.requiredT.toFixed(1)} <span className="text-xs font-medium text-[#7e887f]">t</span></p>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-[#929990]">Receiver</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[#929990]">Receiver</p>
                           <p className="mt-0.5 truncate text-xs font-semibold text-[#38483e] dark:text-gray-200">{receiver?.name ?? demand.receiverId}</p>
                         </div>
                         <div className="col-span-2 min-w-0 lg:col-span-1">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-[#929990]">Location</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[#929990]">Location</p>
                           <p className="mt-0.5 truncate text-xs text-[#647168] dark:text-gray-400">{demand.location || receiver?.location || "Location not provided"}</p>
                         </div>
                         {demand.budgetPerT !== undefined && <div className="col-span-2 min-w-0 lg:col-span-1">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-[#929990]">Budget / tonne</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[#929990]">Budget / tonne</p>
                           <p className="mt-0.5 truncate text-xs text-[#647168] dark:text-gray-400">{formatINRPerT(demand.budgetPerT)}</p>
                         </div>}
                       </div>
@@ -327,18 +326,18 @@ export default function MarketDemand() {
                   </div>
 
                   {isOffering && (
-                    <div className="border-t border-[#e9e6de] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-[#17251d]">
+                    <div className="border-t border-[#e9e6de] bg-white dark:border-steel-800 dark:bg-[#17251d] gl-card-pad">
                       <h3 className="font-archivo text-lg font-bold text-[#26362c] dark:text-white">Choose a Material Passport</h3>
                       <p className="mt-1 text-sm text-[#778078] dark:text-gray-400">A Material Passport is your material’s digital record, including its quantity and evidence.</p>
                       {availablePassports.length === 0 ? (
-                        <div className="mt-4 rounded-lg border border-[#e8e5dd] bg-[#f8f7f2] p-4 text-sm text-[#667168] dark:border-steel-800 dark:bg-white/[0.03] dark:text-gray-300">
+                        <div className="mt-4 border border-[#e8e5dd] bg-[#f8f7f2] p-4 text-sm text-[#667168] dark:border-steel-800 dark:bg-white/[0.03] dark:text-gray-300 rounded-surface">
                           You don’t have any surveyed passports for {materialTypeLabel(demand.materialType)}. <a href="/app/materials/new" className="font-semibold text-[#416d4b] underline underline-offset-2 dark:text-[#b8d0bd]">Add Material</a> first.
                         </div>
                       ) : (
                         <form onSubmit={handleOffer} className="mt-4 space-y-4">
                           <fieldset>
                             <legend className="mb-2 text-sm font-semibold text-[#526158] dark:text-gray-300">Choose the material to offer</legend>
-                            <div className="grid gap-3 md:grid-cols-2">
+                            <div className="grid gap-detail md:grid-cols-2">
                               {availablePassports.map((passport) => {
                                 const committedT = dataset.bookings.filter((booking) => booking.materialId === passport.id && booking.status !== "cancelled").reduce((total, booking) => total + booking.tonnesT, 0);
                                 const availableT = Math.max(0, passport.quantityT - committedT);
@@ -350,7 +349,7 @@ export default function MarketDemand() {
                                     <span className="min-w-0 text-xs">
                                       <span className="block font-semibold text-[#26362c] dark:text-white">{materialTypeLabel(passport.type)} · {availableT.toFixed(1)} t available</span>
                                       <span className="mt-1 block text-[#778078] dark:text-gray-400">{passport.condition} condition · Grade {passport.grade} · {passport.evidence.length} evidence items</span>
-                                      <details className="mt-1 text-[11px] text-[#526b58] dark:text-[#b6cfbd]"><summary className="cursor-pointer">Passport details</summary><span className="block pt-1 text-[#778078] dark:text-gray-400">Passport ID: {passport.id} · Est. range {passport.quantityRangeT[0]}–{passport.quantityRangeT[1]} t</span></details>
+                                      <details className="mt-1 text-xs text-[#526b58] dark:text-[#b6cfbd]"><summary className="cursor-pointer">Passport details</summary><span className="block pt-1 text-[#778078] dark:text-gray-400">Passport ID: {passport.id} · Est. range {passport.quantityRangeT[0]}–{passport.quantityRangeT[1]} t</span></details>
                                     </span>
                                   </label>
                                 );
@@ -389,7 +388,7 @@ export default function MarketDemand() {
       )}
 
       {activeTab === "sent" && (
-      <section className="mt-8 overflow-hidden rounded-xl border border-[#e5e2da] bg-white dark:border-steel-800 dark:bg-[#17251d]">
+      <section className="mt-section overflow-hidden border border-[#e5e2da] bg-white dark:border-steel-800 dark:bg-[#17251d] rounded-surface">
         <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#eeeae2] px-4 py-4 dark:border-steel-800 sm:px-5">
           <div>
             <h2 className="font-archivo text-xl font-bold text-[#26362c] dark:text-white">Offers you have sent</h2>

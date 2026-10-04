@@ -1,13 +1,15 @@
-import { Link } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
 import EventLog from "@/components/greenloop/EventLog";
 import StatusBadge from "@/components/greenloop/StatusBadge";
+import VerificationDetails from "@/components/greenloop/VerificationDetails";
+import { ambientMedia, materialMediaFor } from "@/config/appMedia";
 import { eventsForSubjects } from "@/domain/events";
 import type { VerificationRecord } from "@/domain/types";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
 import { cn, formatINR, formatINRPerT, formatStamp } from "@/utils";
-import { motion, AnimatePresence } from "motion/react";
-import { ambientMedia, materialMediaFor } from "@/config/appMedia";
+import { AnimatePresence, motion } from "motion/react";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 
 const TYPE_LABEL: Record<string, string> = {
   concrete: "Concrete",
@@ -30,7 +32,7 @@ export default function Verification() {
         description="Evidence-backed records of loads received and accepted by material receivers."
       />
 
-      <header className="relative mb-6 min-h-48 overflow-hidden border border-ink-900 bg-ink-900 sm:min-h-52">
+      <header className="relative mb-6 min-h-48 overflow-hidden border border-ink-900 bg-ink-900 sm:min-h-52 rounded-surface">
         <img
           src={ambientMedia.sortingFacility.src}
           alt={ambientMedia.sortingFacility.alt}
@@ -39,7 +41,7 @@ export default function Verification() {
         <div className="absolute inset-0 bg-gradient-to-r from-ink-950/95 via-ink-950/75 to-ink-950/25" />
         <div className="relative flex min-h-48 flex-col justify-end p-5 text-white sm:min-h-52 sm:p-7">
           <p className="eyebrow-label text-loop-300">GreenLoop operations</p>
-          <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight sm:text-4xl">Proof of Recovery</h1>
+          <h1 className="mt-2 font-archivo font-bold tracking-tight gl-page-title">Proof of Recovery</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/80 sm:text-base">
             Review confirmed intake records, accepted quantities and the evidence behind every recovered load.
           </p>
@@ -55,7 +57,7 @@ export default function Verification() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mb-5 overflow-hidden border border-signal-200 bg-signal-50 px-4 py-3 dark:border-signal-500/40 dark:bg-signal-500/10 sm:px-5"
+            className="mb-5 overflow-hidden border border-signal-200 bg-signal-50 px-4 py-3 dark:border-signal-500/40 dark:bg-signal-500/10 sm:px-5 rounded-surface"
             aria-label="Intake discrepancies"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -65,7 +67,7 @@ export default function Verification() {
               </div>
               <div className="text-right">
                 <span className="ledger-numeral text-2xl font-bold text-signal-700 dark:text-signal-400">{totalRejected.toFixed(1)} t</span>
-                <span className="block text-[10px] font-semibold uppercase tracking-wider text-signal-700 dark:text-signal-300">Rejected total</span>
+                <span className="block text-xs font-semibold uppercase tracking-wider text-signal-700 dark:text-signal-300">Rejected total</span>
               </div>
             </div>
           </motion.section>
@@ -86,7 +88,7 @@ export default function Verification() {
         ))}
 
         {dataset.verifications.length === 0 && (
-          <section className="flex flex-col items-center justify-center border border-dashed border-steel-300 bg-white px-6 py-14 text-center dark:border-steel-700 dark:bg-white/[0.02]">
+          <section className="flex flex-col items-center justify-center border border-dashed border-steel-300 bg-white px-6 py-14 text-center dark:border-steel-700 dark:bg-white/[0.02] rounded-surface">
             <div className="mb-4 flex size-12 items-center justify-center border border-steel-200 bg-steel-50 text-steel-500 dark:border-steel-700 dark:bg-white/[0.04]" aria-hidden="true">
               <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.6">
                 <path d="M7 3.75h7l4 4v12.5H7a2 2 0 0 1-2-2v-12.5a2 2 0 0 1 2-2Z" />
@@ -104,7 +106,8 @@ export default function Verification() {
   );
 }
 
-function VerificationRecordCard({ verification }: { verification: VerificationRecord }) {
+export function VerificationRecordCard({ verification }: { verification: VerificationRecord }) {
+  const { t } = useTranslation();
   const { dataset } = useGreenLoopStore();
   const material = dataset.materials.find((item) => item.id === verification.materialId);
   const project = material && dataset.projects.find((item) => item.id === material.projectId);
@@ -128,14 +131,13 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
   ];
 
   return (
-    <article className="overflow-hidden border border-steel-200 bg-white shadow-sm shadow-ink-900/[0.03] dark:border-steel-800 dark:bg-white/[0.02]">
-      <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[118px_minmax(0,1fr)]">
-        <img
-          src={media.src}
-          alt={media.alt}
-          loading="lazy"
-          className="h-36 w-full border border-steel-200 object-cover dark:border-steel-800 lg:h-full lg:min-h-24"
-        />
+    <article className="overflow-hidden border border-steel-200 bg-white shadow-sm shadow-ink-900/[0.03] dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
+      <VerificationDetails
+        image={media.src}
+        name={TYPE_LABEL[material?.type ?? ""] ?? material?.type ?? ""}
+        status={t(verification.status === "pending" ? "verificationCards.pending" : verification.status === "rejected" ? "verificationCards.rejected" : "verificationCards.complete", { quantity: verification.acceptedT.toFixed(1) })}
+      >
+      <div className="gl-card-pad">
         <div className="min-w-0">
           <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
             <div className="min-w-0">
@@ -175,27 +177,23 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
             </div>
           </div>
 
-          <details className="group mt-3 border-t border-steel-100 pt-3 dark:border-steel-800">
-            <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-ink-800 marker:hidden hover:text-loop-700 dark:text-white dark:hover:text-loop-400">
-              <span>View recovery details</span>
-              <span className="text-xs text-steel-500 transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
-            </summary>
+          <div>
             <div className="mt-4 border-t border-steel-100 pt-4 dark:border-steel-800">
               <section aria-label="Material journey">
-                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
-                  <div className="min-w-0 border border-steel-200 bg-steel-50/70 p-3 dark:border-steel-800 dark:bg-white/[0.02]">
+                <div className="grid gap-detail md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
+                  <div className="min-w-0 border border-steel-200 bg-steel-50/70 p-3 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
                     <p className="eyebrow-label text-steel-500 dark:text-steel-400">Project origin</p>
                     <p className="mt-1 font-semibold text-ink-900 dark:text-white">{project?.name ?? "Unavailable"}</p>
                     <p className="mt-0.5 text-xs text-steel-600 dark:text-gray-400">{project?.location ?? "Location unavailable"}</p>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-xs font-semibold text-steel-500 md:flex-col md:gap-1">
                     <span className="hidden h-px w-12 bg-steel-300 md:block dark:bg-steel-700" aria-hidden="true" />
-                    <span className="ledger-numeral border border-steel-200 bg-white px-2.5 py-1.5 text-ink-800 dark:border-steel-700 dark:bg-ink-900 dark:text-white">
+                    <span className="ledger-numeral border border-steel-200 bg-white px-2.5 py-1.5 text-ink-800 dark:border-steel-700 dark:bg-ink-900 dark:text-white rounded-surface">
                       {receiver && receiver.distanceKnown !== false ? `${receiver.distanceKm} km` : "Distance unavailable"}
                     </span>
                     <span className="hidden h-px w-12 bg-steel-300 md:block dark:bg-steel-700" aria-hidden="true" />
                   </div>
-                  <div className="min-w-0 border border-steel-200 bg-steel-50/70 p-3 dark:border-steel-800 dark:bg-white/[0.02]">
+                  <div className="min-w-0 border border-steel-200 bg-steel-50/70 p-3 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
                     <p className="eyebrow-label text-steel-500 dark:text-steel-400">Receiver</p>
                     <p className="mt-1 font-semibold text-ink-900 dark:text-white">{receiver?.name ?? verification.receiverId}</p>
                     <p className="mt-0.5 text-xs text-steel-600 dark:text-gray-400">{receiver?.location ?? "Location unavailable"}</p>
@@ -215,7 +213,7 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
                     <div className="min-w-0">
                       <p className="eyebrow-label text-steel-500 dark:text-steel-400">{index + 1}. {milestone.label}</p>
                       <p className={cn("ledger-numeral mt-1 text-lg font-bold", milestone.complete ? "text-loop-700 dark:text-loop-400" : milestone.attention ? "text-signal-700 dark:text-signal-400" : "text-ink-800 dark:text-white")}>{milestone.value}</p>
-                      <p className="mt-0.5 text-[11px] text-steel-500 dark:text-steel-400">{milestone.detail}</p>
+                      <p className="mt-0.5 text-xs text-steel-500 dark:text-steel-400">{milestone.detail}</p>
                     </div>
                   </li>
                 ))}
@@ -250,9 +248,9 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-ink-900 dark:text-white">{evidence.label}</p>
-                            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-steel-500 dark:text-steel-400">{evidence.kind.replaceAll("-", " ")}</p>
+                            <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-steel-500 dark:text-steel-400">{evidence.kind.replaceAll("-", " ")}</p>
                             <time className="ledger-numeral mt-1 block text-xs text-steel-500 dark:text-steel-400" dateTime={evidence.recordedAt}>{formatStamp(evidence.recordedAt)}</time>
-                            {evidence.ref && <span className="ledger-numeral mt-0.5 block truncate text-[11px] text-steel-500 dark:text-steel-400">Ref: {evidence.ref}</span>}
+                            {evidence.ref?.startsWith("/api/uploads/") ? <a href={evidence.ref} target="_blank" rel="noreferrer" className="mt-1 block text-xs text-loop-700 underline dark:text-loop-300">{t("receiverDelivery.viewTicket")}</a> : evidence.ref && <span className="ledger-numeral mt-0.5 block truncate text-xs text-steel-500 dark:text-steel-400">Ref: {evidence.ref}</span>}
                           </div>
                         </li>
                       ))}
@@ -264,15 +262,16 @@ function VerificationRecordCard({ verification }: { verification: VerificationRe
 
                 <section>
                   <h3 className="font-archivo text-base font-bold text-ink-900 dark:text-white">Load event trail</h3>
-                  <div className="mt-2 border border-steel-200 bg-steel-50/50 p-3 dark:border-steel-800 dark:bg-white/[0.02] sm:p-4">
+                  <div className="mt-2 border border-steel-200 bg-steel-50/50 p-3 dark:border-steel-800 dark:bg-white/[0.02] sm:p-4 rounded-surface">
                     <EventLog events={events} limit={6} />
                   </div>
                 </section>
               </div>
             </div>
-          </details>
+          </div>
         </div>
       </div>
+      </VerificationDetails>
     </article>
   );
 }
@@ -310,7 +309,7 @@ function ReconciliationMetric({
     <div className="min-w-0 border-s-2 border-steel-200 bg-steel-50 px-3 py-2.5 dark:border-steel-700 dark:bg-white/[0.03]">
       <dt className="eyebrow-label text-steel-600 dark:text-steel-400">{label}</dt>
       <dd className={cn("ledger-numeral mt-1 text-lg font-bold sm:text-xl", valueClass)}>{value}</dd>
-      <p className="mt-0.5 text-[11px] text-steel-600 dark:text-gray-400">{detail}</p>
+      <p className="mt-0.5 text-xs text-steel-600 dark:text-gray-400">{detail}</p>
     </div>
   );
 }

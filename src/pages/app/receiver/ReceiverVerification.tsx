@@ -1,30 +1,38 @@
-import { useTranslation } from "react-i18next";
-import { useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { motion, AnimatePresence } from "motion/react";
-import Button from "@/components/ui/button/Button";
 import StatusBadge from "@/components/greenloop/StatusBadge";
-import { cn, formatINR, formatINRPerT } from "@/utils";
-import { useAuth } from "@/context/AuthContext";
+import VerificationDetails from "@/components/greenloop/VerificationDetails";
 import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
-import { ambientMedia } from "@/config/appMedia";
+import Button from "@/components/ui/button/Button";
+import { ambientMedia, materialMediaFor } from "@/config/appMedia";
+import { useAuth } from "@/context/AuthContext.helpers";
 import { CheckCircleIcon, DocsIcon } from "@/icons";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { cn, formatINR, formatINRPerT } from "@/utils";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router";
+import { VerificationRecordCard } from "../Verification";
+import ReceiverDeliveries from "./ReceiverDeliveries";
 
 export default function ReceiverVerification() {
   const { t } = useTranslation();
   const { dataset, verifyLoadAction } = useGreenLoopStore();
   const { user } = useAuth();
   const receiverId = user?.receiverId ?? "";
+  const [searchParams] = useSearchParams();
+  const bookingId = searchParams.get("booking") ?? undefined;
+  const records = dataset.verifications.filter(v => v.receiverId === receiverId && (!bookingId || v.bookingId === bookingId));
+  const completedRecords = records.filter(v => v.status !== "pending");
+  const awaitingArrival = dataset.bookings.some(b => b.receiverId === receiverId && (!bookingId || b.id === bookingId) && b.status === "confirmed" && b.loadRef && !dataset.verifications.some(v => v.bookingId === b.id));
   
-  const pendingVerifications = dataset.verifications.filter(v => 
-    v.receiverId === receiverId && v.status === "pending"
-  );
+  const pendingVerifications = records.filter(v => v.status === "pending");
 
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [acceptedT, setAcceptedT] = useState<string>("");
   const [rejectReason, setRejectReason] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
   return (
     <div className="relative min-h-screen pb-24">
@@ -35,7 +43,7 @@ export default function ReceiverVerification() {
         status={`${pendingVerifications.length} load${pendingVerifications.length === 1 ? "" : "s"} waiting for a check`}
       />
 
-      <figure className="relative mb-7 h-48 w-full overflow-hidden rounded-lg border border-steel-200 sm:h-56 lg:h-72 dark:border-steel-800">
+      <figure className="relative mb-section h-48 w-full overflow-hidden rounded-lg border border-steel-200 sm:h-52 lg:h-56 dark:border-steel-800">
         <img
           src={ambientMedia.weighbridge.src}
           alt={ambientMedia.weighbridge.alt}
@@ -49,9 +57,10 @@ export default function ReceiverVerification() {
       </figure>
 
       {successMessage && <p role="status" className="mb-5 border-l-4 border-loop-500 bg-loop-50 px-4 py-3 text-sm font-medium text-loop-800 dark:bg-loop-500/10 dark:text-loop-200">{successMessage}</p>}
+      <ReceiverDeliveries key={bookingId ?? "all"} embedded bookingId={bookingId} onRecorded={() => setSuccessMessage(t("receiverDelivery.arrivalRecorded"))} />
 
-      {pendingVerifications.length === 0 ? (
-        <div className="flex min-h-[300px] flex-col items-center justify-center rounded-lg border border-steel-200 bg-white/55 px-6 py-12 text-center dark:border-steel-800 dark:bg-white/[0.02] sm:min-h-[340px]">
+      {pendingVerifications.length === 0 && !awaitingArrival && completedRecords.length === 0 ? (
+        <div className="flex min-h-[300px] flex-col items-center justify-center border border-steel-200 bg-white/55 px-6 py-12 text-center dark:border-steel-800 dark:bg-white/[0.02] sm:min-h-[340px] rounded-surface">
           <span className="relative mb-5 flex size-16 items-center justify-center text-loop-800 dark:text-loop-300" aria-hidden="true">
             <DocsIcon className="size-12" />
             <CheckCircleIcon className="absolute -bottom-1 -end-2 size-7 rounded-full bg-white text-loop-700 dark:bg-ink-950 dark:text-loop-300" />
@@ -62,7 +71,7 @@ export default function ReceiverVerification() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-card">
           <AnimatePresence>
             {pendingVerifications.map(vr => {
               const booking = dataset.bookings.find(b => b.id === vr.bookingId);
@@ -84,23 +93,27 @@ export default function ReceiverVerification() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   key={vr.id}
-                  className="border border-steel-200 bg-white p-4 transition-colors hover:border-loop-500 sm:p-6 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-loop-400"
+                  className="border border-steel-200 bg-white transition-colors hover:border-loop-500 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-loop-400 rounded-surface"
                 >
-                  <div className="grid gap-6 md:grid-cols-[1fr_auto]">
+                  <VerificationDetails image={materialMediaFor(material?.type ?? "concrete").src} name={material?.type ?? ""} status={t("verificationCards.pending")}>
+                  <div className="grid gap-card md:grid-cols-[1fr_auto] gl-card-pad">
                     <div>
                       <div className="flex items-center gap-3">
                         <StatusBadge status="pending" size="sm" />
                         <p className="text-sm font-medium text-steel-500 dark:text-steel-400">{vr.loadRef}</p>
                       </div>
+                      {vr.evidence.filter(evidence => evidence.ref?.startsWith("/api/uploads/")).map(evidence => (
+                        <a key={evidence.ref} href={evidence.ref} target="_blank" rel="noreferrer" className="mt-3 block text-sm text-loop-700 underline dark:text-loop-300">{t("receiverDelivery.viewTicket")}: {evidence.label}</a>
+                      ))}
                       
                       <div className="mt-5 flex flex-wrap items-baseline gap-x-6 gap-y-3 sm:mt-6 sm:gap-x-8">
                         <p className="font-archivo text-xl font-bold text-ink-900 dark:text-white">{material?.type} · {vr.plannedT.toFixed(1)} t expected, {vr.actualT.toFixed(1)} t arrived</p>
                         <p className="basis-full text-sm font-semibold text-loop-700 dark:text-loop-300">{unitPrice !== undefined ? `${formatINRPerT(unitPrice)} · ${formatINR(unitPrice * vr.actualT)} delivered value` : "Price on request"}</p>
-                        <details className="text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Load: {vr.loadRef} · Booking: {booking?.id} · Variance: {varianceNum > 0 ? "+" : ""}{varianceNum.toFixed(1)} t</span></details>
+                        <div className="text-xs text-steel-500"><span className="mt-1 block">Load: {vr.loadRef} · Booking: {booking?.id} · Variance: {varianceNum > 0 ? "+" : ""}{varianceNum.toFixed(1)} t</span></div>
                       </div>
                       
-                      <div className="mt-5 rounded border border-steel-100 bg-[#f7f7f3] p-3 sm:mt-6 sm:p-4 dark:border-steel-800 dark:bg-white/5">
-                        <div className="grid grid-cols-1 gap-3 divide-y divide-steel-200 sm:grid-cols-3 sm:gap-4 sm:divide-y-0 sm:divide-x dark:divide-steel-800">
+                      <div className="mt-5 border border-steel-100 bg-[#f7f7f3] p-3 sm:mt-6 sm:p-4 dark:border-steel-800 dark:bg-white/5 rounded-surface">
+                        <div className="grid grid-cols-1 gap-detail divide-y divide-steel-200 sm:grid-cols-3 sm:gap-4 sm:divide-y-0 sm:divide-x dark:divide-steel-800">
                           <div>
                             <p className="text-xs font-medium text-steel-500 dark:text-gray-400">Expected</p>
                             <p className="ledger-numeral mt-1 text-xl font-bold text-ink-900 dark:text-white">
@@ -165,16 +178,20 @@ export default function ReceiverVerification() {
                           <Button
                             size="md"
                             className="min-h-11 w-full"
-                            disabled={!acceptedT || isNaN(Number(acceptedT)) || Number(acceptedT) > vr.actualT || (rejectedNum > 0 && !rejectReason)} 
+                            disabled={saving || !acceptedT.trim() || !Number.isFinite(Number(acceptedT)) || Number(acceptedT) < 0 || Number(acceptedT) > vr.actualT || (rejectedNum > 0 && !rejectReason.trim())}
                             onClick={async () => {
-                              if (!await verifyLoadAction(vr.id, acceptedNum, rejectedNum, rejectReason)) return;
-                              setSuccessMessage(`${acceptedNum.toFixed(1)} t accepted. ${t("backend.providerCanView")}`);
-                              setVerifyingId(null);
+                              if (saving) return;
+                              setSaving(true);
+                              try {
+                                if (!await verifyLoadAction(vr.id, acceptedNum, rejectedNum, rejectReason.trim())) return;
+                                setSuccessMessage(`${acceptedNum.toFixed(1)} t accepted. ${t("backend.providerCanView")}`);
+                                setVerifyingId(null);
+                              } finally { setSaving(false); }
                             }}
                           >
                             Confirm accepted
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => setVerifyingId(null)}>
+                          <Button size="sm" variant="outline" disabled={saving} onClick={() => setVerifyingId(null)}>
                             Cancel
                           </Button>
                         </div>
@@ -190,12 +207,17 @@ export default function ReceiverVerification() {
                       )}
                     </div>
                   </div>
+                  </VerificationDetails>
                 </motion.article>
               );
             })}
           </AnimatePresence>
         </div>
       )}
+      {completedRecords.length > 0 && <section className="mt-6 space-y-4">
+        <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">{t("receiverDelivery.savedProof")}</h2>
+        {completedRecords.map(record => <VerificationRecordCard key={record.id} verification={record} />)}
+      </section>}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { slotLedger, STORY } from "@/domain";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
 import { formatDate } from "@/utils";
 
 /**

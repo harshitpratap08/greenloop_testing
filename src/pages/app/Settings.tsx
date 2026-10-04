@@ -1,8 +1,8 @@
 import PageMeta from "@/components/common/PageMeta";
-import { AVAILABLE_LANGUAGES, type LanguageCode, useLanguage } from "@/context/LanguageContext";
-import { useTheme } from "@/context/ThemeContext";
-import { useAuth } from "@/context/AuthContext";
 import { PageMotion, RevealItem } from "@/components/greenloop/kit";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { AVAILABLE_LANGUAGES, type LanguageCode, useLanguage } from "@/context/LanguageContext.helpers";
+import { useTheme } from "@/context/ThemeContext.helpers";
 import { useNavigate } from "react-router";
 
 export default function Settings() {
@@ -27,7 +27,7 @@ export default function Settings() {
         </RevealItem>
 
         <RevealItem>
-          <section className="border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
+          <section className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
             <p className="eyebrow-label text-steel-500 dark:text-steel-400">Appearance</p>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -46,7 +46,7 @@ export default function Settings() {
         </RevealItem>
 
         <RevealItem>
-          <section className="border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
+          <section className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
             <p className="eyebrow-label text-steel-500 dark:text-steel-400">Language</p>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -57,7 +57,7 @@ export default function Settings() {
                 value={language}
                 onChange={(event) => setLanguage(event.target.value as LanguageCode)}
                 aria-label="Interface language"
-                className="rounded-sm border border-steel-300 bg-transparent px-3 py-2 text-sm font-semibold text-ink-900 dark:border-steel-700 dark:bg-black dark:text-white"
+                className="border border-steel-300 bg-transparent px-3 py-2 text-sm font-semibold text-ink-900 dark:border-steel-700 dark:bg-black dark:text-white rounded-surface"
               >
                 {AVAILABLE_LANGUAGES.map((item) => (
                   <option key={item.code} value={item.code}>{item.name}</option>
@@ -68,7 +68,7 @@ export default function Settings() {
         </RevealItem>
 
         <RevealItem>
-          <section className="border border-steel-200 bg-white p-6 dark:border-steel-800 dark:bg-white/[0.02]">
+          <section className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
             <p className="eyebrow-label text-steel-500 dark:text-steel-400">Session</p>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
               <div>

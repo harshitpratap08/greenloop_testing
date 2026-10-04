@@ -1,32 +1,7 @@
 import type React from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-export type LanguageCode = "en" | "ar" | "es" | "de";
-
-export type Language = {
-  code: LanguageCode;
-  name: string;
-  dir: "ltr" | "rtl";
-  flag?: string;
-};
-
-export const AVAILABLE_LANGUAGES: Language[] = [
-  { code: "en", name: "English", dir: "ltr" },
-  { code: "ar", name: "العربية", dir: "rtl" },
-  { code: "es", name: "Español", dir: "ltr" },
-  { code: "de", name: "Deutsch", dir: "ltr" },
-];
-
-type LanguageContextType = {
-  language: LanguageCode;
-  currentLanguage: Language;
-  dir: "ltr" | "rtl";
-  setLanguage: (code: LanguageCode) => void;
-  availableLanguages: Language[];
-};
-
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+import { type LanguageCode, AVAILABLE_LANGUAGES, LanguageContext } from "./LanguageContext.helpers";
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -85,10 +60,3 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-export const useLanguage = () => {
-  const context = useContext(LanguageContext);
-  if (context === undefined) {
-    throw new Error("useLanguage must be used within a LanguageProvider");
-  }
-  return context;
-};

@@ -1,6 +1,6 @@
-import { Link } from "react-router";
-import { useAuth } from "@/context/AuthContext";
 import { ambientMedia } from "@/config/appMedia";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { Link } from "react-router";
 
 export default function SidebarWidget() {
   const { user } = useAuth();

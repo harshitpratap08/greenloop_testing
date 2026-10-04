@@ -1,15 +1,15 @@
-import { useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { motion, AnimatePresence } from "motion/react";
-import Button from "@/components/ui/button/Button";
-import { slotLedger, slotMatchesDemandPeriod } from "@/domain/capacity";
-import { useAuth } from "@/context/AuthContext";
-import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
-import { formatINR, formatINRPerT } from "@/utils";
 import { LocationMap } from "@/components/greenloop/LocationMap";
-import { materialMediaFor, ambientMedia } from "@/config/appMedia";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import Button from "@/components/ui/button/Button";
+import { ambientMedia, materialMediaFor } from "@/config/appMedia";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { slotLedger, slotMatchesDemandPeriod } from "@/domain/capacity";
 import { InboxAltIcon } from "@/icons";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { formatINR, formatINRPerT } from "@/utils";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 
 export default function IncomingRequests() {
   const { dataset, acceptRequestAction, rejectRequestAction, rescheduleRequestAction } = useGreenLoopStore();
@@ -32,7 +32,7 @@ export default function IncomingRequests() {
       />
 
       {/* Provider requests — the yard gate these bookings arrive at */}
-      <figure className="relative mb-8 h-40 w-full overflow-hidden rounded-lg border border-steel-200 sm:h-52 lg:h-60 dark:border-steel-800">
+      <figure className="relative mb-section h-40 w-full overflow-hidden rounded-lg border border-steel-200 sm:h-52 lg:h-60 dark:border-steel-800">
         <img
           src={ambientMedia.authYard.src}
           alt={ambientMedia.authYard.alt}
@@ -46,7 +46,7 @@ export default function IncomingRequests() {
       </figure>
 
       {requests.length === 0 ? (
-        <div className="flex min-h-[42vh] flex-col items-center justify-center rounded-lg border border-steel-200 bg-white/70 px-6 py-14 text-center dark:border-steel-800 dark:bg-white/[0.02]">
+        <div className="flex min-h-[42vh] flex-col items-center justify-center border border-steel-200 bg-white/70 px-6 py-14 text-center dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
           <span className="flex size-16 items-center justify-center rounded-full bg-loop-50 dark:bg-loop-500/10">
             <InboxAltIcon className="size-8 text-loop-600 dark:text-loop-400" />
           </span>
@@ -57,7 +57,7 @@ export default function IncomingRequests() {
           <Button size="md" className="mt-6" startIcon={<InboxAltIcon className="size-4" />} onClick={() => window.location.assign("/app/support")}>Learn more</Button>
         </div>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-card">
           <AnimatePresence>
             {requests.map(booking => {
               const material = dataset.materials.find(m => m.id === booking.materialId);
@@ -86,10 +86,10 @@ export default function IncomingRequests() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   key={booking.id}
-                  className="overflow-hidden rounded-lg border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600"
+                  className="overflow-hidden border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600 rounded-surface"
                 >
-                  <div className="p-5 sm:p-6">
-                    <div className="grid gap-6 md:grid-cols-[10rem_1fr]">
+                  <div className="gl-card-pad">
+                    <div className="grid gap-card md:grid-cols-[10rem_1fr]">
                       <img
                         src={materialMediaFor(material?.type ?? "concrete").src}
                         alt=""

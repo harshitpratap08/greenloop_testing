@@ -1,11 +1,10 @@
-import { cn } from "@/utils";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { cn, formatStamp } from "@/utils";
 import { useState } from "react";
 import { Link } from "react-router";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { useAuth } from "@/context/AuthContext";
-import { formatStamp } from "@/utils";
 
 interface ActivityItem {
   id: string;

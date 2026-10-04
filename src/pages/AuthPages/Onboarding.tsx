@@ -1,15 +1,15 @@
-import { useTranslation } from "react-i18next";
-import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router";
-import { ChevronLeftIcon } from "@/icons";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import PageMeta from "@/components/common/PageMeta";
-import AuthLayout from "./AuthPageLayout";
-import { useAuth } from "@/context/AuthContext";
-import type { Role } from "@/context/AuthContext";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
+import type { Role } from "@/context/AuthContext.helpers";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { ChevronLeftIcon } from "@/icons";
 import { cn } from "@/utils";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link, Navigate, useNavigate } from "react-router";
+import AuthLayout from "./AuthPageLayout";
 
 const BOTH_ROLES: Role[] = ["provider", "receiver"];
 

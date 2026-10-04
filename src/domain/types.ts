@@ -96,6 +96,9 @@ export interface MaterialPassport {
   archivedAt?: string;
 }
 
+export type MaterialUpdate = Pick<MaterialPassport, "type" | "quantityT" | "condition" | "grade"> & { surveyNotes: string; pricePerT: number | null; availableFrom: string | null };
+export type DemandUpdate = Pick<DemandRecord, "materialType" | "requiredT" | "period" | "location"> & { notes: string; budgetPerT: number | null };
+
 export interface Evidence {
   kind: "survey-sheet" | "site-photo" | "lab-report" | "weighbridge-ticket";
   label: string;
@@ -299,6 +302,7 @@ export interface DemandRecord {
   budgetPerT?: number;
   geo?: GeoPoint;
   targetProviderId?: string;
+  targetProviderName?: string;
   targetMaterialId?: string;
   archivedAt?: string;
 }

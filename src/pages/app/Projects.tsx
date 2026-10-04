@@ -1,18 +1,11 @@
-import { useMemo, useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
-import {
-  materialMedia,
-  projectNextAction,
-  projectSteps,
-  ProjectStatusChip,
-  STEP_LABELS,
-  currentStepIndex,
-  EmptyState,
-} from "@/components/greenloop/AppExploration";
-import type { Project, ProjectStatus } from "@/domain/types";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { Link } from "react-router";
+import { EmptyState, ProjectStatusChip } from "@/components/greenloop/AppExploration";
+import { currentStepIndex, materialMedia, projectNextAction, projectSteps, STEP_LABELS } from "@/components/greenloop/AppExploration.helpers";
 import { ambientMedia, projectMediaFor } from "@/config/appMedia";
+import type { Project, ProjectStatus } from "@/domain/types";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { useMemo, useState } from "react";
+import { Link } from "react-router";
 
 type ProjectFilter = "all" | ProjectStatus;
 
@@ -107,16 +100,16 @@ export default function Projects() {
   ];
 
   return (
-    <div className="mx-auto max-w-[1320px] pb-16">
+    <div className="mx-auto max-w-app pb-16">
       <PageMeta
         title="Recovery Projects | GreenLoop"
         description="Monitor active demolition and construction projects, track material recovery progress, and coordinate logistics."
       />
 
-      <section className="mb-7 grid overflow-hidden rounded-2xl border border-[#e5e1d8] bg-[#f7f5ef] dark:border-steel-800 dark:bg-[#1b2921] md:min-h-[230px] md:grid-cols-[1.02fr_0.98fr]">
+      <section className="mb-section grid overflow-hidden border border-[#e5e1d8] bg-[#f7f5ef] dark:border-steel-800 dark:bg-[#1b2921] md:min-h-[230px] md:gl-golden-columns rounded-surface">
         <div className="flex flex-col justify-center px-6 py-7 sm:px-9 md:py-9">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#65806e] dark:text-[#a5bba9]">GreenLoop Operations</p>
-          <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-[#1d2c23] dark:text-white sm:text-4xl">Recovery Projects</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#65806e] dark:text-[#a5bba9]">GreenLoop Operations</p>
+          <h1 className="mt-2 font-archivo font-bold tracking-tight text-[#1d2c23] dark:text-white gl-page-title">Recovery Projects</h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-[#647168] dark:text-gray-300 sm:text-base">
             Monitor active demolition and construction projects, track material recovery progress, and coordinate logistics.
           </p>
@@ -128,20 +121,20 @@ export default function Projects() {
         <div className="relative min-h-44 overflow-hidden md:min-h-[230px]">
           <img src={ambientMedia.surveyHero.src} alt={ambientMedia.surveyHero.alt} className="absolute inset-0 size-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#f7f5ef] via-[#f7f5ef]/35 to-transparent md:from-[#f7f5ef]/25 md:via-transparent md:to-transparent dark:from-[#1b2921]/40" />
-          <div className="absolute bottom-4 right-4 rounded-lg border border-white/25 bg-[#172c21]/75 px-3 py-2 text-[10px] font-medium uppercase tracking-[0.12em] text-white backdrop-blur-sm">
+          <div className="absolute bottom-4 right-4 border border-white/25 bg-[#172c21]/75 px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-white backdrop-blur-sm rounded-surface">
             Recovery in progress
           </div>
         </div>
       </section>
 
-      <section aria-label="Project summary" className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label="Project summary" className="mb-section grid grid-cols-2 gap-detail lg:grid-cols-4">
         {metrics.map((metric) => (
-          <div key={metric.label} className="flex min-h-[112px] items-start gap-3 rounded-xl border border-[#e7e3da] bg-white p-4 shadow-[0_2px_10px_rgba(26,42,31,0.035)] dark:border-steel-800 dark:bg-[#17251d] sm:p-5">
+          <div key={metric.label} className="flex min-h-[112px] items-start gap-3 border border-[#e7e3da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] dark:border-steel-800 dark:bg-[#17251d] gl-card-pad rounded-surface">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#edf3ed] text-[#487454] dark:bg-[#284233] dark:text-[#b6d1bd]"><MetricIcon kind={metric.kind} /></span>
             <div className="min-w-0">
               <p className="font-archivo text-xl font-bold leading-6 text-[#1d2c23] dark:text-white sm:text-2xl">{metric.value}</p>
               <p className="mt-1 text-xs font-semibold text-[#38483e] dark:text-gray-200 sm:text-sm">{metric.label}</p>
-              <p className="mt-0.5 text-[10px] text-[#828b83] dark:text-gray-400 sm:text-xs">{metric.note}</p>
+              <p className="mt-0.5 text-xs text-[#828b83] dark:text-gray-400 sm:text-xs">{metric.note}</p>
             </div>
           </div>
         ))}
@@ -165,7 +158,7 @@ export default function Projects() {
                 className="h-10 w-full rounded-lg border border-[#e1ded6] bg-white pl-9 pr-3 text-sm text-[#26362c] outline-none transition focus:border-[#64866d] focus:ring-2 focus:ring-[#64866d]/15 dark:border-steel-700 dark:bg-[#17251d] dark:text-white"
               />
             </label>
-            <div role="group" aria-label="Filter projects" className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-[#e5e1d8] bg-[#f6f4ee] p-1 dark:border-steel-800 dark:bg-[#17251d]">
+            <div role="group" aria-label="Filter projects" className="flex max-w-full gap-1 overflow-x-auto border border-[#e5e1d8] bg-[#f6f4ee] p-1 dark:border-steel-800 dark:bg-[#17251d] rounded-surface">
               {filters.map((item) => (
                 <button
                   key={item.id}
@@ -181,17 +174,17 @@ export default function Projects() {
           </div>
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid gap-card">
           {visibleRows.map((row) => {
             const projectImage = row.media[0] ?? projectMediaFor(row.project);
             return (
-              <article key={row.project.id} className="group grid overflow-hidden rounded-xl border border-[#e6e2d9] bg-white shadow-[0_2px_12px_rgba(26,42,31,0.035)] transition hover:border-[#b9c8ba] hover:shadow-[0_6px_20px_rgba(26,42,31,0.07)] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957] lg:grid-cols-[210px_minmax(0,1fr)_236px]">
+              <article key={row.project.id} className="group grid overflow-hidden border border-[#e6e2d9] bg-white shadow-[0_2px_12px_rgba(26,42,31,0.035)] transition hover:border-[#b9c8ba] hover:shadow-[0_6px_20px_rgba(26,42,31,0.07)] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957] xl:grid-cols-[210px_minmax(0,1fr)_236px] rounded-surface">
                 <div className="relative min-h-44 overflow-hidden lg:min-h-[220px]">
                   <img src={projectImage.src} alt={row.media[0]?.caption ?? row.project.name} loading="lazy" className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
-                  <span className="absolute left-3 top-3 rounded-md border border-white/40 bg-[#182b20]/75 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">{row.project.id}</span>
+                  <span className="absolute left-3 top-3 border border-white/40 bg-[#182b20]/75 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-sm rounded-surface">{row.project.id}</span>
                 </div>
 
-                <div className="flex min-w-0 flex-col p-5 sm:p-6">
+                <div className="flex min-w-0 flex-col gl-card-pad">
                   <div className="flex flex-wrap items-center gap-2.5">
                     <h3 className="font-archivo text-xl font-bold tracking-tight text-[#203027] dark:text-white sm:text-2xl">{row.project.name}</h3>
                     <ProjectStatusChip status={row.project.status} />
@@ -200,40 +193,40 @@ export default function Projects() {
                   {row.materialTypes.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5" aria-label="Surveyed materials">
                       {row.materialTypes.map((type) => (
-                        <span key={type} className="rounded-md bg-[#f2f3ed] px-2 py-1 text-[10px] font-medium text-[#617065] dark:bg-white/[0.06] dark:text-gray-300">{materialLabels[type] ?? type}</span>
+                        <span key={type} className="rounded-md bg-[#f2f3ed] px-2 py-1 text-xs font-medium text-[#617065] dark:bg-white/[0.06] dark:text-gray-300">{materialLabels[type] ?? type}</span>
                       ))}
                     </div>
                   )}
 
                   <div className="mt-auto grid grid-cols-2 gap-x-4 gap-y-4 pt-5 sm:grid-cols-3">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#899189]">Volume</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#899189]">Volume</p>
                       <p className="mt-1 font-archivo text-lg font-bold text-[#26372c] dark:text-white">{row.surveyedT.toFixed(1)} t</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#899189]">Current Stage</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#899189]">Current Stage</p>
                       <p className="mt-1 truncate text-sm font-semibold text-[#35473a] dark:text-gray-200">{row.stageLabel}</p>
                     </div>
                     <div className="col-span-2 sm:col-span-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#899189]">Progress</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#899189]">Progress</p>
                         <span className="text-xs font-semibold text-[#426b4c] dark:text-[#b2ceb9]">{row.progress}%</span>
                       </div>
                       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e9ece6] dark:bg-white/10">
                         <div className="h-full rounded-full bg-[#5c8967] transition-all" style={{ width: `${row.progress}%` }} />
                       </div>
-                      {row.verifiedT > 0 && <p className="mt-1 text-[10px] text-[#899189]">{row.verifiedT.toFixed(1)} t recovered</p>}
+                      {row.verifiedT > 0 && <p className="mt-1 text-xs text-[#899189]">{row.verifiedT.toFixed(1)} t recovered</p>}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-between gap-4 border-t border-[#eeeae2] bg-[#f8f7f2] p-5 dark:border-steel-800 dark:bg-[#1c2b22] sm:flex-row sm:items-center lg:flex-col lg:items-stretch lg:border-l lg:border-t-0 lg:p-5">
+                <div className="flex flex-col justify-between gap-4 border-t border-[#eeeae2] bg-[#f8f7f2] p-5 dark:border-steel-800 dark:bg-[#1c2b22] sm:flex-row sm:items-center xl:flex-col xl:items-stretch xl:border-l xl:border-t-0 xl:p-5">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a938b]">Next Action</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#8a938b]">Next Action</p>
                     <p className="mt-1.5 font-archivo text-base font-bold text-[#2c3e31] dark:text-white">{row.next.label}</p>
                     <p className="mt-1 text-xs leading-5 text-[#7a837b] dark:text-gray-400">{row.next.reason}</p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 sm:shrink-0 lg:flex-col lg:items-stretch">
+                  <div className="flex flex-wrap items-center gap-3 sm:shrink-0 xl:flex-col xl:items-stretch">
                     <Link to={`/app/projects/${row.project.id}`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#315c3d] px-4 text-sm font-semibold text-white transition hover:bg-[#254a30] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315c3d] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#1c2b22]">
                       Open Project <span aria-hidden="true">→</span>
                     </Link>
@@ -255,7 +248,7 @@ export default function Projects() {
           />
         )}
         {rows.length > 0 && visibleRows.length === 0 && (
-          <div className="rounded-xl border border-dashed border-[#d8ddd5] bg-white/60 px-6 py-12 text-center dark:border-steel-700 dark:bg-white/[0.02]">
+          <div className="border border-dashed border-[#d8ddd5] bg-white/60 px-6 py-12 text-center dark:border-steel-700 dark:bg-white/[0.02] rounded-surface">
             <h3 className="font-archivo text-lg font-bold text-[#2c3e31] dark:text-white">No matching projects</h3>
             <p className="mt-1 text-sm text-[#7a837b] dark:text-gray-400">Try another name, location, or project status.</p>
             <button type="button" onClick={() => { setQuery(""); setFilter("all"); }} className="mt-4 text-sm font-semibold text-[#416d4b] underline underline-offset-4 dark:text-[#b8d0bd]">Clear search and filters</button>

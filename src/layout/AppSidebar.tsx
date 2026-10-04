@@ -1,22 +1,21 @@
-import { useSidebar } from "@/context/SidebarContext";
-import { useAuth, type Role } from "@/context/AuthContext";
+import { useAuth, type Role } from "@/context/AuthContext.helpers";
+import { useSidebar } from "@/context/SidebarContext.helpers";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router";
 import {
-  BoxIconLine,
-  ChevronDownIcon,
-  DocsIcon,
-  GridIcon,
-  HorizontaLDots,
-  LayoutIcon,
-  ListIcon,
-  BoxMoving,
-  CheckCircleIcon,
-  BoxTapped,
-  UserCircleIcon,
-  SettingsAltIcon,
-  HeadphoneAltIcon,
+BoxIconLine,
+BoxMoving,
+BoxTapped,
+CheckCircleIcon,
+ChevronDownIcon,
+DocsIcon,
+GridIcon,
+HeadphoneAltIcon,
+HorizontaLDots,
+ListIcon,
+SettingsAltIcon,
+UserCircleIcon,
 } from "../icons";
 import { cn } from "../utils";
 import SidebarWidget from "./SidebarWidget";
@@ -41,30 +40,25 @@ type NavItem = {
 const providerNavItems: NavItem[] = [
   { icon: <GridIcon fontSize={24} />, name: "Home", key: "explore", path: "/app/explore" },
   { icon: <BoxMoving fontSize={24} />, name: "Inventory", key: "materials", path: "/app/materials" },
-  // Combined discovery: active demand + receiver discovery in one destination.
-  { icon: <ListIcon fontSize={24} />, name: "Active Demand", key: "marketDemand", path: "/app/market-demand" },
-  { icon: <DocsIcon fontSize={24} />, name: "Dashboard", key: "dashboard", path: "/app/dashboard" },
-  { icon: <BoxMoving fontSize={24} />, name: "Bookings & Deliveries", key: "bookings-deliveries", path: "/app/bookings-deliveries" },
-  { icon: <CheckCircleIcon fontSize={24} />, name: "Proof of Recovery", key: "verification", path: "/app/verification" },
+  { icon: <ListIcon fontSize={24} />, name: "Requests", key: "marketDemand", path: "/app/market-demand" },
+  { icon: <BoxIconLine fontSize={24} />, name: "Providers", key: "providers", path: "/app/receiver/providers" },
+  { icon: <BoxMoving fontSize={24} />, name: "My Orders", key: "bookings-deliveries", path: "/app/bookings-deliveries" },
+  { icon: <CheckCircleIcon fontSize={24} />, name: "Verification", key: "verification", path: "/app/verification" },
 ];
 
 const referenceItems: NavItem[] = [
+  { icon: <DocsIcon fontSize={24} />, name: "Dashboard", key: "dashboard", path: "/app/dashboard" },
   { icon: <BoxIconLine fontSize={24} />, name: "Projects", key: "projects", path: "/app/projects" },
-];
-
-const toolsItems: NavItem[] = [
-  { icon: <LayoutIcon fontSize={24} />, name: "Match Details", key: "allocations", path: "/app/allocations" },
-  { icon: <ListIcon fontSize={24} />, name: "Public website", key: "publicSite", path: "/" },
+  { icon: <ListIcon fontSize={24} />, name: "Website", key: "publicSite", path: "/" },
 ];
 
 const receiverNavItems: NavItem[] = [
   { icon: <GridIcon fontSize={24} />, name: "Home", key: "explore", path: "/app/receiver/overview" },
   { icon: <BoxMoving fontSize={24} />, name: "Inventory", key: "receiverInventory", path: "/app/receiver/inventory" },
-  { icon: <BoxTapped fontSize={24} />, name: "Request Material", key: "receiverDemand", path: "/app/receiver/demand" },
+  { icon: <BoxTapped fontSize={24} />, name: "Requests", key: "receiverDemand", path: "/app/receiver/demand" },
   { icon: <BoxIconLine fontSize={24} />, name: "Providers", key: "providers", path: "/app/receiver/providers" },
-  { icon: <DocsIcon fontSize={24} />, name: "Dashboard", key: "dashboard", path: "/app/dashboard" },
-  { icon: <BoxMoving fontSize={24} />, name: "Bookings & Deliveries", key: "bookings-deliveries", path: "/app/bookings-deliveries" },
-  { icon: <CheckCircleIcon fontSize={24} />, name: "Proof of Recovery", key: "verification", path: "/app/receiver/verification" },
+  { icon: <BoxMoving fontSize={24} />, name: "My Orders", key: "bookings-deliveries", path: "/app/bookings-deliveries" },
+  { icon: <CheckCircleIcon fontSize={24} />, name: "Verification", key: "verification", path: "/app/receiver/verification" },
 ];
 
 const accountNavItems: NavItem[] = [
@@ -115,9 +109,6 @@ const AppSidebar: React.FC = () => {
   
   const currentNavItems = user?.activeWorkspace === 'receiver' ? receiverNavItems : providerNavItems;
   const currentReferenceItems = referenceItems;
-  const currentToolItems: NavItem[] = user?.activeWorkspace === "receiver"
-    ? [...toolsItems, { icon: <ListIcon fontSize={24} />, name: "Incoming Requests", key: "incomingRequests", path: "/app/receiver/incoming-requests" }]
-    : toolsItems;
   const location = useLocation();
   type Submenu = { type: "main" | "others"; index: number } | null;
   const [submenuOverride, setSubmenuOverride] = useState<{
@@ -142,7 +133,7 @@ const AppSidebar: React.FC = () => {
   const isActive = useCallback(
     (path: string) => {
       const [pathname, search] = path.split("?");
-      return location.pathname === pathname && (search ? location.search === `?${search}` : !location.search);
+      return location.pathname === pathname && (!search || location.search === `?${search}`);
     },
     [location.pathname, location.search],
   );
@@ -150,12 +141,12 @@ const AppSidebar: React.FC = () => {
   const routeSubmenu = useMemo(() => {
     let match: Submenu = null;
     for (const menuType of ["main", "others"] as const) {
-      const items = menuType === "main" ? currentNavItems : currentToolItems;
-      const index = items.findIndex((nav) => nav.subItems?.some((item) => item.path === location.pathname));
+      const items = menuType === "main" ? currentNavItems : currentReferenceItems;
+      const index = items.findIndex((nav) => nav.subItems && (nav.path === location.pathname || nav.subItems.some((item) => item.path === location.pathname)));
       if (index !== -1) match = { type: menuType, index };
     }
     return match;
-  }, [currentNavItems, currentToolItems, location.pathname]);
+  }, [currentNavItems, currentReferenceItems, location.pathname]);
   const openSubmenu = submenuOverride?.locationKey === location.key &&
     submenuOverride.workspace === user?.activeWorkspace
     ? submenuOverride.submenu : routeSubmenu;
@@ -170,7 +161,7 @@ const AppSidebar: React.FC = () => {
         }));
       }
     }
-  }, [openSubmenu]);
+  }, [openSubmenu, isExpanded, isHovered, isMobileOpen, t]);
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
     setSubmenuOverride({
@@ -186,6 +177,17 @@ const AppSidebar: React.FC = () => {
       {items.map((nav, index) => (
         <li key={nav.name}>
           {nav.subItems ? (
+            nav.path ? (
+              <div className="flex items-center">
+                <Link to={nav.path} className={cn("group menu-item min-w-0 flex-1", isActive(nav.path) || nav.subItems.some(item => isActive(item.path)) ? "menu-item-active" : "menu-item-inactive")}>
+                  <span className={cn("menu-item-icon-size", isActive(nav.path) || nav.subItems.some(item => isActive(item.path)) ? "menu-item-icon-active" : "menu-item-icon-inactive")}>{nav.icon}</span>
+                  {(isExpanded || isHovered || isMobileOpen) && <span className="menu-item-text">{nav.key ? t(`sidebar.items.${nav.key}`) : nav.name}</span>}
+                </Link>
+                {(isExpanded || isHovered || isMobileOpen) && <button type="button" aria-label={nav.key ? t(`sidebar.items.${nav.key}`) : nav.name} aria-expanded={openSubmenu?.type === menuType && openSubmenu.index === index} aria-controls={`${menuType}-${index}-submenu`} onClick={() => handleSubmenuToggle(index, menuType)} className="ms-1 flex size-10 shrink-0 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white dark:hover:bg-white/10">
+                  <ChevronDownIcon className={cn("size-5 transition-transform duration-200", openSubmenu?.type === menuType && openSubmenu.index === index && "rotate-180")} />
+                </button>}
+              </div>
+            ) : (
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
               className={`group menu-item ${
@@ -236,6 +238,7 @@ const AppSidebar: React.FC = () => {
                 />
               )}
             </button>
+            )
           ) : (
             nav.path && (
               <Link
@@ -264,6 +267,8 @@ const AppSidebar: React.FC = () => {
           )}
           {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
             <div
+              id={`${menuType}-${index}-submenu`}
+              inert={openSubmenu?.type !== menuType || openSubmenu.index !== index}
               ref={(el) => {
                 subMenuRefs.current[`${menuType}-${index}`] = el;
               }}
@@ -405,13 +410,6 @@ const AppSidebar: React.FC = () => {
                 {isExpanded || isHovered || isMobileOpen ? t("sidebar.groups.others") : <HorizontaLDots className="size-6" />}
               </h2>
               {renderMenuItems(currentReferenceItems, "others")}
-            </div>
-
-            <div>
-              <h2 className={`mb-3 flex text-[10px] font-semibold leading-5 uppercase tracking-[0.16em] text-white/40 ${!isExpanded && !isHovered ? "xl:justify-center" : "justify-start"}`}>
-                {isExpanded || isHovered || isMobileOpen ? t("sidebar.groups.tools") : <HorizontaLDots className="size-6" />}
-              </h2>
-              {renderMenuItems(currentToolItems, "others")}
             </div>
 
             <AccountSidebarWidget render={renderMenuItems} />

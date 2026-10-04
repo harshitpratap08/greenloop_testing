@@ -79,6 +79,7 @@ export function createBackend(options = {}) {
     requireThat(row, 'Please sign in to continue.', 401); return profile(row);
   };
   const visible = (dataset, user) => {
+    dataset = { ...dataset, materials: dataset.materials.filter(item => !item.archivedAt), demands: dataset.demands.filter(item => !item.archivedAt), offers: (dataset.offers ?? []).filter(item => !item.archivedAt) };
     const mine = id => owner(id) === user.id;
     const receiving = user.activeWorkspace === 'receiver';
     const bookings = dataset.bookings.filter(b => receiving ? mine(b.receiverId) : mine(b.materialId));
@@ -109,7 +110,7 @@ export function createBackend(options = {}) {
       allocations: dataset.allocations.filter(a => bookings.some(b => b.allocationId === a.id)), offers,
       verifications: dataset.verifications.filter(v => bookings.some(b => b.id === v.bookingId)),
       events: dataset.events.filter(e => e.subjectIds.some(id => subjects.has(id))),
-      demands: (receiving ? dataset.demands : dataset.demands.filter(d => d.status !== 'DRAFT')).map(d => ({ ...d, coveredT: dataset.bookings.filter(b => b.demandId === d.id && b.status === 'confirmed').reduce((sum, b) => sum + b.tonnesT, 0) })),
+      demands: (receiving ? dataset.demands : dataset.demands.filter(d => d.status !== 'DRAFT' && (!d.targetProviderId || d.targetProviderId === user.email))).map(d => ({ ...d, coveredT: dataset.bookings.filter(b => b.demandId === d.id && b.status === 'confirmed').reduce((sum, b) => sum + b.tonnesT, 0) })),
       supportRequests: (dataset.supportRequests ?? []).filter(s => mine(s.id)) };
   };
   const evidence = (items, user) => {
@@ -142,17 +143,56 @@ export function createBackend(options = {}) {
       writeProfile(user);
       return { dataset: { ...visible(dataset, user), readEventIds: user.readEventIds }, result: user.readEventIds };
     }
+    const demandTarget = (input, existingDemandId) => {
+      if (!input.targetMaterialId) return {};
+      const id = text(input.targetMaterialId, 'target material ID', 100);
+      const material = dataset.materials.find(item => item.id === id && !item.archivedAt);
+      const account = db.prepare('SELECT email, profile FROM users WHERE id=?').get(owner(id) ?? '');
+      requireThat(material && account, 'This provider material is no longer available.', 409);
+      const committed = dataset.bookings.filter(item => item.materialId === id && item.status !== 'cancelled' && (!existingDemandId || item.demandId !== existingDemandId)).reduce((sum, item) => sum + item.tonnesT, 0);
+      requireThat(material.type === input.materialType, 'The request must use the selected material type.', 409);
+      requireThat(number(input.requiredT, 'required quantity') <= material.quantityT - committed, 'Request exceeds this listing’s available material.', 409);
+      requireThat(!material.availableFrom || input.period >= material.availableFrom, 'The selected material is not available by that date.', 409);
+      const provider = JSON.parse(account.profile);
+      return { targetMaterialId: id, targetProviderId: account.email, targetProviderName: provider.organization || provider.name || 'Provider' };
+    };
     const role = expected => requireThat(user.workspaces.includes(expected), `Enable your ${expected} workspace first.`, 403);
     const booking = id => { const item = dataset.bookings.find(b => b.id === id); requireThat(item, 'Booking not found.', 404); return item; };
     const receiverBooking = id => { role('receiver'); const item = booking(id); own(item.receiverId, user); return item; };
     const providerBooking = id => { role('provider'); const item = booking(id); own(item.materialId, user); return item; };
     const offer = id => { role('receiver'); const item = dataset.offers.find(o => o.id === id); requireThat(item, 'Offer not found.', 404); own(dataset.demands.find(d => d.id === item.demandId)?.receiverId, user); requireThat(item.status === 'pending', 'This offer has already been decided.', 409); return item; };
-    const receiverActions = ['addDemandAction', 'saveDemandDraftAction', 'deleteDemandDraftAction', 'addCapacityAction', 'updateCapacityAction', 'acceptOfferAction', 'declineOfferAction', 'acceptRequestAction', 'rejectRequestAction', 'rescheduleRequestAction', 'receiveLoadAction', 'verifyLoadAction', 'verifyAction'];
+    const receiverActions = ['updateDemandAction', 'deleteDemandAction', 'addDemandAction', 'saveDemandDraftAction', 'deleteDemandDraftAction', 'addCapacityAction', 'updateCapacityAction', 'acceptOfferAction', 'declineOfferAction', 'acceptRequestAction', 'rejectRequestAction', 'rescheduleRequestAction', 'receiveLoadAction', 'verifyLoadAction', 'verifyAction'];
     if (action === 'counterOfferAction' && user.activeWorkspace === 'receiver') receiverActions.push(action);
     if (action === 'cancelDemandAction' || (action === 'archiveBookingAction' && user.activeWorkspace === 'receiver')) receiverActions.push(action);
     const engine = createActions(dataset, { kind: receiverActions.includes(action) ? 'receiver' : 'contractor', name: user.name || user.email });
     let result;
     switch (action) {
+      case 'updateMaterialAction': {
+        role('provider'); own(args[0], user);
+        const record = dataset.materials.find(item => item.id === args[0] && !item.archivedAt);
+        requireThat(record, 'Passport not found.', 404);
+        requireThat(!dataset.bookings.some(item => item.materialId === record.id), 'Passports linked to orders cannot be edited. Create a new passport for additional material.', 409);
+        const p = args[1]; requireThat(p && typeof p === 'object' && !Array.isArray(p), 'Invalid passport input.');
+        result = engine.updateMaterialAction(record.id, { type: materialType(p.type), quantityT: number(p.quantityT, 'quantity'), condition: choice(p.condition, ['good', 'fair', 'poor'], 'condition'), grade: choice(p.grade, ['A', 'B', 'C'], 'grade'), surveyNotes: text(p.surveyNotes ?? '', 'notes', 5000, true), pricePerT: p.pricePerT == null ? null : number(p.pricePerT, 'price', true), availableFrom: p.availableFrom == null ? null : date(p.availableFrom) });
+        requireThat(result, 'Material type, grade and condition cannot change while offers are pending.', 409); break;
+      }
+      case 'deleteMaterialAction': {
+        role('provider'); own(args[0], user);
+        requireThat(dataset.materials.some(item => item.id === args[0] && !item.archivedAt), 'Passport not found.', 404);
+        result = engine.deleteMaterialAction(args[0]); requireThat(result, 'Passports linked to orders or delivery proof cannot be deleted.', 409); break;
+      }
+      case 'updateDemandAction': {
+        role('receiver'); const record = dataset.demands.find(item => item.id === args[0] && !item.archivedAt); requireThat(record, 'Request not found.', 404); own(record.receiverId, user);
+        const p = args[1]; requireThat(p && typeof p === 'object' && !Array.isArray(p), 'Invalid request input.');
+        const period = date(p.period); requireThat(period >= new Date().toISOString().slice(0, 10), 'Choose a future needed-by date.');
+        if (record.targetMaterialId) demandTarget({ ...p, period, targetMaterialId: record.targetMaterialId }, record.id);
+        result = engine.updateDemandAction(record.id, { materialType: materialType(p.materialType), requiredT: number(p.requiredT, 'required quantity'), period, location: text(p.location, 'location', 250), notes: text(p.notes ?? '', 'notes', 5000, true), budgetPerT: p.budgetPerT == null ? null : number(p.budgetPerT, 'budget', true) });
+        requireThat(result, 'Keep the existing material and delivery location for linked orders. Quantity and deadline must cover existing commitments; cancelled requests cannot be edited.', 409); break;
+      }
+      case 'deleteDemandAction': {
+        role('receiver'); const record = dataset.demands.find(item => item.id === args[0] && !item.archivedAt); requireThat(record, 'Request not found.', 404); own(record.receiverId, user);
+        result = engine.deleteDemandAction(record.id); requireThat(result, 'Requests linked to orders cannot be deleted.', 409); break;
+      }
       case 'addProjectAction': {
         role('provider'); const p = args[0]; result = engine.addProjectAction({ name: text(p.name, 'project name', 250), location: text(p.location, 'location', 250), status: choice(p.status, ['active', 'demolition', 'complete'], 'project status'), geo: geo(p.geo) }); assign(result.id, user); break;
       }
@@ -164,27 +204,13 @@ export function createBackend(options = {}) {
       }
       case 'addDemandAction': {
         role('receiver'); const d = args[0]; own(user.receiverId, user); date(d.period); requireThat(d.period >= new Date().toISOString().slice(0, 10), 'The needed-by date is in the past.'); 
-        let targetProviderId = undefined;
-        if (d.targetMaterialId) {
-            const matUserId = owner(d.targetMaterialId);
-            if (matUserId) {
-                const acct = db.prepare('SELECT email FROM users WHERE id=?').get(matUserId);
-                if (acct) targetProviderId = acct.email;
-            }
-        }
-        result = engine.addDemandAction({ receiverId: user.receiverId, materialType: materialType(d.materialType), requiredT: number(d.requiredT, 'required quantity'), period: d.period, location: text(d.location, 'location', 250), notes: text(d.notes ?? '', 'notes', 5000, true), budgetPerT: d.budgetPerT === undefined ? undefined : number(d.budgetPerT, 'budget per tonne', true), geo: geo(d.geo), targetProviderId, targetMaterialId: d.targetMaterialId ? text(d.targetMaterialId, 'targetMaterialId', 100, true) : undefined }); assign(result.id, user); break;
+        const target = demandTarget(d);
+        result = engine.addDemandAction({ receiverId: user.receiverId, materialType: materialType(d.materialType), requiredT: number(d.requiredT, 'required quantity'), period: d.period, location: text(d.location, 'location', 250), notes: text(d.notes ?? '', 'notes', 5000, true), budgetPerT: d.budgetPerT === undefined ? undefined : number(d.budgetPerT, 'budget per tonne', true), geo: geo(d.geo), ...target }); assign(result.id, user); break;
       }
       case 'saveDemandDraftAction': {
         role('receiver'); const d = args[0]; own(user.receiverId, user); date(d.period); requireThat(d.period >= new Date().toISOString().slice(0, 10), 'The needed-by date is in the past.'); 
-        let targetProviderId = undefined;
-        if (d.targetMaterialId) {
-            const matUserId = owner(d.targetMaterialId);
-            if (matUserId) {
-                const acct = db.prepare('SELECT email FROM users WHERE id=?').get(matUserId);
-                if (acct) targetProviderId = acct.email;
-            }
-        }
-        result = engine.saveDemandDraftAction({ receiverId: user.receiverId, materialType: materialType(d.materialType), requiredT: number(d.requiredT, 'required quantity'), period: d.period, location: text(d.location, 'location', 250), notes: text(d.notes ?? '', 'notes', 5000, true), budgetPerT: d.budgetPerT === undefined ? undefined : number(d.budgetPerT, 'budget per tonne', true), geo: geo(d.geo), targetProviderId, targetMaterialId: d.targetMaterialId ? text(d.targetMaterialId, 'targetMaterialId', 100, true) : undefined }); assign(result.id, user); break;
+        const target = demandTarget(d);
+        result = engine.saveDemandDraftAction({ receiverId: user.receiverId, materialType: materialType(d.materialType), requiredT: number(d.requiredT, 'required quantity'), period: d.period, location: text(d.location, 'location', 250), notes: text(d.notes ?? '', 'notes', 5000, true), budgetPerT: d.budgetPerT === undefined ? undefined : number(d.budgetPerT, 'budget per tonne', true), geo: geo(d.geo), ...target }); assign(result.id, user); break;
       }
       case 'deleteDemandDraftAction': {
         role('receiver'); const demandId = text(args[0], 'request ID', 250); const demand = dataset.demands.find(item => item.id === demandId);
@@ -202,7 +228,7 @@ export function createBackend(options = {}) {
       case 'requestCapacityAction': {
         role('provider'); const input = args[0]; own(input.materialId, user); number(input.tonnesT, 'requested quantity');
         const slot = dataset.slots.find(s => s.id === input.slotId); const material = dataset.materials.find(m => m.id === input.materialId);
-        requireThat(slot && material && slot.receiverId === input.receiverId && slot.materialType === material.type, 'Choose a compatible receiver slot.');
+        requireThat(slot && material && !material.archivedAt && slot.receiverId === input.receiverId && slot.materialType === material.type, 'Choose a compatible receiver slot.');
         requireThat(slot.date >= new Date().toISOString().slice(0, 10), 'This receiving slot is in the past.');
         result = engine.requestCapacityAction({ materialId: input.materialId, receiverId: input.receiverId, slotId: input.slotId, tonnesT: input.tonnesT }); break;
       }
@@ -210,19 +236,29 @@ export function createBackend(options = {}) {
         const b = providerBooking(args[0].bookingId); requireThat(!b.loadRef && !b.receiverAcceptedAt && b.status !== 'cancelled', 'Accepted, dispatched, or cancelled bookings cannot be cancelled.', 409);
         result = engine.cancelBookingAction({ bookingId: b.id, reason: text(args[0].reason ?? '', 'reason', 1000, true) }); break;
       }
+      case 'updateDeliveryAction': {
+        const b = providerBooking(args[0]);
+        const stage = choice(args[1], ['ready', 'picked-up', 'arrived'], 'delivery stage');
+        result = engine.updateDeliveryAction(b.id, stage); break;
+      }
       case 'dispatchAction': {
-        const b = providerBooking(args[0].bookingId); requireThat(b.status === 'confirmed' && b.receiverAcceptedAt && !b.loadRef, 'The receiver must accept this booking before dispatch.', 409); result = engine.dispatchAction({ bookingId: b.id }); break;
+        const b = providerBooking(args[0].bookingId); requireThat(b.status === 'confirmed' && b.receiverAcceptedAt && !b.loadRef, 'The receiver must accept this booking before dispatch.', 409);
+        const stages = dataset.events.filter(event => event.subjectIds.includes(b.id));
+        requireThat(!stages.some(event => event.kind === 'delivery.ready') || stages.some(event => event.kind === 'delivery.picked-up'), 'Record pickup before dispatching this load.', 409);
+        result = engine.dispatchAction({ bookingId: b.id }); break;
       }
       case 'addOfferAction': {
         role('provider'); const o = args[0]; own(o.passportId, user); const m = dataset.materials.find(m => m.id === o.passportId); const d = dataset.demands.find(d => d.id === o.demandId);
-        requireThat(d && m && ['OPEN', 'PARTIALLY_COVERED'].includes(d.status) && d.materialType === m.type, 'This request cannot accept that material.', 409);
+        requireThat(d && m && !d.archivedAt && !m.archivedAt && ['OPEN', 'PARTIALLY_COVERED'].includes(d.status) && d.materialType === m.type, 'This request cannot accept that material.', 409);
+        requireThat(!d.targetProviderId || (d.targetProviderId === user.email && d.targetMaterialId === m.id), 'This request is addressed to a different provider or material.', 403);
         number(o.offeredQuantityT, 'offer quantity'); const committed = dataset.bookings.filter(b => b.materialId === m.id && b.status !== 'cancelled').reduce((sum, b) => sum + b.tonnesT, 0);
         requireThat(o.offeredQuantityT <= m.quantityT - committed, 'Offer exceeds available material.', 409);
         result = engine.addOfferAction({ demandId: d.id, passportId: m.id, offeredQuantityT: o.offeredQuantityT, providerId: user.email, ...(o.pricePerT === undefined ? {} : { pricePerT: number(o.pricePerT, 'price per tonne', true) }) }); break;
       }
       case 'saveOfferDraftAction': {
         role('provider'); const o = args[0]; own(o.passportId, user); const m = dataset.materials.find(item => item.id === o.passportId); const d = dataset.demands.find(item => item.id === o.demandId);
-        requireThat(d && m && ['OPEN', 'PARTIALLY_COVERED'].includes(d.status) && d.materialType === m.type, 'This request cannot accept that material.', 409);
+        requireThat(d && m && !d.archivedAt && !m.archivedAt && ['OPEN', 'PARTIALLY_COVERED'].includes(d.status) && d.materialType === m.type, 'This request cannot accept that material.', 409);
+        requireThat(!d.targetProviderId || (d.targetProviderId === user.email && d.targetMaterialId === m.id), 'This request is addressed to a different provider or material.', 403);
         number(o.offeredQuantityT, 'offer quantity'); const committed = dataset.bookings.filter(b => b.materialId === m.id && b.status !== 'cancelled').reduce((sum, b) => sum + b.tonnesT, 0);
         requireThat(o.offeredQuantityT <= m.quantityT - committed, 'Offer exceeds available material.', 409);
         result = engine.saveOfferDraftAction({ demandId: d.id, passportId: m.id, offeredQuantityT: o.offeredQuantityT, providerId: user.email, ...(o.pricePerT === undefined ? {} : { pricePerT: number(o.pricePerT, 'price per tonne', true) }) }); break;

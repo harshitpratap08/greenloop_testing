@@ -54,13 +54,29 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     assert.equal((await receiver('/dataset')).dataset.transactionContacts.length, 0);
     await receiver('/actions', 'POST', { action: 'updateCapacityAction', args: [slot.id, 5] }, 409);
     await provider('/actions', 'POST', { action: 'dispatchAction', args: [{ bookingId: booking.id }] }, 409);
+    await provider('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'ready'] }, 409);
     await act(receiver, 'acceptRequestAction', booking.id);
+    await receiver('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'ready'] }, 403);
+    await outsider('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'ready'] }, 403);
+    await provider('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'picked-up'] }, 409);
+    await provider('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'arrived'] }, 409);
+    await provider('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'invalid'] }, 400);
+    await act(provider, 'updateDeliveryAction', booking.id, 'ready');
+    await provider('/actions', 'POST', { action: 'dispatchAction', args: [{ bookingId: booking.id }] }, 409);
+    await provider('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'ready'] }, 409);
+    await act(provider, 'updateDeliveryAction', booking.id, 'picked-up');
+    const progress = (await receiver('/dataset')).dataset.events.filter(event => event.subjectIds.includes(booking.id) && event.kind.startsWith('delivery.'));
+    assert.deepEqual(progress.map(event => event.kind), ['delivery.ready', 'delivery.picked-up']);
+    assert.ok(progress.every(event => event.at && event.actor.kind === 'contractor'));
     await provider('/actions', 'POST', { action: 'cancelBookingAction', args: [{ bookingId: booking.id }] }, 409);
     assert.equal((await receiver('/dataset')).dataset.transactionContacts[0].email, 'provider@example.com');
     assert.equal((await provider('/dataset')).dataset.transactionContacts[0].email, 'receiver@example.com');
     await act(provider, 'dispatchAction', { bookingId: booking.id });
+    await act(provider, 'updateDeliveryAction', booking.id, 'arrived');
+    await provider('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'arrived'] }, 409);
     await provider('/actions', 'POST', { action: 'cancelBookingAction', args: [{ bookingId: booking.id }] }, 409);
     await act(receiver, 'receiveLoadAction', booking.id, 9.5, [{ kind: 'weighbridge-ticket', label: 'Receipt', recordedAt: new Date().toISOString() }]);
+    await provider('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'ready'] }, 409);
     const verification = (await receiver('/dataset')).dataset.verifications[0];
     await receiver('/actions', 'POST', { action: 'verifyLoadAction', args: [verification.id, 8, 0, ''] }, 400);
     await act(receiver, 'verifyLoadAction', verification.id, 9, 0.5, 'Contamination');
@@ -184,6 +200,7 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     assert.deepEqual(providerAfterRestart.projects.find(item => item.id === project.id).geo, projectGeo);
     assert.deepEqual(providerAfterRestart.materials.find(item => item.id === material.id).geo, materialGeo);
     const receiverAfterRestart = (await receiver('/dataset')).dataset;
+    assert.deepEqual(receiverAfterRestart.events.filter(event => event.subjectIds.includes(booking.id) && ['delivery.ready', 'delivery.picked-up', 'delivery.arrived'].includes(event.kind)).map(event => event.kind), ['delivery.ready', 'delivery.picked-up', 'delivery.arrived']);
     assert.ok(receiverAfterRestart.readEventIds.includes(receiverNotificationId));
     assert.deepEqual(receiverAfterRestart.demands.find(item => item.id === demand.id).geo, demandGeo);
     // Recovery requires a one-time token and invalidates existing sessions.

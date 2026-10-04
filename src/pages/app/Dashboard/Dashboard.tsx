@@ -1,31 +1,31 @@
-import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
+import { ProjectStatusChip } from "@/components/greenloop/AppExploration";
+import { materialMedia } from "@/components/greenloop/AppExploration.helpers";
 import CapacityBar from "@/components/greenloop/CapacityBar";
 import EventLog from "@/components/greenloop/EventLog";
+import { MediaPanel } from "@/components/greenloop/kit";
 import RecoveryFlow from "@/components/greenloop/RecoveryFlow";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import Badge from "@/components/ui/badge/Badge";
-import { slotLedger } from "@/domain/capacity";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { useAuth } from "@/context/AuthContext";
-import { formatDate } from "@/utils";
-import { materialTypeLabel } from "@/utils";
-import { ProjectStatusChip, materialMedia } from "@/components/greenloop/AppExploration";
-import { MediaPanel } from "@/components/greenloop/kit";
 import { ambientMedia, materialMediaFor, projectMediaFor } from "@/config/appMedia";
-import {
-  CapacityTimelineChart,
-  CompositionChart,
-  KpiCard,
-  PlannedActualChart,
-  ProjectRecoveryChart,
-  RecoveryFlowChart,
-  ReceiverCapacityChart,
-} from "../Reports";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { slotLedger } from "@/domain/capacity";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { formatDate, materialTypeLabel } from "@/utils";
+import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router";
 import Bookings from "../Bookings";
 import Deliveries from "../Deliveries";
 import ReceiverDeliveriesPage from "../receiver/ReceiverDeliveries";
+import {
+CapacityTimelineChart,
+CompositionChart,
+KpiCard,
+PlannedActualChart,
+ProjectRecoveryChart,
+ReceiverCapacityChart,
+RecoveryFlowChart,
+} from "../Reports";
 
 /**
  * One Dashboard per workspace. Merges the former Reports page and Operations
@@ -57,12 +57,12 @@ function useProviderDashboardData() {
 
 function DashboardHero({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
   return (
-    <header className="relative mb-5 min-h-40 overflow-hidden rounded-xl border border-[#e5e1d8] bg-[#17291e] dark:border-steel-800 sm:min-h-44">
+    <header className="relative mb-5 min-h-40 overflow-hidden border border-[#e5e1d8] bg-[#17291e] dark:border-steel-800 sm:min-h-44 rounded-surface">
       <img src={ambientMedia.surveyHero.src} alt={ambientMedia.surveyHero.alt} className="absolute inset-0 size-full object-cover" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/95 via-[#17291e]/75 to-[#17291e]/20" aria-hidden="true" />
       <div className="relative flex min-h-40 max-w-3xl flex-col justify-end px-5 py-5 text-white sm:min-h-44 sm:px-7 sm:py-6">
         <p className="eyebrow-label text-loop-300">{eyebrow}</p>
-        <h1 className="mt-1 font-archivo text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+        <h1 className="mt-1 font-archivo font-bold tracking-tight gl-page-title">{title}</h1>
         <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/85">{description}</p>
       </div>
     </header>
@@ -71,7 +71,7 @@ function DashboardHero({ eyebrow, title, description }: { eyebrow: string; title
 
 function NeedsAttention<T extends { id: string; title: string; action: string; to: string; materialId?: string }>({ tasks, dataset }: { tasks: T[]; dataset: ProviderProps["dataset"] }) {
   return (
-    <section className="mb-4 border border-amber-200 bg-amber-50/80 p-3 dark:border-amber-900/50 dark:bg-amber-900/10 sm:p-4">
+    <section className="mb-4 border border-amber-200 bg-amber-50/80 p-3 dark:border-amber-900/50 dark:bg-amber-900/10 sm:p-4 rounded-surface">
       <div className="mb-2 flex items-center gap-2">
         <span className="flex size-6 items-center justify-center border border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-300" aria-hidden="true">
           <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3 21 19H3L12 3Z" /><path d="M12 9v4M12 16.5h.01" /></svg>
@@ -85,7 +85,7 @@ function NeedsAttention<T extends { id: string; title: string; action: string; t
             const material = task.materialId ? dataset.materials.find((item) => item.id === task.materialId) : undefined;
             const media = material ? materialMedia(material)[0] : undefined;
             return (
-              <li key={task.id} className="flex min-w-0 items-center gap-3 border border-amber-200 bg-white p-2.5 dark:border-amber-900/50 dark:bg-white/[0.03]">
+              <li key={task.id} className="flex min-w-0 items-center gap-3 border border-amber-200 bg-white p-2.5 dark:border-amber-900/50 dark:bg-white/[0.03] rounded-surface">
                 {media ? (
                   <img src={media.src} alt={media.caption} className="size-12 shrink-0 border border-steel-200 object-cover dark:border-steel-800" />
                 ) : (
@@ -95,7 +95,7 @@ function NeedsAttention<T extends { id: string; title: string; action: string; t
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold leading-snug text-ink-900 dark:text-white">{task.title}</p>
-                  <Link to={task.to} state={task.materialId ? { materialId: task.materialId } : {}} className="mt-1.5 inline-flex min-h-7 items-center bg-ink-900 px-2.5 text-[10px] font-bold uppercase tracking-wide text-white transition-colors hover:bg-loop-700 dark:bg-white dark:text-ink-900">
+                  <Link to={task.to} state={task.materialId ? { materialId: task.materialId } : {}} className="mt-1.5 inline-flex min-h-7 items-center bg-ink-900 px-2.5 text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-loop-700 dark:bg-white dark:text-ink-900">
                     {task.action} <span className="ml-1" aria-hidden="true">→</span>
                   </Link>
                 </div>
@@ -104,7 +104,7 @@ function NeedsAttention<T extends { id: string; title: string; action: string; t
           })}
         </ul>
       ) : (
-        <p className="border border-amber-200/80 bg-white/70 px-3 py-2 text-sm font-medium text-steel-700 dark:border-amber-900/50 dark:bg-white/[0.02] dark:text-amber-200/80">All operations are running smoothly. Nothing needs immediate action.</p>
+        <p className="border border-amber-200/80 bg-white/70 px-3 py-2 text-sm font-medium text-steel-700 dark:border-amber-900/50 dark:bg-white/[0.02] dark:text-amber-200/80 rounded-surface">All operations are running smoothly. Nothing needs immediate action.</p>
       )}
     </section>
   );
@@ -144,7 +144,7 @@ function ProviderDashboard() {
         description="Live view of your material, demand, deliveries and recovery — with the analytics that answer what to do next."
       />
 
-      <div className="mb-6 flex gap-1 rounded-xl border border-[#e5e2da] bg-[#fdfcfa] p-1 shadow-sm dark:border-steel-800 dark:bg-[#1a2b21] sm:w-max">
+      <div className="mb-6 flex gap-1 border border-[#e5e2da] bg-[#fdfcfa] p-1 shadow-sm dark:border-steel-800 dark:bg-[#1a2b21] sm:w-max rounded-surface">
         <button type="button" onClick={() => setActiveTab("overview")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "overview" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Overview</button>
         <button type="button" onClick={() => setActiveTab("bookings")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "bookings" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Bookings</button>
         <button type="button" onClick={() => setActiveTab("deliveries")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "deliveries" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Deliveries</button>
@@ -169,7 +169,7 @@ function ProviderDashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-detail lg:grid-cols-2">
         <CompositionChart dataset={dataset} />
         <RecoveryFlowChart dataset={dataset} />
         <ReceiverCapacityChart dataset={dataset} />
@@ -179,14 +179,14 @@ function ProviderDashboard() {
       </div>
 
       {activeProject && (
-        <section className="mt-4 grid gap-3 lg:grid-cols-[1.45fr_1fr]">
-          <article className="overflow-hidden rounded-lg border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02]">
+        <section className="mt-4 grid gap-detail lg:grid-cols-[1.45fr_1fr]">
+          <article className="overflow-hidden border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
             <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-4 sm:px-5">
               <div className="min-w-0">
                 <p className="eyebrow-label text-steel-500 dark:text-steel-400">Active recovery project</p>
                 <h2 className="mt-0.5 truncate font-archivo text-lg font-bold uppercase tracking-tight text-ink-900 dark:text-white sm:text-xl">{activeProject.name}</h2>
               </div>
-              <Link to="/app/projects" className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-loop-800 hover:text-loop-600 dark:text-loop-300 dark:hover:text-loop-200 sm:text-xs">
+              <Link to="/app/projects" className="shrink-0 text-xs font-bold uppercase tracking-wide text-loop-800 hover:text-loop-600 dark:text-loop-300 dark:hover:text-loop-200 sm:text-xs">
                 View all projects <span aria-hidden="true">→</span>
               </Link>
             </div>
@@ -194,24 +194,24 @@ function ProviderDashboard() {
               <img src={projectMediaFor(activeProject).src} alt={projectMediaFor(activeProject).alt} className="size-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#13251b]/80 via-transparent to-transparent" aria-hidden="true" />
               <div className="absolute bottom-2.5 left-2.5 right-2.5 flex flex-wrap items-end justify-between gap-2">
-                <span className="border border-white/25 bg-[#17291e]/85 px-2.5 py-1 text-xs font-medium text-white">{activeProject.location}</span>
+                <span className="border border-white/25 bg-[#17291e]/85 px-2.5 py-1 text-xs font-medium text-white rounded-surface">{activeProject.location}</span>
                 <ProjectStatusChip status={activeProject.status} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 px-4 py-3 sm:grid-cols-3 sm:px-5">
+            <div className="grid grid-cols-2 gap-detail px-4 py-3 sm:grid-cols-3 sm:px-5">
               <ProjectMetric label="Surveyed volume" value={`${projectMaterials.reduce((acc, material) => acc + material.quantityT, 0).toFixed(1)} t`} />
               <ProjectMetric label="Material types" value={String(new Set(projectMaterials.map((material) => material.type)).size)} />
               <ProjectMetric label="Passports" value={String(projectMaterials.length)} />
             </div>
           </article>
 
-          <article className="flex flex-col rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-5 dark:border-steel-800 dark:bg-white/[0.02]">
+          <article className="flex flex-col border border-[#e5e1d8] bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div>
                 <p className="eyebrow-label text-steel-500 dark:text-steel-400">Project workflow</p>
                 <h2 className="mt-0.5 font-archivo text-base font-bold uppercase tracking-wide text-ink-900 dark:text-white">Current stage</h2>
               </div>
-              <span className="text-[10px] font-medium text-steel-500 dark:text-steel-400">Live passports</span>
+              <span className="text-xs font-medium text-steel-500 dark:text-steel-400">Live passports</span>
             </div>
             <RecoveryFlow dataset={dataset} />
             <div className="mt-auto border-t border-steel-100 pt-3 dark:border-steel-800">
@@ -227,13 +227,13 @@ function ProviderDashboard() {
 
       <MaterialBreakdown typeTotals={typeTotals} grandTotal={grandTotal} />
 
-      <section className="mt-4 rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02] sm:p-4">
+      <section className="mt-4 border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02] sm:p-4 rounded-surface">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="eyebrow-label text-steel-500 dark:text-steel-400">Operations log</p>
             <h2 className="mt-0.5 font-archivo text-base font-bold uppercase tracking-wide text-ink-900 dark:text-white">Recent Activity</h2>
           </div>
-          <span className="text-[10px] font-medium text-steel-500 dark:text-steel-400">Latest events</span>
+          <span className="text-xs font-medium text-steel-500 dark:text-steel-400">Latest events</span>
         </div>
         <EventLog events={dataset.events} limit={6} />
       </section>
@@ -259,7 +259,7 @@ function SectionHeading({ title, to, action }: { title: string; to: string; acti
   return (
     <div className="flex items-center justify-between gap-2">
       <h2 className="font-archivo text-sm font-bold uppercase tracking-wide text-ink-900 dark:text-white">{title}</h2>
-      <Link to={to} className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-loop-800 hover:text-loop-600 dark:text-loop-300 dark:hover:text-loop-200 sm:text-[10px]">
+      <Link to={to} className="shrink-0 text-xs font-bold uppercase tracking-wide text-loop-800 hover:text-loop-600 dark:text-loop-300 dark:hover:text-loop-200 sm:text-xs">
         {action} <span aria-hidden="true">→</span>
       </Link>
     </div>
@@ -285,8 +285,8 @@ function DashboardColumns({
 }) {
   const materialName = (id: string) => materialTypeLabel(dataset.materials.find((m) => m.id === id)?.type ?? "");
   return (
-    <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-[1fr_1.2fr_1fr]">
-      <section className="rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02]">
+    <div className="mt-4 grid grid-cols-1 gap-detail xl:grid-cols-[1fr_1.2fr_1fr]">
+      <section className="border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
         <SectionHeading title="Recent Passports" to="/app/materials" action="All materials" />
         <ul className="mt-3 space-y-2">
           {dataset.materials.slice(0, 3).map((material) => {
@@ -299,7 +299,7 @@ function DashboardColumns({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-archivo text-xs font-bold uppercase text-ink-900 dark:text-white">{materialTypeLabel(material.type)}</span>
-                    <span className="mt-0.5 block text-[10px] text-steel-600 dark:text-steel-400"><span className="ledger-numeral font-semibold text-ink-900 dark:text-gray-200">{material.quantityT.toFixed(1)} t</span> · <span className="capitalize">{material.condition}</span></span>
+                    <span className="mt-0.5 block text-xs text-steel-600 dark:text-steel-400"><span className="ledger-numeral font-semibold text-ink-900 dark:text-gray-200">{material.quantityT.toFixed(1)} t</span> · <span className="capitalize">{material.condition}</span></span>
                   </span>
                   <StatusBadge status={material.status} />
                   <span className="text-steel-400 transition-transform group-hover:translate-x-0.5" aria-hidden="true">›</span>
@@ -311,9 +311,9 @@ function DashboardColumns({
         </ul>
       </section>
 
-      <section className="rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02]">
+      <section className="border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
         <SectionHeading title="Network Capacity" to="/app/market-demand?view=receivers" action="Find receivers" />
-        <p className="mt-1 text-[11px] text-steel-600 dark:text-steel-400">Real-time receiving capacity for tracked facilities.</p>
+        <p className="mt-1 text-xs text-steel-600 dark:text-steel-400">Real-time receiving capacity for tracked facilities.</p>
         <div className="mt-3">
           {capacitySlots.length > 0 ? (
             <div className="mt-2 space-y-3">
@@ -338,12 +338,12 @@ function DashboardColumns({
           <div className="mt-3 border-s-2 border-amber-500 bg-amber-50 px-3 py-2 dark:bg-amber-900/10">
             <p className="eyebrow-label text-amber-700 dark:text-amber-300">On hold due to capacity</p>
             <p className="mt-1 text-xs font-semibold text-ink-900 dark:text-amber-100">{holdBookings[0].tonnesT.toFixed(1)} t {materialName(holdBookings[0].materialId)}</p>
-            <Link to="/app/bookings" className="mt-1 inline-flex text-[10px] font-bold uppercase tracking-wide text-ink-900 underline underline-offset-2 dark:text-white">Manage booking</Link>
+            <Link to="/app/bookings" className="mt-1 inline-flex text-xs font-bold uppercase tracking-wide text-ink-900 underline underline-offset-2 dark:text-white">Manage booking</Link>
           </div>
         )}
       </section>
 
-      <section className="rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02]">
+      <section className="border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
         <SectionHeading title="Upcoming Deliveries" to="/app/deliveries" action="All deliveries" />
         <ul className="mt-3 space-y-2">
           {upcomingBookings.slice(0, 3).map((booking) => {
@@ -355,9 +355,9 @@ function DashboardColumns({
                   {media[0] ? <img src={media[0].src} className="size-full object-cover" alt={media[0].caption} /> : null}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[10px] font-medium text-steel-500 dark:text-steel-400">{projectName(materialProject(booking.materialId))}</p>
+                  <p className="truncate text-xs font-medium text-steel-500 dark:text-steel-400">{projectName(materialProject(booking.materialId))}</p>
                   <p className="truncate text-xs font-bold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t {materialName(booking.materialId)}</p>
-                  <p className="mt-0.5 truncate text-[10px] text-steel-600 dark:text-steel-400">To: {receiverName(booking.receiverId)} · {booking.slotId}</p>
+                  <p className="mt-0.5 truncate text-xs text-steel-600 dark:text-steel-400">To: {receiverName(booking.receiverId)} · {booking.slotId}</p>
                 </div>
                 <StatusBadge status={booking.status} />
               </li>
@@ -382,7 +382,7 @@ function MaterialBreakdown({ typeTotals, grandTotal }: { typeTotals: Map<string,
         </div>
         <p className="ledger-numeral text-2xl font-bold text-ink-900 dark:text-white">{grandTotal.toFixed(1)} t</p>
       </div>
-      <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <ul className="mt-4 grid grid-cols-2 gap-detail sm:grid-cols-3 lg:grid-cols-6">
         {rows.map(([type, tonnes]) => {
           const media = materialMediaFor(type);
           return (
@@ -445,7 +445,7 @@ function ReceiverDashboard() {
         description="Requests, incoming offers, capacity and verified recovery for your facility — in one operational view."
       />
 
-      <div className="mb-6 flex gap-1 rounded-xl border border-[#e5e2da] bg-[#fdfcfa] p-1 shadow-sm dark:border-steel-800 dark:bg-[#1a2b21] sm:w-max">
+      <div className="mb-6 flex gap-1 border border-[#e5e2da] bg-[#fdfcfa] p-1 shadow-sm dark:border-steel-800 dark:bg-[#1a2b21] sm:w-max rounded-surface">
         <button type="button" onClick={() => setActiveTab("overview")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "overview" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Overview</button>
         <button type="button" onClick={() => setActiveTab("bookings")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "bookings" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Bookings</button>
         <button type="button" onClick={() => setActiveTab("deliveries")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "deliveries" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Deliveries</button>
@@ -470,7 +470,7 @@ function ReceiverDashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-detail lg:grid-cols-2">
         <RecoveryFlowChart dataset={dataset} />
         <CompositionChart dataset={dataset} />
         <ReceiverCapacityChart dataset={dataset} />
@@ -478,8 +478,8 @@ function ReceiverDashboard() {
         <PlannedActualChart dataset={dataset} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-3">
-        <section className="rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02]">
+      <div className="mt-4 grid grid-cols-1 gap-detail xl:grid-cols-3">
+        <section className="border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
           <SectionHeading title="My Material Requests" to="/app/receiver/demand" action="Request material" />
           <ul className="mt-3 space-y-2">
             {openDemands.slice(0, 3).map((demand) => {
@@ -492,7 +492,7 @@ function ReceiverDashboard() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-archivo text-xs font-bold uppercase text-ink-900 dark:text-white">{materialTypeLabel(demand.materialType)}</span>
-                      <span className="mt-0.5 block text-[10px] text-steel-600 dark:text-steel-400"><span className="ledger-numeral font-semibold text-ink-900 dark:text-gray-200">{coveredT.toFixed(1)}</span> of {demand.requiredT.toFixed(1)} t covered · {formatDate(demand.period)}</span>
+                      <span className="mt-0.5 block text-xs text-steel-600 dark:text-steel-400"><span className="ledger-numeral font-semibold text-ink-900 dark:text-gray-200">{coveredT.toFixed(1)}</span> of {demand.requiredT.toFixed(1)} t covered · {formatDate(demand.period)}</span>
                     </span>
                     <StatusBadge status={demand.status} />
                   </Link>
@@ -503,7 +503,7 @@ function ReceiverDashboard() {
           </ul>
         </section>
 
-        <section className="rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02]">
+        <section className="border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
           <SectionHeading title="Receiving Capacity" to="/app/receiver/demand?capacity=1" action="Manage capacity" />
           <div className="mt-3 space-y-3">
             {dataset.slots.filter((slot) => slot.receiverId === receiverId).slice(0, 3).map((slot) => {
@@ -523,7 +523,7 @@ function ReceiverDashboard() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02]">
+        <section className="border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
           <SectionHeading title="Upcoming Deliveries" to="/app/receiver/deliveries" action="All deliveries" />
           <ul className="mt-3 space-y-2">
             {upcomingDeliveries.slice(0, 3).map((booking) => {
@@ -535,7 +535,7 @@ function ReceiverDashboard() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-bold text-ink-900 dark:text-white">{booking.tonnesT.toFixed(1)} t {materialTypeLabel(material?.type ?? "")}</p>
-                    <p className="mt-0.5 truncate text-[10px] text-steel-600 dark:text-steel-400">Slot {booking.slotId}</p>
+                    <p className="mt-0.5 truncate text-xs text-steel-600 dark:text-steel-400">Slot {booking.slotId}</p>
                   </div>
                   <StatusBadge status={booking.status} />
                 </li>
@@ -546,13 +546,13 @@ function ReceiverDashboard() {
         </section>
       </div>
 
-      <section className="mt-4 rounded-lg border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02] sm:p-4">
+      <section className="mt-4 border border-[#e5e1d8] bg-white p-3.5 dark:border-steel-800 dark:bg-white/[0.02] sm:p-4 rounded-surface">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="eyebrow-label text-steel-500 dark:text-steel-400">Operations log</p>
             <h2 className="mt-0.5 font-archivo text-base font-bold uppercase tracking-wide text-ink-900 dark:text-white">Recent Activity</h2>
           </div>
-          <span className="text-[10px] font-medium text-steel-500 dark:text-steel-400">Latest events</span>
+          <span className="text-xs font-medium text-steel-500 dark:text-steel-400">Latest events</span>
         </div>
         <EventLog events={dataset.events} limit={6} />
       </section>

@@ -1,8 +1,127 @@
 {
+  "recordCrud": {
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "save": "Änderungen speichern",
+    "cancel": "Abbrechen",
+    "saving": "Wird gespeichert…",
+    "saved": "Änderungen gespeichert.",
+    "failed": "Speichern fehlgeschlagen. Prüfen Sie die Meldung unten und versuchen Sie es erneut.",
+    "confirmDelete": "Diesen Datensatz löschen? Verknüpfte Angebote werden ebenfalls entfernt. Bestehende Empfangspläne bleiben erhalten.",
+    "material": "Material",
+    "quantity": "Menge (Tonnen)",
+    "availableFrom": "Verfügbar ab",
+    "neededBy": "Benötigt bis",
+    "price": "Preis / Tonne (optional)",
+    "budget": "Budget / Tonne (optional)",
+    "condition": "Zustand",
+    "grade": "Qualität",
+    "location": "Lieferort",
+    "notes": "Notizen",
+    "good": "Gut",
+    "fair": "Mittel",
+    "poor": "Schlecht",
+    "passportLinked": "Dieser Materialpass ist mit Bestellungen verknüpft. Details und Lieferhistorie bleiben erhalten; erstellen Sie einen neuen Pass für weiteres Material.",
+    "requestLinked": "Diese Anfrage hat Bestellungen und kann nicht gelöscht werden. Menge und Frist dürfen bestehende Zusagen nicht unterschreiten.",
+    "typeLocked": "Materialdetails sind bei verknüpften Angeboten oder Bestellungen gesperrt."
+  },
+  "offerChecks": {
+    "requirement": "Angefragt: {total} Tonnen · Bereits bestellt: {booked} · Noch benötigt: {remaining}",
+    "dateReady": "Empfangstermin bereit: {date} — Platz für {quantity} Tonnen.",
+    "blocked": "Warum Annehmen deaktiviert ist",
+    "closed": "Diese Anfrage nimmt keine neuen Bestellungen mehr an.",
+    "quantity": "Dieses Angebot umfasst {offered} Tonnen, Sie benötigen aber nur noch {remaining} Tonnen.",
+    "quantityAction": "Bitten Sie den Anbieter um ein neues Angebot über höchstens {remaining} Tonnen. Zusätzliche Empfangstermine erhöhen die angefragte Menge nicht.",
+    "fulfilled": "Die gesamte angefragte Menge ist bereits bestellt. Sie können dieses zusätzliche Angebot ablehnen.",
+    "stock": "Der Anbieter hat nur noch {quantity} Tonnen. Ein kleineres Angebot ist erforderlich.",
+    "automaticDate": "Bei der Annahme verwenden wir den frühesten gespeicherten Termin mit genügend Platz vor der Frist. Der Termin steht unten bei jedem Angebot."
+  },
+  "receivingPlan": {
+    "title": "Ihr Empfangsplan",
+    "intro": "Wählen Sie einen Termin für {material}, spätestens am {deadline}.",
+    "date": "Wann können Sie die Lieferung annehmen?",
+    "tonnes": "Tonnen, die Sie annehmen können",
+    "save": "Empfangsplan speichern",
+    "saving": "Wird gespeichert…",
+    "hint": "Vorgeschlagene Menge: {quantity} Tonnen. Jedes Angebot benötigt ausreichend Platz an einem Termin.",
+    "saved": "Empfangsplan gespeichert.",
+    "invalid": "Wählen Sie einen Termin zwischen heute und der Anfragefrist und geben Sie eine positive Menge ein.",
+    "failed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+    "expired": "Die Frist dieser Anfrage ist abgelaufen. Sie benötigen eine neue Anfrage mit einem zukünftigen Termin.",
+    "available": "{quantity} Tonnen verfügbar",
+    "reserved": "{quantity} Tonnen bereits gebucht",
+    "empty": "Für diese Anfrage ist noch kein Empfangstermin gespeichert.",
+    "otherDates": "Andere gespeicherte Termine — für diese Anfrage nicht verfügbar",
+    "past": "Termin liegt in der Vergangenheit",
+    "tooLate": "Nach der Anfragefrist",
+    "edit": "Ändern",
+    "needDate": "Speichern Sie oben einen Empfangstermin, bevor Sie dieses Angebot annehmen.",
+    "needSpace": "Sie benötigen {quantity} verfügbare Tonnen an einem Termin, um dieses Angebot anzunehmen."
+  },
+  "orderTracking": {
+    "title": "Lieferstatus",
+    "booked": "Gebucht",
+    "pendingPickup": "Abholung ausstehend",
+    "picked": "Abgeholt",
+    "inTransit": "Unterwegs",
+    "destination": "Am Ziel angekommen",
+    "delivered": "Geliefert",
+    "cancelled": "Storniert",
+    "awaitingAcceptance": "Warten auf Annahme durch Empfänger",
+    "loadRef": "Ladungsreferenz",
+    "notRecorded": "Nicht erfasst",
+    "waiting": "Warten auf Aktualisierung",
+    "explanation": "Der Fortschritt wird aktualisiert, wenn der Anbieter eine Lieferphase oder der Empfänger die Ankunft erfasst. Beide Parteien sehen die Updates.",
+    "recordArrival": "Ankunft erfassen",
+    "verificationPending": "Geliefert. Prüfung ausstehend.",
+    "verificationRejected": "Geliefert. Der Empfänger hat die Ladung abgelehnt.",
+    "verificationComplete": "Geliefert und geprüft.",
+    "history": "Lieferverlauf",
+    "hide": "Verlauf ausblenden",
+    "track": "Bestellung verfolgen",
+    "action": {
+      "ready": "Als abholbereit markieren",
+      "picked-up": "Als abgeholt markieren",
+      "arrived": "Ankunft am Ziel markieren",
+      "dispatch": "Ladung versenden"
+    }
+  },
+  "receiverDelivery": {
+    "arrivalRecorded": "Ankunft erfasst. Pruefen Sie den Wiegebeleg und bestaetigen Sie unten die angenommene Menge.",
+    "viewTicket": "Wiegebeleg ansehen",
+    "savedProof": "Gespeicherte Liefernachweise"
+  },
   "sidebar": {
-    "groups": { "menu": "Betrieb", "others": "Referenzdaten", "tools": "Werkzeuge" },
-    "items": { "explore": "Startseite", "dashboard": "Betriebskonsole", "projects": "Projekte", "materials": "Inventar", "marketDemand": "Aktive Nachfrage", "receivers": "Abnehmer", "receiverInventory": "Inventar", "receiverDemand": "Material anfragen", "providers": "Anbieter", "incomingRequests": "Eingehende Anfragen", "bookings": "Buchungen", "verification": "Verwertungsnachweis", "deliveries": "Lieferungen", "reports": "Berichte", "allocations": "Matching-Details", "publicSite": "Öffentliche Website" },
-    "workspace": { "provider": "Anbieter", "receiver": "Abnehmer", "switchToProvider": "Zum Anbieter-Arbeitsbereich wechseln", "switchToReceiver": "Zum Abnehmer-Arbeitsbereich wechseln" }
+    "groups": {
+      "menu": "Betrieb",
+      "others": "Referenz",
+      "tools": "Werkzeuge"
+    },
+    "items": {
+      "explore": "Startseite",
+      "dashboard": "Dashboard",
+      "projects": "Projekte",
+      "materials": "Inventar",
+      "marketDemand": "Anfragen",
+      "receivers": "Abnehmer",
+      "receiverInventory": "Inventar",
+      "receiverDemand": "Anfragen",
+      "providers": "Anbieter",
+      "incomingRequests": "Eingehende Anfragen",
+      "bookings": "Buchungen",
+      "bookings-deliveries": "Meine Bestellungen",
+      "verification": "Prüfung",
+      "deliveries": "Lieferungen",
+      "reports": "Berichte",
+      "allocations": "Matching-Details",
+      "publicSite": "Website"
+    },
+    "workspace": {
+      "provider": "Anbieter",
+      "receiver": "Abnehmer",
+      "switchToProvider": "Zum Anbieter-Arbeitsbereich wechseln",
+      "switchToReceiver": "Zum Abnehmer-Arbeitsbereich wechseln"
+    }
   },
   "backend": {
     "passwordMismatch": "Verwende mindestens 8 Zeichen und übereinstimmende Passwörter.",
@@ -37,5 +156,60 @@
     "serverUnavailable": "Der Server ist nicht verfügbar. Bitte erneut versuchen.",
     "uploadLimits": "Fotos und Nachweise (bis zu 4 MB pro Datei)",
     "uploadingEvidence": "Nachweise werden hochgeladen…"
+  },
+  "verificationCards": {
+    "details": "Details",
+    "complete": "Bestellung abgeschlossen · {{quantity}} Tonnen angenommen",
+    "rejected": "Bestellung abgeschlossen · Ladung abgelehnt",
+    "pending": "Geliefert · Prüfung ausstehend",
+    "awaiting": "Ankunft ausstehend · Lieferung bei Ankunft erfassen"
+  },
+  "workspacePicker": {
+    "metaTitle": "Arbeitsbereich wählen | GreenLoop",
+    "title": "Wähle deinen Arbeitsbereich",
+    "subtitle": "Wähle, wie du GreenLoop heute nutzen möchtest.",
+    "hint": "Eine Karte. Zwei Arbeitsbereiche. Zum Wechseln wischen, zum Öffnen klicken.",
+    "flip": "Zum anderen Arbeitsbereich wechseln",
+    "keyboardHint": "Wischen oder Pfeile zum Drehen · Eingabetaste oder Klick zum Auswählen",
+    "entering": "Wird geöffnet…",
+    "failed": "Der Arbeitsbereich konnte nicht gewählt werden. Bitte erneut versuchen.",
+    "provider": {
+      "short": "Anbieter",
+      "title": "Anbieter-Arbeitsbereich",
+      "description": "Biete wiedergewonnene Materialien an, verwalte Materialpässe und verfolge ausgehende Lieferungen deiner Projekte.",
+      "enter": "Anbieter-Arbeitsbereich öffnen"
+    },
+    "receiver": {
+      "short": "Empfänger",
+      "title": "Empfänger-Arbeitsbereich",
+      "description": "Fordere Materialien an, verwalte Annahmekapazitäten und prüfe eingehende Ladungen an deinem Standort.",
+      "enter": "Empfänger-Arbeitsbereich öffnen"
+    }
+  },
+  "directRequest": {
+    "open": "Material anfordern",
+    "title": "Anfrage an {{provider}}",
+    "linked": "{{material}} · Materialpass {{reference}} · {{quantity}} Tonnen verfügbar",
+    "quantity": "Menge (Tonnen)",
+    "date": "Benötigt bis",
+    "location": "Annahmeort",
+    "notes": "Notizen (optional)",
+    "flow": "Diese Anfrage geht direkt an den ausgewählten Anbieter. Er kann ein Angebot für dieses Material senden.",
+    "cancel": "Abbrechen",
+    "send": "An Anbieter senden",
+    "sending": "Wird gesendet…",
+    "failed": "Die Anfrage konnte nicht gesendet werden. Bitte erneut versuchen.",
+    "invalid": "Wähle eine verfügbare Menge, ein gültiges Datum und den Annahmeort.",
+    "recipient": "Gesendet an {{provider}} · Materialpass {{reference}}"
+  },
+  "projectLocationForm": {
+    "name": "Projektname",
+    "location": "Projektstandort",
+    "placeholder": "Stadt, Straße oder Baustellenadresse eingeben",
+    "hint": "Gib hier den Standort ein. Adressvorschläge und Kartenmarkierung sind optional.",
+    "required": "Projektname und Standort eingeben.",
+    "failed": "Das Projekt konnte nicht erstellt werden. Bitte erneut versuchen.",
+    "create": "Projekt erstellen",
+    "creating": "Projekt wird erstellt…"
   }
 }

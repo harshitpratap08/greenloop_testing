@@ -1,13 +1,13 @@
-import { useMemo, useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
+import { EmptyState, PageMotion, RevealItem, StatusChip } from "@/components/greenloop/kit";
+import RecordActions from "@/components/greenloop/RecordActions";
+import { ambientMedia, materialMediaFor } from "@/config/appMedia";
 import { computeMatch } from "@/domain/capacity";
 import type { MaterialTypeKey } from "@/domain/types";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { Link, useSearchParams } from "react-router";
-import { PageMotion, RevealItem, StatusChip, EmptyState } from "@/components/greenloop/kit";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
 import { formatINR, formatINRPerT, materialTypeLabel } from "@/utils";
-import { materialMediaFor, ambientMedia } from "@/config/appMedia";
-
+import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router";
 
 type MaterialCategory = "all" | MaterialTypeKey | "other";
 
@@ -78,27 +78,27 @@ export default function Materials() {
   }, [category, dataset.materials, dataset.projects, query, selectedProjectId]);
 
   return (
-    <PageMotion className="mx-auto max-w-[1320px] pb-16">
+    <PageMotion className="mx-auto max-w-app pb-16">
       <PageMeta title="Inventory | GreenLoop" description="Manage recovered construction material and its digital passports." />
 
       <RevealItem>
-        <section className="relative mb-7 grid min-h-[230px] overflow-hidden rounded-2xl border border-[#e5e1d8] bg-[#192c20] dark:border-steel-800 sm:min-h-[250px] lg:grid-cols-[1fr_auto]">
+        <section className="relative mb-section grid min-h-[230px] overflow-hidden border border-[#e5e1d8] bg-[#192c20] dark:border-steel-800 sm:min-h-[250px] lg:grid-cols-[1fr_auto] rounded-surface">
           <img src={ambientMedia.brickPallets.src} alt={ambientMedia.brickPallets.alt} className="absolute inset-0 size-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/95 via-[#17291e]/72 to-[#17291e]/15" />
           <div className="relative z-10 flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-9 lg:max-w-[720px]">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c7d5c8]">GreenLoop Operations</p>
-            <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-white sm:text-4xl">{selectedProject?.name ?? <>Inventory</>}</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#c7d5c8]">GreenLoop Operations</p>
+            <h1 className="mt-2 font-archivo font-bold tracking-tight text-white gl-page-title">{selectedProject?.name ?? <>Inventory</>}</h1>
             <p className="mt-2 max-w-lg text-sm leading-5 text-white/85 sm:text-base sm:leading-6">Digital records connecting physical material to projects and recovery status.</p>
-            <span className="mt-5 inline-flex w-fit items-center rounded-md border border-white/25 bg-[#102118]/45 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.13em] text-white/90 backdrop-blur-sm">Recovered material, recorded and ready to place</span>
+            <span className="mt-5 inline-flex w-fit items-center rounded-md border border-white/25 bg-[#102118]/45 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.13em] text-white/90 backdrop-blur-sm">Recovered material, recorded and ready to place</span>
           </div>
-          <div className="relative z-10 flex flex-wrap items-center gap-3 border-t border-white/20 bg-[#12241a]/80 p-4 backdrop-blur-sm sm:p-5 lg:my-auto lg:mr-5 lg:rounded-xl lg:border lg:bg-[#f8f7f1] lg:p-4 lg:backdrop-blur-none dark:lg:bg-[#17251d]">
-            <div className="flex min-w-[130px] flex-1 items-center gap-3 rounded-lg border border-white/15 bg-white/10 px-3 py-2.5 text-white lg:min-w-[142px] lg:border-[#e4e1d8] lg:bg-transparent lg:text-[#26372c] dark:lg:border-steel-700 dark:lg:text-white">
+          <div className="relative z-10 flex flex-wrap items-center gap-3 border-t border-white/20 bg-[#12241a]/80 backdrop-blur-sm lg:my-auto lg:mr-5 lg:rounded-xl lg:border lg:bg-[#f8f7f1] lg:p-4 lg:backdrop-blur-none dark:lg:bg-[#17251d] gl-card-pad">
+            <div className="flex min-w-[130px] flex-1 items-center gap-3 border border-white/15 bg-white/10 px-3 py-2.5 text-white lg:min-w-[142px] lg:border-[#e4e1d8] lg:bg-transparent lg:text-[#26372c] dark:lg:border-steel-700 dark:lg:text-white rounded-surface">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-[#c9dccd] lg:bg-[#edf3ed] lg:text-[#4d7658] dark:lg:bg-[#294334] dark:lg:text-[#b8d2bf]"><MaterialCategoryIcon kind="passports" /></span>
-              <div><p className="font-archivo text-xl font-bold leading-5">{dataset.materials.length}</p><p className="mt-1 text-[10px] text-white/70 lg:text-[#7d887f] dark:lg:text-gray-400">Active Passports</p></div>
+              <div><p className="font-archivo text-xl font-bold leading-5">{dataset.materials.length}</p><p className="mt-1 text-xs text-white/70 lg:text-[#7d887f] dark:lg:text-gray-400">Active Passports</p></div>
             </div>
-            <div className="flex min-w-[130px] flex-1 items-center gap-3 rounded-lg border border-white/15 bg-white/10 px-3 py-2.5 text-white lg:min-w-[142px] lg:border-[#e4e1d8] lg:bg-transparent lg:text-[#26372c] dark:lg:border-steel-700 dark:lg:text-white">
+            <div className="flex min-w-[130px] flex-1 items-center gap-3 border border-white/15 bg-white/10 px-3 py-2.5 text-white lg:min-w-[142px] lg:border-[#e4e1d8] lg:bg-transparent lg:text-[#26372c] dark:lg:border-steel-700 dark:lg:text-white rounded-surface">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-[#c9dccd] lg:bg-[#edf3ed] lg:text-[#4d7658] dark:lg:bg-[#294334] dark:lg:text-[#b8d2bf]"><MaterialCategoryIcon kind="volume" /></span>
-              <div><p className="font-archivo text-xl font-bold leading-5">{totalT.toFixed(1)} t</p><p className="mt-1 text-[10px] text-white/70 lg:text-[#7d887f] dark:lg:text-gray-400">Total Volume</p></div>
+              <div><p className="font-archivo text-xl font-bold leading-5">{totalT.toFixed(1)} t</p><p className="mt-1 text-xs text-white/70 lg:text-[#7d887f] dark:lg:text-gray-400">Total Volume</p></div>
             </div>
             <Link to={selectedProjectId ? `/app/materials/new?project=${encodeURIComponent(selectedProjectId)}` : "/app/materials/new"} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#39714b] px-4 text-sm font-semibold text-white transition hover:bg-[#2f613e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:w-auto lg:min-w-[140px]">
               <span aria-hidden="true" className="text-lg leading-none">+</span> Add New Material
@@ -127,7 +127,7 @@ export default function Materials() {
                   onClick={() => setCategory(item.id)}
                   className={`flex shrink-0 items-center gap-1.5 border-b-2 px-0.5 pb-3 pt-1 text-xs font-semibold transition-colors ${category === item.id ? "border-[#4b7956] text-[#315c3d] dark:text-[#c5ddcb]" : "border-transparent text-[#7c857d] hover:text-[#315c3d] dark:text-gray-400 dark:hover:text-white"}`}
                 >
-                  {item.label} <span className={`text-[10px] ${category === item.id ? "text-[#66806b] dark:text-[#a9c7b0]" : "text-[#a1a79f]"}`}>({categoryCounts[item.id]})</span>
+                  {item.label} <span className={`text-xs ${category === item.id ? "text-[#66806b] dark:text-[#a9c7b0]" : "text-[#a1a79f]"}`}>({categoryCounts[item.id]})</span>
                 </button>
               ))}
             </div>
@@ -149,7 +149,7 @@ export default function Materials() {
           </div>
 
           {visibleMaterials.length > 0 ? (
-            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Material passports">
+            <ul className="grid gap-card sm:grid-cols-2 xl:grid-cols-3" aria-label="Material passports">
               {visibleMaterials.map((material) => {
                 const allocation = dataset.allocations.find((item) => item.materialId === material.id && item.status !== "cancelled");
                 const candidate = computeMatch(dataset, material.id)[0];
@@ -163,20 +163,20 @@ export default function Materials() {
 
                 return (
                   <li key={material.id}>
-                    <RevealItem>
-                      <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-[#e5e2da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] transition hover:border-[#bfccbf] hover:shadow-[0_6px_18px_rgba(26,42,31,0.075)] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957]">
+                    <RevealItem className="h-full">
+                      <article className="group flex h-full flex-col overflow-hidden border border-[#e5e2da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] transition hover:border-[#bfccbf] hover:shadow-[0_6px_18px_rgba(26,42,31,0.075)] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957] rounded-surface">
                         <div className="relative aspect-[16/8.5] overflow-hidden bg-[#ecebe5] dark:bg-[#24372b]">
                           <img src={materialMediaFor(material.type).src} alt={materialMediaFor(material.type).alt} loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
                           <div className="absolute inset-0 bg-gradient-to-t from-[#142319]/45 via-transparent to-transparent" />
-                          <span className="absolute bottom-3 left-3 rounded-sm border border-white/30 bg-[#17281e]/75 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-sm">{materialTypeLabel(material.type)}</span>
-                          <span className="absolute right-3 top-3"><StatusChip status={chip} label={material.status} className="rounded-md px-2 py-1 text-[9px] font-semibold tracking-normal shadow-sm" /></span>
+                          <span className="absolute bottom-3 left-3 border border-white/30 bg-[#17281e]/75 px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-sm rounded-surface">{materialTypeLabel(material.type)}</span>
+                          <span className="absolute right-3 top-3"><StatusChip status={chip} label={material.status} className="rounded-md px-2 py-1 text-xs font-semibold tracking-normal shadow-sm" /></span>
                         </div>
 
-                        <div className="flex flex-1 flex-col p-4 sm:p-5">
+                        <div className="flex flex-1 flex-col gl-card-pad">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <h2 className="truncate font-archivo text-lg font-bold tracking-tight text-[#26362c] dark:text-white">{materialTypeLabel(material.type)}</h2>
-                              <p className="mt-0.5 truncate text-[11px] text-[#7d867e] dark:text-gray-400">
+                              <p className="mt-0.5 truncate text-xs text-[#7d867e] dark:text-gray-400">
                                 <Link to={`/app/materials?project=${encodeURIComponent(material.projectId)}`} className="font-medium text-[#435d49] hover:text-[#2f6b3e] dark:text-gray-200 dark:hover:text-loop-300">{projectName(material.projectId)}</Link>
                                 <span> · ID {material.id}</span>
                               </p>
@@ -185,29 +185,30 @@ export default function Materials() {
 
                           <div className="mt-4 grid grid-cols-3 gap-2 border-y border-[#efede7] py-3 dark:border-white/[0.07]">
                             <div className="min-w-0">
-                              <p className="text-[9px] font-semibold uppercase tracking-[0.11em] text-[#929990]">Volume</p>
-                              <p className="mt-1 font-archivo text-base font-bold text-[#26362c] dark:text-white">{material.quantityT.toFixed(1)} <span className="text-[10px] font-medium text-[#7e887f]">t</span></p>
+                              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-[#929990]">Volume</p>
+                              <p className="mt-1 font-archivo text-base font-bold text-[#26362c] dark:text-white">{material.quantityT.toFixed(1)} <span className="text-xs font-medium text-[#7e887f]">t</span></p>
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[9px] font-semibold uppercase tracking-[0.11em] text-[#929990]">Condition</p>
-                              <p className="mt-1 truncate text-[11px] font-medium capitalize text-[#38483e] dark:text-gray-200">{material.condition} · Grade {material.grade}</p>
+                              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-[#929990]">Condition</p>
+                              <p className="mt-1 truncate text-xs font-medium capitalize text-[#38483e] dark:text-gray-200">{material.condition} · Grade {material.grade}</p>
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[9px] font-semibold uppercase tracking-[0.11em] text-[#929990]">Evidence</p>
-                              <p className="mt-1 truncate text-[11px] font-medium text-[#38483e] dark:text-gray-200">{photoCount} photos · {material.evidence.length} records</p>
+                              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-[#929990]">Evidence</p>
+                              <p className="mt-1 truncate text-xs font-medium text-[#38483e] dark:text-gray-200">{photoCount} photos · {material.evidence.length} records</p>
                             </div>
                           </div>
 
-                          <div className="mt-3 flex flex-wrap justify-between gap-2 rounded-md bg-[#f6f5f0] px-3 py-2 dark:bg-white/[0.04]"><span className="text-[10px] font-medium text-[#778078]">{material.pricePerT !== undefined ? formatINRPerT(material.pricePerT) : "Price on request"}</span>{material.pricePerT !== undefined && <span className="text-xs font-bold text-[#26362c] dark:text-white">{formatINR(material.pricePerT * material.quantityT)} total</span>}</div>
+                          <div className="mt-3 flex flex-wrap justify-between gap-2 rounded-md bg-[#f6f5f0] px-3 py-2 dark:bg-white/[0.04]"><span className="text-xs font-medium text-[#778078]">{material.pricePerT !== undefined ? formatINRPerT(material.pricePerT) : "Price on request"}</span>{material.pricePerT !== undefined && <span className="text-xs font-bold text-[#26362c] dark:text-white">{formatINR(material.pricePerT * material.quantityT)} total</span>}</div>
 
                           {matchedReceiver ? (
-                            <p className="mt-3 flex items-start gap-1.5 text-[10px] leading-4 text-[#778078] dark:text-gray-400">
+                            <p className="mt-3 flex items-start gap-1.5 text-xs leading-4 text-[#778078] dark:text-gray-400">
                               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="mt-0.5 size-3.5 shrink-0 text-[#54805e]"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>
                               <span>{allocation ? "Matched with" : "Suggested"}: <span className="font-semibold text-[#415749] dark:text-gray-200">{matchedReceiver.name}</span></span>
                             </p>
                           ) : <div className="mt-3 min-h-4" />}
 
                           <div className="mt-auto flex flex-wrap gap-2 pt-4">
+                            <div className="basis-full"><RecordActions kind="passport" id={material.id} /></div>
                             <Link to={`/app/materials/${material.id}`} className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#315f3d] px-3 text-xs font-semibold text-white transition hover:bg-[#274d32] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315f3d] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#17251d]">
                               View passport <span aria-hidden="true">→</span>
                             </Link>
@@ -225,7 +226,7 @@ export default function Materials() {
               })}
             </ul>
           ) : (
-            <div className="rounded-xl border border-dashed border-[#d8ddd5] bg-white/60 px-6 py-12 text-center dark:border-steel-700 dark:bg-white/[0.02]">
+            <div className="border border-dashed border-[#d8ddd5] bg-white/60 px-6 py-12 text-center dark:border-steel-700 dark:bg-white/[0.02] rounded-surface">
               <h2 className="font-archivo text-lg font-bold text-[#2c3e31] dark:text-white">No matching materials</h2>
               <p className="mt-1 text-sm text-[#7a837b] dark:text-gray-400">Try another material name or category.</p>
               <button type="button" onClick={() => { setQuery(""); setCategory("all"); setParams({}); }} className="mt-4 text-sm font-semibold text-[#416d4b] underline underline-offset-4 dark:text-[#b8d0bd]">Clear search and filters</button>

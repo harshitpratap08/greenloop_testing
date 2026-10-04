@@ -1,4 +1,5 @@
-import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { useLanguage } from "@/context/LanguageContext.helpers";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { getLanguage, languages, type Locale } from "@/i18n/languages";
 import { cn } from "@/utils";
@@ -7,7 +8,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { useAuth } from "@/context/AuthContext";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);

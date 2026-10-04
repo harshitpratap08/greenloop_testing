@@ -1,11 +1,11 @@
-import { useState } from "react";
 import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import PageMeta from "@/components/common/PageMeta";
-import Button from "@/components/ui/button/Button";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
-import { useAuth } from "@/context/AuthContext";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
+import Button from "@/components/ui/button/Button";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { useState } from "react";
 
 export default function Support() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,7 +43,7 @@ export default function Support() {
       <div className="mx-auto max-w-3xl space-y-8">
         
         {/* Help Information */}
-        <section className="border border-steel-200 bg-white p-8 dark:border-steel-800 dark:bg-white/[0.02]">
+        <section className="border border-steel-200 bg-white p-8 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
           <h2 className="mb-4 font-archivo text-xl font-bold text-ink-900 dark:text-white">GreenLoop Workflow Help</h2>
           <div className="prose prose-sm max-w-none text-ink-800 dark:text-gray-300">
             <p className="mb-4">
@@ -60,7 +60,7 @@ export default function Support() {
         </section>
 
         {/* Contact Form */}
-        <section className="border border-steel-200 bg-white p-8 dark:border-steel-800 dark:bg-white/[0.02]">
+        <section className="border border-steel-200 bg-white p-8 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
           <h2 className="mb-6 font-archivo text-xl font-bold text-ink-900 dark:text-white">Contact Support</h2>
           
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -102,7 +102,7 @@ export default function Support() {
         </section>
 
         {(dataset.supportRequests ?? []).filter((request) => request.email === user?.email).length > 0 && (
-          <section className="border border-steel-200 bg-white p-8 dark:border-steel-800 dark:bg-white/[0.02]">
+          <section className="border border-steel-200 bg-white p-8 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
             <h2 className="mb-4 font-archivo text-xl font-bold text-ink-900 dark:text-white">Your support requests</h2>
             <div className="space-y-4">
               {(dataset.supportRequests ?? []).filter((request) => request.email === user?.email).map((request) => (

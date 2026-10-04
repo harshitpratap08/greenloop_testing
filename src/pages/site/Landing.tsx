@@ -101,7 +101,7 @@ export default function Landing() {
             />
           </motion.div>
           <motion.div
-            className="relative mx-auto grid w-full max-w-7xl items-center gap-12 px-5 py-24 sm:px-8 lg:grid-cols-[1.1fr_0.9fr]"
+            className="relative mx-auto grid w-full max-w-app items-center gap-section px-5 py-24 sm:px-section lg:gl-golden-columns"
             style={reduceMotion ? undefined : { y: contentY, opacity: contentOpacity }}
           >
             <div className="max-w-3xl">
@@ -142,7 +142,7 @@ export default function Landing() {
               {...entrance(reduceMotion, 0.6)}
             >
               <div className="absolute -inset-3 border border-white/[0.08]" aria-hidden="true" />
-              <div className="relative border border-white/10 bg-ink-950/90 p-5 shadow-2xl backdrop-blur-sm sm:p-7">
+              <div className="relative rounded-surface border border-white/10 bg-ink-950/90 gl-card-pad shadow-2xl backdrop-blur-sm">
                 <div className="flex items-center justify-between border-b border-white/15 pb-4">
                   <p className="eyebrow-label text-white/55">One network · two sides</p>
                   <span className="ledger-numeral text-xs text-loop-300">GREENLOOP</span>

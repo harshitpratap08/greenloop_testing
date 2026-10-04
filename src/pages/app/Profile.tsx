@@ -1,10 +1,10 @@
-import { useState } from "react";
 import PageMeta from "@/components/common/PageMeta";
-import { Link } from "react-router";
-import Button from "@/components/ui/button/Button";
-import { useAuth } from "@/context/AuthContext";
 import { PageMotion, RevealItem } from "@/components/greenloop/kit";
+import Button from "@/components/ui/button/Button";
 import { ambientMedia } from "@/config/appMedia";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { useState } from "react";
+import { Link } from "react-router";
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
@@ -58,7 +58,7 @@ export default function Profile() {
           <p className="mt-1 max-w-2xl text-sm text-steel-600 dark:text-gray-400">Manage your profile and workspace details. This information is used across GreenLoop for projects, bookings and communications.</p>
         </div>
         <nav aria-label="Breadcrumb" className="mt-1">
-          <ol className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-steel-500 dark:text-steel-400">
+          <ol className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-steel-500 dark:text-steel-400">
             <li><Link to="/" className="transition-colors hover:text-loop-700 dark:hover:text-loop-400">Home</Link></li>
             <li aria-hidden="true">›</li>
             <li className="text-ink-900 dark:text-white">Account Profile</li>
@@ -68,16 +68,16 @@ export default function Profile() {
 
       <PageMotion className="max-w-none space-y-3">
         <RevealItem>
-          <section className="relative min-h-36 overflow-hidden rounded-xl border border-[#e5e1d8] bg-[#17291e] sm:min-h-40 dark:border-steel-800" aria-label="Profile overview">
+          <section className="relative min-h-36 overflow-hidden border border-[#e5e1d8] bg-[#17291e] sm:min-h-40 dark:border-steel-800 rounded-surface" aria-label="Profile overview">
             <img src={ambientMedia.sortingFacility.src} alt={ambientMedia.sortingFacility.alt} className="absolute inset-0 size-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/80 via-[#17291e]/40 to-[#17291e]/10" aria-hidden="true" />
-            <div className="relative flex min-h-36 items-end gap-3 p-4 sm:min-h-40 sm:gap-4 sm:p-5">
+            <div className="relative flex min-h-36 items-end gap-3 sm:min-h-40 sm:gap-4 gl-card-pad">
               <span className="size-[68px] shrink-0 overflow-hidden rounded-full border-2 border-white/90 bg-white shadow-sm sm:size-[76px]">
                 <img src="/images/user/owner.png" alt={`${displayName} profile`} className="size-full object-cover" />
               </span>
               <div className="min-w-0 pb-1 text-white">
                 <h2 className="truncate font-archivo text-lg font-bold sm:text-xl">{displayName}</h2>
-                <span className="mt-1 inline-flex items-center gap-1.5 border border-white/30 bg-[#153a29]/80 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white sm:text-[10px]">
+                <span className="mt-1 inline-flex items-center gap-1.5 border border-white/30 bg-[#153a29]/80 px-2 py-1 text-xs font-bold uppercase tracking-[0.12em] text-white sm:text-xs">
                   <span className="size-1.5 rounded-full bg-loop-400" aria-hidden="true" />
                   {workspaceName}
                 </span>
@@ -87,7 +87,7 @@ export default function Profile() {
         </RevealItem>
 
         <RevealItem>
-          <section className="rounded-lg border border-[#e5e1d8] bg-white p-4 sm:p-6 lg:p-7 dark:border-steel-800 dark:bg-white/[0.02]">
+          <section className="border border-[#e5e1d8] bg-white lg:p-7 dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
             <div className="mb-5 border-b border-steel-100 pb-4 dark:border-steel-800">
               <h2 className="font-archivo text-lg font-bold text-ink-900 dark:text-white sm:text-xl">Profile Settings</h2>
               <p className="mt-1 text-xs text-steel-600 dark:text-gray-400">Keep your contact and workspace details up to date.</p>
@@ -138,7 +138,7 @@ export default function Profile() {
                     required
                     className={`${inputClass} cursor-not-allowed bg-steel-50 text-steel-600 dark:bg-white/[0.03] dark:text-gray-400`}
                   />
-                  <p id="account-email-note" className="mt-1 text-[10px] text-steel-500 dark:text-steel-400">Email is the sign-in identifier for your account.</p>
+                  <p id="account-email-note" className="mt-1 text-xs text-steel-500 dark:text-steel-400">Email is the sign-in identifier for your account.</p>
                 </ProfileField>
 
                 <ProfileField id="profile-phone" label="Phone Number">

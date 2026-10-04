@@ -37,13 +37,13 @@ export default function SearchFilterBar({
       <div className="flex flex-wrap items-center gap-2">
         <label className="relative min-w-0 flex-1 sm:max-w-[300px]">
           <span className="sr-only">{searchLabel}</span>
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-steel-400"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.2 4.2" /></svg>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-steel-400"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.2 4.2" /></svg>
           <input
             type="search"
             value={searchValue}
             onChange={event => onSearchChange(event.target.value)}
             placeholder={searchPlaceholder}
-            className="h-9 w-full rounded-lg border border-steel-300 bg-white pl-9 pr-3 text-xs text-ink-900 outline-none transition focus:border-loop-500 focus:ring-2 focus:ring-loop-500/15 dark:border-steel-700 dark:bg-[#17251d] dark:text-white"
+            className="h-11 w-full rounded-control border border-steel-300 bg-white ps-9 pe-3 text-sm text-ink-900 outline-none transition focus:border-loop-500 focus:ring-2 focus:ring-loop-500/15 dark:border-steel-700 dark:bg-[#17251d] dark:text-white"
           />
         </label>
         <button
@@ -51,7 +51,7 @@ export default function SearchFilterBar({
           aria-expanded={open}
           onClick={() => setOpen(value => !value)}
           className={cn(
-            "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors",
+            "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-control border px-detail text-sm font-semibold transition-colors",
             open
               ? "border-loop-600 bg-loop-50 text-loop-800 dark:border-loop-500/60 dark:bg-loop-500/10 dark:text-loop-200"
               : "border-steel-300 bg-white text-steel-700 hover:bg-steel-50 dark:border-steel-700 dark:bg-[#17251d] dark:text-gray-200 dark:hover:bg-white/[0.05]",
@@ -61,7 +61,7 @@ export default function SearchFilterBar({
           Filters
           {activeFilterCount > 0 && (
             <span className={cn(
-              "ledger-numeral inline-flex size-4.5 items-center justify-center rounded-full text-[10px] font-bold",
+              "ledger-numeral inline-flex size-4.5 items-center justify-center rounded-full text-xs font-bold",
               open ? "bg-loop-600 text-white" : "bg-loop-600 text-white dark:bg-loop-500",
             )}>{activeFilterCount}</span>
           )}
@@ -69,8 +69,8 @@ export default function SearchFilterBar({
         {resultLabel && <p className="ms-auto text-xs font-medium text-steel-500 dark:text-gray-400">{resultLabel}</p>}
       </div>
       {open && (
-        <div className="mt-3 border border-steel-200 bg-white p-4 dark:border-steel-800 dark:bg-white/[0.02]">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{filters}</div>
+        <div className="mt-3 border border-steel-200 bg-white p-4 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
+          <div className="grid gap-detail sm:grid-cols-2 xl:grid-cols-4">{filters}</div>
           {onClearFilters && (
             <div className="mt-3 border-t border-steel-100 pt-3 dark:border-steel-800/60">
               <button type="button" onClick={onClearFilters} className="text-xs font-semibold text-loop-700 underline underline-offset-2 dark:text-loop-300">Clear all filters</button>

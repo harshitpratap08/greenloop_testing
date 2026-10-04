@@ -1,3 +1,4 @@
+import { EASE, JOURNEY_STAGES, KIT_STATUS_CLASS, WORKFLOW_STEPS, type EvidenceItem, type KitStatus } from "./kit.helpers";
 /**
  * GreenLoop authenticated-app kit — the shared visual system.
  *
@@ -7,16 +8,14 @@
  * meaningful and calm; reduced motion renders final states directly.
  */
 
+import type { AppMedia, AppVideo } from "@/config/appMedia";
+import { cn } from "@/utils";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { cn } from "@/utils";
-import type { AppMedia, AppVideo } from "@/config/appMedia";
 
 /* ------------------------------------------------------------------ */
 /* Motion primitives                                                   */
 /* ------------------------------------------------------------------ */
-
-const EASE = [0.22, 1, 0.36, 1] as const;
 
 /** Consistent page-enter: children stagger in once on mount. */
 export function PageMotion({ children, className }: { children: ReactNode; className?: string }) {
@@ -111,7 +110,7 @@ export function PageHeader({
     <header className={cn("mb-8 flex flex-wrap items-end justify-between gap-4", className)}>
       <div className="min-w-0">
         {eyebrow && <p className="eyebrow-label text-steel-500 dark:text-steel-400">{eyebrow}</p>}
-        <h1 className="mt-2 font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-4xl">
+        <h1 className="mt-2 font-archivo font-bold tracking-tight text-ink-900 dark:text-white gl-page-title">
           {title}
         </h1>
         {context && <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">{context}</p>}
@@ -154,7 +153,7 @@ export function MediaPanel({
       />
       {scrim && <div className={cn("pointer-events-none absolute inset-0", scrim)} aria-hidden="true" />}
       {caption && (
-        <figcaption className="absolute bottom-3 left-3 border border-white/20 bg-ink-950/70 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/85 backdrop-blur-sm">
+        <figcaption className="absolute bottom-3 left-3 border border-white/20 bg-ink-950/70 px-2 py-1 font-mono text-xs uppercase tracking-[0.12em] text-white/85 backdrop-blur-sm rounded-surface">
           {caption}
         </figcaption>
       )}
@@ -232,7 +231,7 @@ export function VideoPanel({
       )}
       {scrim && <div className={cn("pointer-events-none absolute inset-0", scrim)} aria-hidden="true" />}
       {caption && (
-        <figcaption className="absolute bottom-3 left-3 border border-white/20 bg-ink-950/70 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/85 backdrop-blur-sm">
+        <figcaption className="absolute bottom-3 left-3 border border-white/20 bg-ink-950/70 px-2 py-1 font-mono text-xs uppercase tracking-[0.12em] text-white/85 backdrop-blur-sm rounded-surface">
           {caption}
         </figcaption>
       )}
@@ -244,35 +243,6 @@ export function VideoPanel({
 /* ------------------------------------------------------------------ */
 /* Status language — one chip system across the app                    */
 /* ------------------------------------------------------------------ */
-
-export type KitStatus =
-  | "available"
-  | "confirmed"
-  | "verified"
-  | "active"
-  | "attention"
-  | "limited"
-  | "waiting"
-  | "hold"
-  | "draft"
-  | "inactive"
-  | "rejected"
-  | "cancelled";
-
-const KIT_STATUS_CLASS: Record<KitStatus, string> = {
-  available: "border-loop-300 bg-loop-50 text-loop-700 dark:border-loop-500/40 dark:bg-loop-500/10 dark:text-loop-300",
-  confirmed: "border-loop-500 bg-loop-500 text-white dark:border-loop-500 dark:bg-loop-500",
-  verified: "border-loop-500 bg-loop-500 text-white dark:border-loop-500 dark:bg-loop-500",
-  active: "border-loop-300 bg-loop-50 text-loop-700 dark:border-loop-500/40 dark:bg-loop-500/10 dark:text-loop-300",
-  attention: "border-signal-400 bg-signal-50 text-signal-700 dark:border-signal-500/40 dark:bg-signal-500/10 dark:text-signal-300",
-  limited: "border-signal-400 bg-signal-50 text-signal-700 dark:border-signal-500/40 dark:bg-signal-500/10 dark:text-signal-300",
-  waiting: "border-signal-300 bg-signal-50 text-signal-700 dark:border-signal-500/40 dark:bg-signal-500/10 dark:text-signal-300",
-  hold: "border-signal-500 bg-signal-500/15 text-signal-700 dark:border-signal-500/50 dark:bg-signal-500/15 dark:text-signal-300",
-  draft: "border-steel-300 bg-steel-50 text-steel-700 dark:border-steel-700 dark:bg-white/5 dark:text-steel-300",
-  inactive: "border-steel-300 bg-steel-50 text-steel-600 dark:border-steel-700 dark:bg-white/5 dark:text-steel-400",
-  rejected: "border-error-400 bg-error-50 text-error-700 dark:border-error-500/40 dark:bg-error-500/10 dark:text-error-300",
-  cancelled: "border-steel-300 bg-steel-50 text-steel-600 dark:border-steel-700 dark:bg-white/5 dark:text-steel-400",
-};
 
 export function StatusChip({ status, label, className }: { status: KitStatus; label?: string; className?: string }) {
   return (
@@ -353,8 +323,6 @@ export function CapacityMeter({
 /* Workflow — 7-step rail and big progress variant                     */
 /* ------------------------------------------------------------------ */
 
-export const WORKFLOW_STEPS = ["Survey", "Passport", "Match", "Capacity", "Book", "Send", "Verify"] as const;
-
 export function WorkflowRail7({
   current,
   inverse = false,
@@ -377,7 +345,7 @@ export function WorkflowRail7({
             <motion.span
               aria-hidden="true"
               className={cn(
-                "flex size-5 items-center justify-center rounded-full border text-[10px] font-semibold leading-none",
+                "flex size-5 items-center justify-center rounded-full border text-xs font-semibold leading-none",
                 complete && "border-loop-500 bg-loop-500 text-white",
                 active && !complete && (inverse ? "border-white bg-white text-ink-900" : "border-ink-900 bg-ink-900 text-white dark:border-white dark:bg-white dark:text-ink-900"),
                 !complete && !active && (inverse ? "border-white/30 text-white/45" : "border-gray-300 text-gray-400 dark:border-gray-700"),
@@ -458,7 +426,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "border bg-white p-4 dark:bg-white/[0.02]",
+        "flex h-full min-w-0 flex-col rounded-surface border bg-white gl-card-pad dark:bg-white/[0.02]",
         tone === "positive" && "border-loop-300 dark:border-loop-500/30",
         tone === "attention" && "border-signal-300 dark:border-signal-500/30",
         tone === "default" && "border-steel-200 dark:border-steel-800",
@@ -469,7 +437,7 @@ export function StatCard({
       <p className="mt-2">
         <Counter value={value} decimals={decimals} suffix={suffix} className="text-2xl font-bold text-ink-900 dark:text-white" />
       </p>
-      {hint && <p className="mt-1 text-theme-xs text-gray-500 dark:text-gray-400">{hint}</p>}
+      {hint && <p className="mt-auto pt-detail text-theme-xs text-gray-500 dark:text-gray-400">{hint}</p>}
     </div>
   );
 }
@@ -478,14 +446,6 @@ export function StatCard({
 /* Evidence gallery — figure grid with lightbox-lite                   */
 /* ------------------------------------------------------------------ */
 
-export interface EvidenceItem {
-  id: string;
-  src?: string;
-  label: string;
-  kind?: string;
-  recordedAt?: string;
-}
-
 export function EvidenceGallery({ items, className }: { items: EvidenceItem[]; className?: string }) {
   const [open, setOpen] = useState<EvidenceItem | null>(null);
   const reduce = useReducedMotion();
@@ -493,13 +453,13 @@ export function EvidenceGallery({ items, className }: { items: EvidenceItem[]; c
 
   return (
     <div className={className}>
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <ul className="grid grid-cols-2 gap-detail sm:grid-cols-3">
         {items.map((item, index) => (
           <li key={item.id}>
             <button
               type="button"
               onClick={() => setOpen(item)}
-              className="group relative block w-full overflow-hidden border border-steel-200 bg-steel-50 text-start dark:border-steel-800 dark:bg-white/5"
+              className="group relative block w-full overflow-hidden border border-steel-200 bg-steel-50 text-start dark:border-steel-800 dark:bg-white/5 rounded-surface"
               aria-label={`View evidence: ${item.label}`}
             >
               {item.src ? (
@@ -660,7 +620,7 @@ export function ConfirmModal({
           aria-label={title}
         >
           <motion.div
-            className="w-full max-w-md border border-steel-200 bg-white p-6 shadow-xl dark:border-steel-800 dark:bg-gray-dark"
+            className="w-full max-w-md border border-steel-200 bg-white shadow-xl dark:border-steel-800 dark:bg-gray-dark gl-card-pad rounded-surface"
             initial={reduce ? false : { scale: 0.95, y: 10 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.96, opacity: 0 }}
@@ -695,8 +655,6 @@ export function ConfirmModal({
 /* Journey strip — BOOKED → DISPATCHED → IN TRANSIT → RECEIVED → VERIFIED */
 /* ------------------------------------------------------------------ */
 
-export const JOURNEY_STAGES = ["Booked", "Dispatched", "In transit", "Received", "Verified"] as const;
-
 export function JourneyStrip({ current, className }: { current: number; className?: string }) {
   const reduce = useReducedMotion();
   return (
@@ -718,7 +676,7 @@ export function JourneyStrip({ current, className }: { current: number; classNam
               >
                 {complete && <span className="size-1.5 rounded-full bg-white" />}
               </span>
-              <span className={cn("whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide", complete || active ? "text-ink-900 dark:text-white" : "text-gray-400 dark:text-gray-500")}>
+              <span className={cn("whitespace-nowrap text-xs font-semibold uppercase tracking-wide", complete || active ? "text-ink-900 dark:text-white" : "text-gray-400 dark:text-gray-500")}>
                 {stage}
               </span>
             </div>

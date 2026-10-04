@@ -12,34 +12,35 @@ export function LocationMap({ geo, className = "", onChange, size = "md" }: MapP
   const map = useRef<L.Map | null>(null);
   const marker = useRef<L.CircleMarker | null>(null);
   const onChangeRef = useRef(onChange);
+  const latitude = geo?.lat;
+  const longitude = geo?.lng;
 
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
   useEffect(() => {
     if (!element.current) return;
-    const instance = L.map(element.current, { scrollWheelZoom: false }).setView(geo ? [geo.lat, geo.lng] : INDIA, geo ? 12 : 4);
+    const instance = L.map(element.current, { scrollWheelZoom: false }).setView(INDIA, 4);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     }).addTo(instance);
     map.current = instance;
-    if (geo) marker.current = L.circleMarker([geo.lat, geo.lng], { radius: 7, color: "#315f3d", fillColor: "#6d9a73", fillOpacity: 0.9 }).addTo(instance);
     if (onChangeRef.current) instance.on("click", (event: L.LeafletMouseEvent) => onChangeRef.current?.({ lat: Number(event.latlng.lat.toFixed(6)), lng: Number(event.latlng.lng.toFixed(6)) }));
     return () => { instance.remove(); map.current = null; marker.current = null; };
   }, []);
 
   useEffect(() => {
     if (!map.current) return;
-    if (!geo) {
+    if (latitude === undefined || longitude === undefined) {
       marker.current?.remove();
       marker.current = null;
       return;
     }
-    const point: L.LatLngExpression = [geo.lat, geo.lng];
+    const point: L.LatLngExpression = [latitude, longitude];
     if (marker.current) marker.current.setLatLng(point);
     else marker.current = L.circleMarker(point, { radius: 7, color: "#315f3d", fillColor: "#6d9a73", fillOpacity: 0.9 }).addTo(map.current);
     map.current.setView(point, Math.max(map.current.getZoom(), 12));
-  }, [geo?.lat, geo?.lng]);
+  }, [latitude, longitude]);
 
   return <div ref={element} className={`${size === "sm" ? "h-28" : "h-56"} w-full border border-steel-200 bg-steel-100 dark:border-steel-700 ${className}`} role="application" aria-label={onChange ? "Choose a location on the map" : "Location map"} />;
 }

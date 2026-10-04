@@ -1,11 +1,11 @@
 import PageMeta from "@/components/common/PageMeta";
-import AuthLayout from "./AuthPageLayout";
+import type { Role } from "@/context/AuthContext.helpers";
+import { useAuth } from "@/context/AuthContext.helpers";
 import { ChevronLeftIcon } from "@/icons";
-import { useAuth } from "@/context/AuthContext";
-import type { Role } from "@/context/AuthContext";
-import { Link, useNavigate } from "react-router";
 import { cn } from "@/utils";
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import AuthLayout from "./AuthPageLayout";
 
 export default function RoleSelection() {
   const { user, addWorkspaces } = useAuth();

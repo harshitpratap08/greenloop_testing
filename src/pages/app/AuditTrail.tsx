@@ -1,5 +1,5 @@
 import PageMeta from "@/components/common/PageMeta";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
 import { formatStamp } from "@/utils";
 import { motion } from "motion/react";
 
@@ -15,17 +15,17 @@ export default function AuditTrail() {
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="mb-8 border-b border-steel-200 pb-6 dark:border-steel-800"
+        className="mb-section border-b border-steel-200 pb-6 dark:border-steel-800"
       >
         <p className="eyebrow-label text-loop-600 dark:text-loop-400">Shared ledger</p>
-        <h1 className="mt-3 font-archivo text-3xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-4xl">Activity history</h1>
+        <h1 className="mt-3 font-archivo font-bold tracking-tight text-ink-900 dark:text-white gl-page-title">Activity history</h1>
         <p className="mt-3 max-w-2xl text-steel-600 dark:text-gray-400">
           Provider and receiver actions appear here from the same GreenLoop state — {events.length} event{events.length === 1 ? "" : "s"} recorded.
         </p>
       </motion.header>
 
       {events.length === 0 ? (
-        <div className="rounded-sm border border-dashed border-steel-300 bg-white p-10 text-center dark:border-steel-700 dark:bg-white/[0.02]">
+        <div className="border border-dashed border-steel-300 bg-white p-10 text-center dark:border-steel-700 dark:bg-white/[0.02] rounded-surface">
           <p className="font-archivo text-lg font-bold text-ink-900 dark:text-white">No activity yet</p>
           <p className="mt-2 text-sm text-steel-500 dark:text-gray-400">Bookings, dispatches and verifications will appear here as they happen.</p>
         </div>
@@ -47,7 +47,7 @@ export default function AuditTrail() {
               <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-steel-600 dark:text-gray-400">
                 <span>{event.actor.name}</span>
                 <span aria-hidden="true">·</span>
-                <code className="rounded-sm bg-steel-100 px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wider text-steel-600 dark:bg-white/5 dark:text-gray-400">{event.kind}</code>
+                <code className="rounded-sm bg-steel-100 px-1.5 py-0.5 font-mono text-xs uppercase tracking-wider text-steel-600 dark:bg-white/5 dark:text-gray-400">{event.kind}</code>
               </p>
               {event.detail && <p className="mt-1 text-sm text-steel-500 dark:text-gray-500">{event.detail}</p>}
               <p className="ledger-numeral mt-1 text-xs text-steel-400 dark:text-steel-500">{event.subjectIds.join(" · ")}</p>

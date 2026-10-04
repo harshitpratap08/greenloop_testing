@@ -1,38 +1,43 @@
-import { useState } from "react";
-import { uploadFile } from "@/lib/api";
-import type { Evidence } from "@/domain/types";
 import PageMeta from "@/components/common/PageMeta";
-import { useGreenLoopStore } from "@/store/GreenLoopStore";
-import { motion, AnimatePresence } from "motion/react";
-import { materialMediaFor, ambientMedia } from "@/config/appMedia";
-import Button from "@/components/ui/button/Button";
-import StatusBadge from "@/components/greenloop/StatusBadge";
-import { useAuth } from "@/context/AuthContext";
-import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
-import { formatDate, formatINR, formatINRPerT } from "@/utils";
 import { LocationMap } from "@/components/greenloop/LocationMap";
+import StatusBadge from "@/components/greenloop/StatusBadge";
+import VerificationDetails from "@/components/greenloop/VerificationDetails";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import Button from "@/components/ui/button/Button";
+import { ambientMedia, materialMediaFor } from "@/config/appMedia";
+import { useAuth } from "@/context/AuthContext.helpers";
+import type { Evidence } from "@/domain/types";
 import { TruckDelivery } from "@/icons";
+import { uploadFile } from "@/lib/api";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { formatDate, formatINR, formatINRPerT } from "@/utils";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
-export default function ReceiverDeliveries() {
+export default function ReceiverDeliveries({ embedded = false, bookingId, onRecorded }: { embedded?: boolean; bookingId?: string; onRecorded?: () => void }) {
+  const { t } = useTranslation();
   const { dataset, receiveLoadAction } = useGreenLoopStore();
   const { user } = useAuth();
   const receiverId = user?.receiverId ?? "";
   
   // Confirmed bookings that don't have a verification record yet
   const expectedDeliveries = dataset.bookings.filter((booking) =>
-    booking.receiverId === receiverId && booking.status === "confirmed" && Boolean(booking.loadRef) &&
+    booking.receiverId === receiverId && (!bookingId || booking.id === bookingId) && booking.status === "confirmed" && Boolean(booking.loadRef) &&
     !dataset.verifications.some((verification) => verification.bookingId === booking.id)
   );
 
-  const [receivingId, setReceivingId] = useState<string | null>(null);
-  const [actualT, setActualT] = useState<string>("");
+  const [receivingId, setReceivingId] = useState<string | null>(bookingId ?? null);
+  const [actualT, setActualT] = useState<string>(expectedDeliveries.find(booking => booking.id === bookingId)?.tonnesT.toString() ?? "");
   const [ticket, setTicket] = useState<Evidence | null>(null);
   const [uploadingTicket, setUploadingTicket] = useState(false);
   const [ticketError, setTicketError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const handleTicketUpload = async (file?: File) => {
     if (!file) return;
     setUploadingTicket(true);
+    setTicket(null);
     setTicketError("");
     try {
       const ref = await uploadFile(file);
@@ -44,8 +49,11 @@ export default function ReceiverDeliveries() {
     }
   };
 
+  if (embedded && expectedDeliveries.length === 0) return null;
+
   return (
-    <div className="relative min-h-screen pb-24">
+    <div className={embedded ? "mb-6" : "relative min-h-screen pb-24"}>
+      {!embedded && <>
       <PageMeta title="Incoming Deliveries | GreenLoop" description="See expected loads and record their arrival." />
       <WorkflowPageHeader
         title="Incoming Deliveries"
@@ -54,7 +62,7 @@ export default function ReceiverDeliveries() {
       />
 
       {/* Incoming deliveries — loads arriving at the intake gate */}
-      <figure className="relative mb-8 h-40 w-full overflow-hidden rounded-lg border border-steel-200 sm:h-52 lg:h-60 dark:border-steel-800">
+      <figure className="relative mb-section h-40 w-full overflow-hidden rounded-lg border border-steel-200 sm:h-52 lg:h-60 dark:border-steel-800">
         <img
           src={ambientMedia.authTruck.src}
           alt={ambientMedia.authTruck.alt}
@@ -66,9 +74,10 @@ export default function ReceiverDeliveries() {
           <p className="mt-1 text-sm text-white/80">Track and record material deliveries to keep your facility operations accurate.</p>
         </figcaption>
       </figure>
+      </>}
 
       {expectedDeliveries.length === 0 ? (
-        <div className="flex min-h-[42vh] flex-col items-center justify-center rounded-lg border border-steel-200 bg-white/70 px-6 py-14 text-center dark:border-steel-800 dark:bg-white/[0.02]">
+        <div className="flex min-h-[42vh] flex-col items-center justify-center border border-steel-200 bg-white/70 px-6 py-14 text-center dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">
           <span className="flex size-16 items-center justify-center rounded-full bg-loop-50 dark:bg-loop-500/10">
             <TruckDelivery className="size-8 text-loop-600 dark:text-loop-400" />
           </span>
@@ -78,7 +87,7 @@ export default function ReceiverDeliveries() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-card">
           <AnimatePresence>
             {expectedDeliveries.map(booking => {
               const material = dataset.materials.find(m => m.id === booking.materialId);
@@ -97,10 +106,11 @@ export default function ReceiverDeliveries() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   key={booking.id}
-                  className="overflow-hidden rounded-lg border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600"
+                  className="overflow-hidden border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600 rounded-surface"
                 >
-                  <div className="p-5 sm:p-6">
-                    <div className="grid gap-6 md:grid-cols-[10rem_1fr]">
+                  <VerificationDetails enabled={embedded} image={materialMediaFor(material?.type ?? "concrete").src} name={material?.type ?? ""} status={t("verificationCards.awaiting")}>
+                  <div className="gl-card-pad">
+                    <div className="grid gap-card md:grid-cols-[10rem_1fr]">
                       <img
                         src={materialMediaFor(material?.type ?? "concrete").src}
                         alt=""
@@ -136,7 +146,7 @@ export default function ReceiverDeliveries() {
                         </div>
                         {(demand?.geo ?? receiver?.geo) && <LocationMap geo={demand?.geo ?? receiver?.geo} className="mt-4 h-44" />}
                         {contact && <div className="mt-4 border border-steel-200 p-3 text-xs dark:border-steel-800"><p className="font-semibold text-ink-900 dark:text-white">Provider contact · {contact.name}</p><a className="mt-1 block underline" href={`mailto:${contact.email}`}>{contact.email}</a>{contact.phone && <a className="mt-1 block underline" href={`tel:${contact.phone}`}>{contact.phone}</a>}</div>}
-                        <details className="mt-4 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-2 block">Booking ID: {booking.id} · Load reference: {booking.loadRef}</span></details>
+                        <div className="mt-4 text-xs text-steel-500"><span className="mt-2 block">Booking ID: {booking.id} · Load reference: {booking.loadRef}</span></div>
                       </div>
                     </div>
 
@@ -164,17 +174,22 @@ export default function ReceiverDeliveries() {
                           <div className="flex gap-3">
                             <Button
                               size="sm"
-                              disabled={!actualT || !Number.isFinite(Number(actualT)) || Number(actualT) < 0 || !ticket || uploadingTicket}
+                              disabled={saving || !actualT || !Number.isFinite(Number(actualT)) || Number(actualT) < 0 || !ticket || uploadingTicket}
                               onClick={async () => {
-                                if (!ticket || !await receiveLoadAction(booking.id, Number(actualT), [ticket])) return;
-                                setReceivingId(null);
-                                setTicket(null);
-                                setTicketError("");
+                                if (!ticket || saving) return;
+                                setSaving(true);
+                                try {
+                                  if (!await receiveLoadAction(booking.id, Number(actualT), [ticket])) return;
+                                  setReceivingId(null);
+                                  setTicket(null);
+                                  setTicketError("");
+                                  onRecorded?.();
+                                } finally { setSaving(false); }
                               }}
                             >
                               Record arrival
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => { setReceivingId(null); setTicket(null); setTicketError(""); }}>
+                            <Button size="sm" variant="outline" disabled={saving || uploadingTicket} onClick={() => { setReceivingId(null); setTicket(null); setTicketError(""); }}>
                               Cancel
                             </Button>
                           </div>
@@ -191,6 +206,7 @@ export default function ReceiverDeliveries() {
                       )}
                     </div>
                   </div>
+                  </VerificationDetails>
                 </motion.article>
               );
             })}
