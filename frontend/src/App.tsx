@@ -1,0 +1,141 @@
+import { lazy, Suspense } from "react";
+import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router";
+import { ScrollToTop } from "./components/common/ScrollToTop";
+import { GreenLoopStoreProvider } from "./store/GreenLoopStore";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import Landing from "./pages/site/Landing";
+
+const AppLayout = lazy(() => import("./layout/AppLayout"));
+const SignIn = lazy(() => import("./pages/AuthPages/SignIn"));
+const SignUp = lazy(() => import("./pages/AuthPages/SignUp"));
+const ForgotPassword = lazy(() => import("./pages/AuthPages/ForgotPassword"));
+const Onboarding = lazy(() => import("./pages/AuthPages/Onboarding"));
+const Allocations = lazy(() => import("./pages/app/Allocations"));
+const Dashboard = lazy(() => import("./pages/app/Dashboard/Dashboard"));
+const Materials = lazy(() => import("./pages/app/Materials"));
+const NewSurvey = lazy(() => import("./pages/app/NewSurvey"));
+const Projects = lazy(() => import("./pages/app/Projects"));
+const ProjectDetails = lazy(() => import("./pages/app/ProjectDetails"));
+const Verification = lazy(() => import("./pages/app/Verification"));
+const Explore = lazy(() => import("./pages/app/Explore"));
+const MarketDemand = lazy(() => import("./pages/app/MarketDemand"));
+const Profile = lazy(() => import("./pages/app/Profile"));
+const Support = lazy(() => import("./pages/app/Support"));
+const Settings = lazy(() => import("./pages/app/Settings"));
+const MaterialPassport = lazy(() => import("./pages/app/MaterialPassport"));
+const AuditTrail = lazy(() => import("./pages/app/AuditTrail"));
+const BookingsDeliveries = lazy(
+  () => import("./pages/app/BookingsDeliveries"),
+);
+const NotFound = lazy(() => import("./pages/OtherPage/NotFound"));
+const ReceiverOverview = lazy(() => import("./pages/app/receiver/Overview"));
+const ReceiverDemand = lazy(() => import("./pages/app/receiver/Demand"));
+const ReceiverIncomingRequests = lazy(
+  () => import("./pages/app/receiver/IncomingRequests"),
+);
+const ReceiverVerificationPage = lazy(
+  () => import("./pages/app/receiver/ReceiverVerification"),
+);
+const ReceiverProviders = lazy(() => import("./pages/app/receiver/Providers"));
+const ProviderMaterialDetails = lazy(
+  () => import("./pages/app/receiver/ProviderMaterialDetails"),
+);
+const ReceiverInventory = lazy(
+  () => import("./pages/app/receiver/Inventory"),
+);
+const WorkspaceSelector = lazy(
+  () => import("./pages/app/WorkspaceSelector"),
+);
+
+function PageLoadingFallback() {
+  return (
+    <main
+      role="status"
+      aria-live="polite"
+      className="flex min-h-screen items-center justify-center bg-gray-50 px-6 dark:bg-gray-950"
+    >
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-gray-200 bg-white px-10 py-8 text-center shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
+        <span
+          aria-hidden="true"
+          className="size-9 animate-spin rounded-full border-4 border-loop-600 border-t-transparent"
+        />
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+          Loading GreenLoop…
+        </span>
+      </div>
+    </main>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <GreenLoopStoreProvider>
+        <Router>
+          <ScrollToTop />
+          <Suspense fallback={<PageLoadingFallback />}>
+            <Routes>
+              {/* Experience 1 — public editorial website */}
+              <Route index path="/" element={<Landing />} />
+              <Route path="/platform" element={<Navigate to="/app" replace />} />
+
+              {/* Experience 2 — GreenLoop platform under AppLayout */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<AppLayout />}>
+                  <Route path="/app" element={<WorkspaceSelector />} />
+
+                  {/* Provider Routes */}
+                  <Route path="/app/explore" element={<Explore />} />
+                  <Route path="/app/dashboard" element={<Dashboard />} />
+                  <Route path="/app/operations" element={<Navigate to="/app/dashboard" replace />} />
+                  <Route path="/app/projects/:id" element={<ProjectDetails />} />
+                  <Route path="/app/projects" element={<Projects />} />
+                  <Route path="/app/materials/new" element={<NewSurvey />} />
+                  <Route path="/app/materials/:id" element={<MaterialPassport />} />
+                  <Route path="/app/materials" element={<Materials />} />
+                  <Route path="/app/receivers" element={<Navigate to="/app/market-demand?view=receivers" replace />} />
+                  <Route path="/app/allocations" element={<Allocations />} />
+                  <Route path="/app/bookings-deliveries" element={<BookingsDeliveries />} />
+                  <Route path="/app/bookings" element={<Navigate to="/app/bookings-deliveries" replace />} />
+                  <Route path="/app/deliveries" element={<Navigate to="/app/bookings-deliveries" replace />} />
+                  <Route path="/app/verification" element={<Verification />} />
+                  <Route path="/app/reports" element={<Navigate to="/app/dashboard" replace />} />
+                  <Route path="/app/market-demand" element={<MarketDemand />} />
+                  <Route path="/app/profile" element={<Profile />} />
+                  <Route path="/app/support" element={<Support />} />
+                  <Route path="/app/settings" element={<Settings />} />
+                  <Route path="/app/audit-trail" element={<AuditTrail />} />
+                  <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
+                  <Route path="/profile" element={<Navigate to="/app/profile" replace />} />
+
+                  {/* Receiver Routes */}
+                  <Route path="/app/receiver/overview" element={<ReceiverOverview />} />
+                  <Route path="/app/receiver/demand" element={<ReceiverDemand />} />
+                  <Route path="/app/receiver/providers/:materialId" element={<ProviderMaterialDetails />} />
+                  <Route path="/app/receiver/providers" element={<ReceiverProviders />} />
+                  <Route path="/app/receiver/inventory" element={<ReceiverInventory />} />
+                  <Route path="/app/receiver/capacity" element={<Navigate to="/app/receiver/demand?capacity=1" replace />} />
+                  <Route path="/app/receiver/incoming-requests" element={<ReceiverIncomingRequests />} />
+                  <Route path="/app/receiver/incoming" element={<Navigate to="/app/receiver/incoming-requests" replace />} />
+                  <Route path="/app/receiver/deliveries" element={<Navigate to="/app/bookings-deliveries" replace />} />
+                  <Route path="/app/receiver/verification" element={<ReceiverVerificationPage />} />
+                </Route>
+              </Route>
+
+              {/* Auth */}
+              <Route path="/sign-in" element={<SignIn />} />
+              <Route path="/sign-up" element={<SignUp />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<Navigate to="/forgot-password" replace />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+
+              {/* Fallback */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </Router>
+      </GreenLoopStoreProvider>
+    </AuthProvider>
+  );
+}

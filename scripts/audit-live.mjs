@@ -1,4 +1,4 @@
-import { createBackend } from '../server/server.mjs';
+import { createBackend } from '../backend/src/app.mjs';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

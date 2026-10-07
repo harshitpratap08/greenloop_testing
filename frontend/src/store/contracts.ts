@@ -1,0 +1,53 @@
+import type { GreenLoopDataset, MaterialPassport, DemandRecord, Project, ReceiverDaySlot, SupportRequest, MaterialOffer, Evidence, MaterialUpdate, DemandUpdate } from "@shared/domain/types";
+import type { DeliveryInput } from "@shared/domain/capacity";
+type RequestCapacityAction = (input: {
+  materialId: string;
+  receiverId: string;
+  slotId: string;
+  tonnesT: number;
+}) => Promise<boolean>;
+type CancelBookingAction = (input: { bookingId: string; reason?: string }) => Promise<boolean>;
+type DispatchAction = (input: { bookingId: string }) => Promise<boolean>;
+type VerifyAction = (input: { bookingId: string } & Omit<DeliveryInput, "bookingId" | "actor" | "at">) => Promise<boolean>;
+type AddMaterialAction = (input: Omit<MaterialPassport, "id" | "status" | "surveyedAt">) => Promise<MaterialPassport | null>;
+type AddDemandInput = Omit<DemandRecord, "id" | "status" | "createdAt" | "receiverId"> & { receiverId?: string; targetProviderId?: string; targetMaterialId?: string };
+type AddDemandAction = (input: AddDemandInput) => Promise<DemandRecord | null>;
+type AddProjectAction = (input: Pick<Project, "name" | "location" | "status"> & Partial<Pick<Project, "geo">>) => Promise<Project | null>;
+type AddCapacityAction = (input: Omit<ReceiverDaySlot, "id">) => Promise<ReceiverDaySlot | null>;
+type UpdateCapacityAction = (slotId: string, capacityT: number) => Promise<boolean>;
+
+export interface GreenLoopStoreValue {
+  dataset: GreenLoopDataset;
+  markNotificationsReadAction: (eventIds: string[]) => Promise<string[]>;
+  requestCapacityAction: RequestCapacityAction;
+  cancelBookingAction: CancelBookingAction;
+  dispatchAction: DispatchAction;
+  updateDeliveryAction: (bookingId: string, stage: "ready" | "picked-up" | "arrived") => Promise<boolean>;
+  verifyAction: VerifyAction;
+  addMaterialAction: AddMaterialAction;
+  updateMaterialAction: (id: string, input: MaterialUpdate) => Promise<boolean>;
+  deleteMaterialAction: (id: string) => Promise<boolean>;
+  updateDemandAction: (id: string, input: DemandUpdate) => Promise<boolean>;
+  deleteDemandAction: (id: string) => Promise<boolean>;
+  addDemandAction: AddDemandAction;
+  saveDemandDraftAction: AddDemandAction;
+  deleteDemandDraftAction: (demandId: string) => Promise<boolean>;
+  addProjectAction: AddProjectAction;
+  addCapacityAction: AddCapacityAction;
+  updateCapacityAction: UpdateCapacityAction;
+  addSupportRequestAction: (input: Omit<SupportRequest, "id" | "submittedAt">) => Promise<SupportRequest | null>;
+  addOfferAction: (offer: Omit<MaterialOffer, "id" | "status" | "createdAt">) => Promise<boolean>;
+  saveOfferDraftAction: (offer: Omit<MaterialOffer, "id" | "status" | "createdAt">) => Promise<boolean>;
+  deleteOfferDraftAction: (offerId: string) => Promise<boolean>;
+  acceptOfferAction: (offerId: string) => Promise<boolean>;
+  declineOfferAction: (offerId: string) => Promise<boolean>;
+  counterOfferAction: (offerId: string, pricePerT: number) => Promise<boolean>;
+  cancelDemandAction: (demandId: string) => Promise<boolean>;
+  withdrawOfferAction: (offerId: string) => Promise<boolean>;
+  archiveBookingAction: (bookingId: string) => Promise<boolean>;
+  acceptRequestAction: (bookingId: string, acceptedT?: number) => Promise<boolean>;
+  rejectRequestAction: (bookingId: string) => Promise<boolean>;
+  rescheduleRequestAction: (bookingId: string, slotId: string) => Promise<boolean>;
+  receiveLoadAction: (bookingId: string, actualT: number, evidence: Evidence[]) => Promise<boolean>;
+  verifyLoadAction: (verificationId: string, acceptedT: number, rejectedT: number, rejectReason?: string) => Promise<boolean>;
+}
