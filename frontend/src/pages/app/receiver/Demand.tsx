@@ -1,0 +1,490 @@
+import PageMeta from "@/components/common/PageMeta";
+import AddressLocation from "@/components/greenloop/AddressLocation";
+import { materialMedia } from "@/components/greenloop/AppExploration.helpers";
+import { LocationMap } from "@/components/greenloop/LocationMap";
+import MatchDetailsPanel from "@/components/greenloop/MatchDetailsPanel";
+import NegotiationPanel from "@/components/greenloop/NegotiationPanel";
+import RecordActions from "@/components/greenloop/RecordActions";
+import StatusBadge from "@/components/greenloop/StatusBadge";
+import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
+import Button from "@/components/ui/button/Button";
+import { materialMediaFor } from "@/config/appMedia";
+import { useAuth } from "@/context/AuthContext.helpers";
+import { contextualMatch, slotLedger, slotMatchesDemandPeriod } from "@shared/domain/capacity";
+import { type GeoPoint, type MaterialTypeKey } from "@shared/domain/types";
+import { CalenderIcon, ChevronDownIcon, FileIcon, MapIcon } from "@/icons";
+import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
+import { cn, formatDate, formatINR, formatINRPerT, materialTypeLabel } from "@/utils";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router";
+import DemandCapacity from "./DemandCapacity";
+
+const TYPE_LABEL: Record<string, string> = {
+  concrete: "Concrete",
+  brick: "Brick",
+  steel: "Steel",
+  timber: "Timber",
+  plasterboard: "Plasterboard",
+  glass: "Glass",
+};
+
+const CUSTOM_TYPE = "__custom__";
+const normalizeCustomType = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+export default function Demand() {
+  const { t } = useTranslation();
+  const { dataset, addDemandAction, saveDemandDraftAction, acceptOfferAction, declineOfferAction, counterOfferAction, cancelDemandAction, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
+  const { user } = useAuth();
+  const receiverId = user?.receiverId ?? "";
+  const [searchParams] = useSearchParams();
+  const initialType = searchParams.get("materialType");
+  const targetMaterialId = searchParams.get("targetMaterialId") ?? undefined;
+  const [isAdding, setIsAdding] = useState(Boolean(searchParams.get("materialType")));
+  const query = searchParams.toString();
+  const [expandedOverride, setExpandedOverride] = useState<{ query: string; id: string | null } | null>(null);
+  const expandedId = expandedOverride?.query === query ? expandedOverride.id : searchParams.get("demand");
+  const [type, setType] = useState<MaterialTypeKey>(initialType && ["concrete", "brick", "steel", "timber", "plasterboard", "glass"].includes(initialType) ? initialType as MaterialTypeKey : "concrete");
+  const [requiredT, setRequiredT] = useState(searchParams.get("quantityT") ?? "");
+  const [period, setPeriod] = useState("");
+  const [budgetPerT, setBudgetPerT] = useState(searchParams.get("budgetPerT") ?? "");
+  const [error, setError] = useState("");
+  const [location, setLocation] = useState(user?.location || user?.organization || "");
+  const [geo, setGeo] = useState<GeoPoint | undefined>();
+  const [notes, setNotes] = useState("");
+  const [sentMessage, setSentMessage] = useState("");
+  const [customName, setCustomName] = useState("");
+  const typeValue = type === CUSTOM_TYPE ? normalizeCustomType(customName) : type;
+  const addressSources = [...new Set([
+    user?.location,
+    user?.organization,
+    dataset.receivers.find((item) => item.id === receiverId)?.location,
+    ...dataset.demands.filter((item) => item.receiverId === receiverId).map((item) => item.location),
+  ].filter(Boolean) as string[])];
+
+  const receiverDemands = dataset.demands?.filter((d) => d.receiverId === receiverId) ?? [];
+
+  useEffect(() => {
+    if (searchParams.get("capacity") === "1") window.setTimeout(() => document.getElementById("receiving-capacity")?.scrollIntoView({ behavior: "smooth" }), 0);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const demandId = searchParams.get("demand");
+    if (!demandId || expandedId !== demandId) return;
+    const offerId = searchParams.get("offer");
+    const timer = window.setTimeout(() => {
+      const offer = offerId ? document.getElementById(`offer-${offerId}`) : null;
+      const target = offer ?? document.getElementById(`demand-${demandId}`);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      offer?.focus({ preventScroll: true });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [expandedId, searchParams]);
+
+  const handleAddDemand = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requiredT || !Number.isFinite(Number(requiredT)) || Number(requiredT) <= 0 || !period) {
+      setError("Enter a positive quantity and needed-by date.");
+      return;
+    }
+    if (typeValue.length < 2) {
+      setError("Enter a material name for the custom material.");
+      return;
+    }
+    setError("");
+    const demand = await addDemandAction({
+      receiverId,
+      materialType: typeValue,
+      requiredT: Number(requiredT),
+      period: period || "Q4 2026",
+      location: location || user?.organization || "Receiving facility",
+      notes: notes,
+      ...(budgetPerT !== "" ? { budgetPerT: Number(budgetPerT) } : {}),
+      ...(geo ? { geo } : {}),
+      targetMaterialId,
+    });
+    
+    if (!demand) return;
+    setIsAdding(false);
+    setSentMessage(t("backend.requestPublished"));
+    setRequiredT("");
+    setPeriod("");
+    setNotes("");
+    setBudgetPerT("");
+  };
+
+  const handleSaveDemandDraft = async () => {
+    if (!requiredT || !Number.isFinite(Number(requiredT)) || Number(requiredT) <= 0 || !period) {
+      setError("Enter a positive quantity and needed-by date to save this draft.");
+      return;
+    }
+    if (typeValue.length < 2) {
+      setError("Enter a material name for the custom material to save this draft.");
+      return;
+    }
+    setError("");
+    const draft = await saveDemandDraftAction({
+      receiverId,
+      materialType: typeValue,
+      requiredT: Number(requiredT),
+      period,
+      location: location || user?.organization || "Receiving facility",
+      notes,
+      ...(budgetPerT !== "" ? { budgetPerT: Number(budgetPerT) } : {}),
+      ...(geo ? { geo } : {}),
+      targetMaterialId,
+    });
+    if (!draft) return;
+    setIsAdding(false);
+    setRequiredT(""); setPeriod(""); setNotes(""); setBudgetPerT("");
+  };
+
+  const calculateCoveredT = (demandId: string) => {
+    return dataset.bookings
+      .filter((booking) => booking.demandId === demandId && booking.status === "confirmed")
+      .reduce((sum, booking) => sum + booking.tonnesT, 0);
+  };
+
+  return (
+    <div className="relative min-h-screen pb-24">
+      <PageMeta title="Request Material | GreenLoop" description="Publish material requirements and receiving capacity for your facility." />
+      <WorkflowPageHeader
+        title="Request Material"
+        description="Publish the material, quantity, needed-by date, budget, and receiving capacity your facility can accept."
+        status={`${receiverDemands.length} request${receiverDemands.length === 1 ? "" : "s"} from this facility`}
+        action={!isAdding ? { label: "Request material", onClick: () => { setIsAdding(true); setSentMessage(""); } } : undefined}
+      />
+
+      {sentMessage && <p role="status" className="mb-5 border-l-4 border-loop-500 bg-loop-50 px-4 py-3 text-sm font-medium text-loop-800 dark:bg-loop-500/10 dark:text-loop-200">{sentMessage}</p>}
+
+      {/* Add Demand Form */}
+      {isAdding && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          className="mb-10 overflow-hidden"
+        >
+          <div id="request-form" className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
+            <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Tell providers what you need</h2>
+            <form onSubmit={handleAddDemand} className="mt-6 grid gap-card sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Material Type</label>
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value as MaterialTypeKey)}
+                  className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white"
+                >
+                  {Object.entries(TYPE_LABEL).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                  <option value={CUSTOM_TYPE}>Other / custom material…</option>
+                </select>
+                {type === CUSTOM_TYPE && (
+                  <input
+                    type="text"
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    placeholder="Material name, e.g. roof tiles"
+                    aria-label="Custom material name"
+                    required
+                    className="mt-2 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Required Quantity (t)</label>
+                <input
+                  type="number"
+                  value={requiredT}
+                  onChange={(e) => setRequiredT(e.target.value)}
+                  placeholder="e.g. 50"
+                  required
+                  min="0.1"
+                  step="0.1"
+                  className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Needed By</label>
+                <input
+                  type="date"
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value)}
+                  placeholder="e.g. Q4 2026, Oct 2026"
+                  required
+                  className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <AddressLocation
+                  label="Receiving Location"
+                  required
+                  address={location}
+                  onAddressChange={setLocation}
+                  geo={geo}
+                  onGeoChange={setGeo}
+                  sources={addressSources}
+                  placeholder="Search receiving address…"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Budget per tonne (₹, optional)</label>
+                <input type="number" min="0" step="1" value={budgetPerT} onChange={(event) => setBudgetPerT(event.target.value)} className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white" />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Notes (Optional)</label>
+                <input
+                  type="text"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="e.g. Specific grade requirements"
+                  className="mt-1 block w-full rounded-sm border-steel-300 shadow-sm focus:border-loop-500 focus:ring-loop-500 sm:text-sm dark:border-steel-700 dark:bg-black dark:text-white"
+                />
+              </div>
+
+              {error && <p role="alert" className="text-sm text-error-500 sm:col-span-2">{error}</p>}
+              <div className="flex gap-4 sm:col-span-2">
+                <Button size="md" type="submit">Send request</Button>
+                <Button size="md" variant="outline" type="button" onClick={handleSaveDemandDraft}>Save Draft</Button>
+                <Button size="md" variant="outline" type="button" onClick={() => { setIsAdding(false); setRequiredT(""); setPeriod(""); setBudgetPerT(""); setNotes(""); setError(""); }}>Discard</Button>
+              </div>
+            </form>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Demand List */}
+      {!isAdding && receiverDemands.length === 0 ? (
+        <div className="flex min-h-[40vh] flex-col items-center justify-center border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01] rounded-surface">
+          <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">No active material demand</h2>
+          <p className="mt-2 max-w-md text-steel-600 dark:text-gray-400">
+            Publish a material request to tell GreenLoop what you need and start matching with recovery projects.
+          </p>
+          <div className="mt-6">
+            <Button size="md" onClick={() => setIsAdding(true)}>Request Material</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-card">
+          {receiverDemands.map((demand, i) => {
+            const coveredT = calculateCoveredT(demand.id);
+            const heldT = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status === "hold")
+              .reduce((total, booking) => total + booking.tonnesT, 0);
+            const remainingT = Math.max(0, demand.requiredT - coveredT);
+            const percentCovered = Math.min(100, (coveredT / demand.requiredT) * 100);
+            const media = materialMediaFor(demand.materialType);
+            const typeLabel = materialTypeLabel(demand.materialType);
+            const isExpanded = expandedId === demand.id;
+
+            return (
+              <motion.article
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                key={demand.id}
+                id={`demand-${demand.id}`}
+                className="overflow-hidden border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600 rounded-surface"
+              >
+                {/* Hero material image — what this facility needs */}
+                <figure className="relative h-40 w-full overflow-hidden sm:h-52">
+                  <img src={media.src} alt={media.alt} loading="lazy" className="size-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink-950/70 via-ink-950/25 to-ink-950/10" aria-hidden="true" />
+                  <figcaption className="absolute inset-x-0 bottom-0 flex items-end justify-between px-5 pb-4 sm:px-7 sm:pb-5">
+                    <span className="font-archivo text-lg font-bold uppercase tracking-wide text-white sm:text-xl">{typeLabel}</span>
+                    <span className="ledger-numeral text-base font-bold text-white/95 sm:text-lg">{demand.requiredT.toFixed(1)} t</span>
+                  </figcaption>
+                </figure>
+
+                <div className="p-5 sm:p-7">
+                  {/* Request identity + headline quantities */}
+                  <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material request</p>
+                      <h3 className="mt-1.5 font-archivo text-2xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-3xl">{typeLabel}</h3>
+                      <p className="mt-1.5 text-sm text-steel-600 dark:text-gray-400">
+                        <span className="font-semibold text-ink-900 dark:text-gray-200">{demand.period}</span> · {demand.location}
+                      </p>
+                      {demand.targetMaterialId && <p className="mt-2 text-sm font-semibold text-loop-700 dark:text-loop-300">{t("directRequest.recipient", { provider: demand.targetProviderName ?? dataset.providerListings?.find(item => item.materialId === demand.targetMaterialId)?.organization ?? "Provider", reference: demand.targetMaterialId })}</p>}
+                    </div>
+
+                    <div className="flex flex-wrap items-start gap-x-12 gap-y-5">
+                      <div>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Requested</p>
+                        <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-ink-900 dark:text-white">
+                          {demand.requiredT.toFixed(1)} <span className="text-xl font-bold text-steel-400">t</span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Received</p>
+                        <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-loop-600 dark:text-loop-400">{coveredT.toFixed(1)} <span className="text-xl font-bold text-steel-400">t</span></p>
+                      </div>
+                      <div>
+                        <p className="eyebrow-label text-steel-500 dark:text-steel-400">Remaining</p>
+                        <p className="ledger-numeral mt-2 text-3xl font-bold tracking-tight text-ink-900 dark:text-white">{remainingT.toFixed(1)} <span className="text-xl font-bold text-steel-400">t</span></p>
+                        {heldT > 0 && <p className="mt-1 text-xs text-steel-500 dark:text-gray-400">{heldT.toFixed(1)} t waiting on capacity</p>}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4 lg:flex-col lg:items-end">
+                      <StatusBadge status={demand.status} />
+                      <RecordActions kind="request" id={demand.id} />
+                      {(["OPEN", "PARTIALLY_COVERED"].includes(demand.status) && !dataset.bookings.some((booking) => booking.demandId === demand.id && booking.status !== "cancelled")) && <Button size="sm" variant="outline" onClick={() => cancelDemandAction(demand.id)}>Cancel Request</Button>}
+                      <button
+                        type="button"
+                        aria-expanded={isExpanded}
+                        onClick={() => setExpandedOverride({ query, id: isExpanded ? null : demand.id })}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-steel-600 transition-colors hover:text-ink-900 dark:text-gray-400 dark:hover:text-white"
+                      >
+                        View details
+                        <ChevronDownIcon className={cn("size-4 transition-transform duration-200", isExpanded && "rotate-180")} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Coverage — engine output, never hardcoded */}
+                  <div className="mt-section border-t border-steel-100 pt-5 dark:border-steel-800/60">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-semibold text-steel-700 dark:text-gray-300">Coverage from confirmed slots</span>
+                      <span className="ledger-numeral font-bold text-ink-900 dark:text-white">{coveredT.toFixed(1)} t covered</span>
+                    </div>
+                    <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-steel-100 dark:bg-steel-800" role="img" aria-label={`${percentCovered.toFixed(0)}% of the request covered`}>
+                      <div
+                        className={cn("h-full rounded-full transition-all", percentCovered === 100 ? "bg-loop-500" : "bg-loop-400 dark:bg-loop-500")}
+                        style={{ width: `${percentCovered}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Expandable request information */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        key="details"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-5 grid gap-5 border-t border-steel-100 pt-5 sm:grid-cols-3 sm:gap-0 dark:border-steel-800/60">
+                          <div className="flex items-start gap-3 sm:pr-6">
+                            <CalenderIcon className="mt-0.5 size-5 shrink-0 text-steel-500 dark:text-steel-400" />
+                            <div>
+                              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Required by</p>
+                              <p className="mt-1.5 text-sm font-semibold text-ink-900 dark:text-white">{demand.period}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3 sm:border-l sm:border-steel-100 sm:px-6 dark:sm:border-steel-800/60">
+                            <MapIcon className="mt-0.5 size-5 shrink-0 text-steel-500 dark:text-steel-400" />
+                            <div>
+                              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Receiving facility</p>
+                              <p className="mt-1.5 text-sm font-semibold text-ink-900 dark:text-white">{demand.location}</p>
+                              {demand.geo && <LocationMap geo={demand.geo} className="mt-3 h-40" />}
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3 sm:border-l sm:border-steel-100 sm:pl-6 dark:sm:border-steel-800/60">
+                            <FileIcon className="mt-0.5 size-5 shrink-0 text-steel-500 dark:text-steel-400" />
+                            <div>
+                              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material specification</p>
+                              <p className="mt-1.5 text-sm font-semibold text-ink-900 dark:text-white">{typeLabel}</p>
+                              {demand.budgetPerT !== undefined && <p className="mt-1 text-xs text-steel-500">Budget ₹{demand.budgetPerT.toLocaleString("en-IN")}/tonne</p>}
+                            </div>
+                          </div>
+                        </div>
+
+                        {demand.notes && (
+                          <div className="mt-5 border border-steel-200 bg-steel-50/70 p-4 dark:border-steel-800 dark:bg-white/[0.03] rounded-surface">
+                            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Additional information</p>
+                            <p className="mt-1.5 text-sm leading-relaxed text-ink-800 dark:text-gray-200">{demand.notes}</p>
+                          </div>
+                        )}
+
+                        <p className="ledger-numeral mt-4 text-xs text-steel-500 dark:text-gray-400">Request ID: {demand.id}</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <DemandCapacity demand={demand} dataset={dataset} receiverId={receiverId} addCapacityAction={addCapacityAction} updateCapacityAction={updateCapacityAction} />
+                  {/* Offers — real provider proposals on this request */}
+                  {dataset.offers && dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").length > 0 && (
+                    <div className="mt-6 border border-loop-200 bg-loop-50/50 p-4 dark:border-loop-900/30 dark:bg-loop-900/10 rounded-surface">
+                      <h4 className="mb-3 font-archivo text-sm font-bold text-ink-900 dark:text-white">Provider offers waiting for a decision</h4>
+                      <div className="space-y-3">
+                        {dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").map(offer => {
+                          const passport = dataset.materials.find((material) => material.id === offer.passportId);
+                          const committedT = dataset.bookings.filter((booking) => booking.materialId === offer.passportId && booking.status !== "cancelled")
+                            .reduce((total, booking) => total + booking.tonnesT, 0);
+                          const passportAvailableT = Math.max(0, (passport?.quantityT ?? 0) - committedT);
+                          const committedDemandT = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status !== "cancelled")
+                            .reduce((total, booking) => total + booking.tonnesT, 0);
+                          const offerRemainingT = Math.max(0, demand.requiredT - committedDemandT);
+                          const eligibleSlots = dataset.slots.filter((slot) => slot.receiverId === demand.receiverId && slot.materialType === demand.materialType && slot.date >= new Date().toISOString().slice(0, 10) && slotMatchesDemandPeriod(slot, demand.period)).sort((a, b) => a.date.localeCompare(b.date));
+                          const receivingSlot = eligibleSlots.find((slot) => (slotLedger(dataset, slot.id)?.available ?? 0) >= offer.offeredQuantityT);
+                          const hasCapacity = Boolean(receivingSlot);
+                          const requestOpen = ["OPEN", "PARTIALLY_COVERED"].includes(demand.status);
+                          const blockedByQuantity = offer.offeredQuantityT > offerRemainingT;
+                          const blockedByStock = offer.offeredQuantityT > passportAvailableT;
+                          const photo = passport ? materialMedia(passport)[0] : undefined;
+                          const receiverDistanceKm = dataset.receivers.find((item) => item.id === demand.receiverId)?.distanceKm;
+                          const matchCandidates = contextualMatch(dataset, { demandId: demand.id, offerId: offer.id });
+                          const bestMatch = matchCandidates.length > 0 ? matchCandidates[0] : null;
+                          return (
+                            <div key={offer.id} id={`offer-${offer.id}`} tabIndex={-1} className={cn("scroll-mt-24 flex flex-col gap-3 rounded-lg border border-steel-100 bg-white p-4 transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-gray-900 dark:hover:border-steel-600 sm:flex-row sm:items-start sm:justify-between sm:flex-wrap", searchParams.get("offer") === offer.id && "ring-2 ring-loop-500")}>
+                              <div className="flex min-w-0 flex-1 gap-3">
+                                {photo && <img src={photo.src} alt={photo.caption} className="size-20 shrink-0 rounded-md object-cover" />}
+                                <div>
+                                  <p className="text-sm font-semibold text-ink-900 dark:text-gray-100">Provider offer · {receiverDistanceKm ?? "—"} km away</p>
+                                  <p className="mt-1 font-archivo text-lg font-bold text-ink-900 dark:text-white">{offer.offeredQuantityT.toFixed(1)} t {materialTypeLabel(passport?.type ?? demand.materialType)}</p>
+                                  <p className="text-sm text-steel-600 dark:text-gray-400">{passport?.condition ?? "Details unavailable"} condition · Grade {passport?.grade ?? "—"} · {passport?.evidence.length ?? 0} Evidence items</p>
+                                  <p className="mt-1 text-sm font-semibold text-ink-900 dark:text-white">{offer.pricePerT !== undefined ? <>{formatINRPerT(offer.counters?.at(-1)?.pricePerT ?? offer.pricePerT)} · Total {formatINR((offer.counters?.at(-1)?.pricePerT ?? offer.pricePerT) * offer.offeredQuantityT)}</> : "Price on request"}</p>
+                                  <details className="mt-2 text-xs text-steel-500"><summary className="cursor-pointer">View details ▾</summary><span className="mt-1 block">Provider: {offer.providerId} · Material Passport: {offer.passportId} · Offer: {offer.id}</span>{passport?.evidence.map((item) => <span key={`${offer.id}-${item.label}`} className="mt-1 block">Evidence: {item.label}</span>)}</details>
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-2 sm:flex-col sm:w-32">
+                                <Button size="sm" className="min-h-11 w-full" disabled={!requestOpen || !hasCapacity || blockedByStock || blockedByQuantity} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
+                                <Button size="sm" className="min-h-11 w-full" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
+                              </div>
+                              <div className="basis-full space-y-2 border border-steel-200 bg-steel-50 p-3 text-sm dark:border-steel-700 dark:bg-white/5 rounded-surface">
+                                <p className="text-steel-700 dark:text-steel-300">{t("offerChecks.requirement", { total: demand.requiredT.toFixed(1), booked: committedDemandT.toFixed(1), remaining: offerRemainingT.toFixed(1) })}</p>
+                                {receivingSlot && <p className="font-medium text-loop-700 dark:text-loop-300">{t("offerChecks.dateReady", { date: formatDate(receivingSlot.date), quantity: offer.offeredQuantityT.toFixed(1) })}</p>}
+                                {(!requestOpen || blockedByQuantity || blockedByStock || !hasCapacity) && <div role="status" className="space-y-1 text-warning-700 dark:text-warning-400">
+                                  <p className="font-semibold">{t("offerChecks.blocked")}</p>
+                                  {!requestOpen && <p>{t("offerChecks.closed")}</p>}
+                                  {blockedByQuantity && <p>{t("offerChecks.quantity", { offered: offer.offeredQuantityT.toFixed(1), remaining: offerRemainingT.toFixed(1) })}</p>}
+                                  {blockedByQuantity && <p>{offerRemainingT > 0 ? t("offerChecks.quantityAction", { remaining: offerRemainingT.toFixed(1) }) : t("offerChecks.fulfilled")}</p>}
+                                  {blockedByStock && <p>{t("offerChecks.stock", { quantity: passportAvailableT.toFixed(1) })}</p>}
+                                  {!hasCapacity && <p>{eligibleSlots.length === 0 ? t("receivingPlan.needDate") : t("receivingPlan.needSpace", { quantity: offer.offeredQuantityT.toFixed(1) })}</p>}
+                                </div>}
+                              </div>
+                              
+                              <details className="mt-1 basis-full"><summary className="cursor-pointer text-xs font-semibold text-loop-700 dark:text-loop-300">View Match Analysis</summary>
+                                <div className="mt-3 text-left">
+                                  {bestMatch ? (
+                                    <div className="space-y-4">
+                                      <p className="text-sm text-steel-600 dark:text-gray-300">Analysis against your requirement:</p>
+                                      <MatchDetailsPanel match={bestMatch} />
+                                    </div>
+                                  ) : <p className="text-sm text-steel-500">Match analysis unavailable.</p>}
+                                </div>
+                              </details>
+                              <div className="mt-1 basis-full"><NegotiationPanel offer={offer} canCounter onCounter={(price) => counterOfferAction(offer.id, price)} /></div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.article>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
