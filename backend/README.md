@@ -1,6 +1,6 @@
 # GreenLoop backend
 
-The backend is a native Node.js HTTP API with SQLite persistence. It owns authentication, authorization, trusted validation, workflow actions, and transactional capacity enforcement. The public landing page remains illustrative; authenticated operational records come from the API.
+The backend is a native Node.js HTTP API supporting Supabase PostgreSQL with private Storage, and SQLite as an explicit fallback. It owns authentication, authorization, trusted validation, workflow actions, and transactional capacity enforcement. The public landing page remains illustrative; authenticated operational records come from the API. See the [Supabase migration guide](../docs/SUPABASE_MIGRATION.md) for the relational model, dashboard setup, environment, import, tests, deployment and rollback.
 
 `src/server.mjs` binds the configured port. `src/app.mjs` constructs the API and serves the production frontend. `src/database/openDatabase.mjs` opens the existing SQLite store, `src/validation.mjs` contains request/security validation helpers, and `src/actions.ts` applies workflow actions through the shared domain engine. Tests use isolated temporary databases.
 
@@ -23,7 +23,7 @@ Create a new account, complete onboarding, and choose provider, receiver, or bot
 5. Receiver: record the arrival weight, then accept or reject the measured quantity. Accepted plus rejected quantities must equal the measured weight; rejection requires a reason.
 6. Provider: view the verification and reports. Both accounts refresh shared data every five seconds and when the window regains focus.
 
-## Storage and transaction model
+## SQLite fallback storage and transaction model
 
 `server/data/greenloop.sqlite` stores users, password hashes, sessions, reset tokens, OAuth state, ownership, evidence bytes, and the shared operational dataset. This existing path is retained for data compatibility and is ignored by Git. Back up the database with SQLite's backup facilities or while the server is stopped; WAL files are part of an active database and must not be discarded.
 

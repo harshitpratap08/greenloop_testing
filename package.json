@@ -14,7 +14,10 @@
     "check:backend": "npm run check --workspace @greenloop/backend",
     "test:backend": "npm run test --workspace @greenloop/backend",
     "audit:http": "node scripts/audit-http.mjs",
-    "start": "npm run start --workspace @greenloop/backend"
+    "start": "npm run start --workspace @greenloop/backend",
+    "db:migrate": "npm run db:migrate --workspace @greenloop/backend",
+    "db:import": "npm run db:import --workspace @greenloop/backend --",
+    "test:postgres": "npm run test:postgres --workspace @greenloop/backend"
   },
   "overrides": {
     "react-helmet-async": {
