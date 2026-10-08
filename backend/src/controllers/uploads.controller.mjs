@@ -1,7 +1,7 @@
 import { readJsonBody } from '../middleware/validation.middleware.mjs';
 import { sendJson } from './response.mjs';
 
-export function createUploadsController(uploadService) {
+export function createUploadsController(uploadService, readUpload) {
   return {
     async create({ req, res, user }) {
       if (req.method !== 'POST') return false;
@@ -9,7 +9,7 @@ export function createUploadsController(uploadService) {
       sendJson(res, 201, uploadService.create(user, input));
       return true;
     },
-    get({ req, res, user, params }) {
+    async get({ req, res, user, params }) {
       if (req.method !== 'GET') return false;
       const upload = uploadService.get(user, params.id);
       res.writeHead(200, {
@@ -18,7 +18,7 @@ export function createUploadsController(uploadService) {
         'Cache-Control': 'private, no-store',
         'Content-Security-Policy': "default-src 'none'; sandbox",
       });
-      res.end(Buffer.from(upload.content));
+      res.end(readUpload ? await readUpload(upload) : Buffer.from(upload.content));
       return true;
     },
   };

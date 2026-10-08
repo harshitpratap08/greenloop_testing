@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname, basename } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { createBackend } from '../src/app.mjs';
+import { createBackend, expirePostgresSlots } from './databaseHarness.mjs';
 import { recoveryFlowTotals, receiverCapacityTotals } from '../../shared/domain/metrics.ts';
 
 test('audit: endpoint contracts, malformed inputs, stale offers and rescheduling', async () => {
@@ -85,6 +85,9 @@ test('audit: endpoint contracts, malformed inputs, stale offers and rescheduling
     await act(provider, 'addOfferAction', [{ passportId: material.id, demandId: demand.id, offeredQuantityT: 1 }]);
     offer = (await provider('/api/dataset')).dataset.offers[0];
     // Simulate capacity and a pending offer surviving until after their dates.
+    if (process.env.GREENLOOP_TEST_POSTGRES === 'embedded') {
+      await expirePostgresSlots(directory);
+    } else {
     const db = new DatabaseSync(join(directory, 'greenloop.sqlite'));
     try {
       const state = JSON.parse(db.prepare('SELECT document FROM state').get().document);
@@ -116,6 +119,7 @@ test('audit: endpoint contracts, malformed inputs, stale offers and rescheduling
       const events = JSON.parse(saved.prepare('SELECT document FROM state').get().document).events;
       assert.equal(new Set(events.map(event => event.id)).size, events.length);
     } finally { saved.close(); }
+    }
     await act(receiver, 'acceptOfferAction', [offer.id], 409);
     assert.equal((await provider('/api/dataset')).dataset.offers[0].status, 'pending');
     const noHeader = await fetch(`${base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });

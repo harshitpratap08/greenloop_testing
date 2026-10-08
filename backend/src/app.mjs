@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, mkdirSync } from 'node:fs';
 import { resolve, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDatabase } from './database/openDatabase.mjs';
@@ -20,6 +20,8 @@ import { createDatasetController } from './controllers/dataset.controller.mjs';
 import { createSystemController } from './controllers/system.controller.mjs';
 import { createUploadsController } from './controllers/uploads.controller.mjs';
 import { createRoutes } from './routes/index.mjs';
+import { openPostgres } from './database/postgres.mjs';
+import { bufferedResponse } from './controllers/bufferedResponse.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -55,11 +57,15 @@ export function createBackend(options = {}) {
   const production = process.env.NODE_ENV === 'production';
   requireThat(!production || process.env.PUBLIC_ORIGIN?.startsWith('https://'), 'Set an HTTPS PUBLIC_ORIGIN for production.', 500);
   const dataDir = options.dataDir ?? resolve(root, 'server/data');
-  const db = openDatabase(dataDir);
-  const datasetModel = createDatasetModel(db);
-  const sessionModel = createSessionModel(db);
-  const uploadModel = createUploadModel(db);
-  const userModel = createUserModel(db);
+  const provider = options.databaseProvider ?? process.env.DATABASE_PROVIDER ?? (process.env.SUPABASE_DB_URL ? 'postgres' : 'sqlite');
+  requireThat(['sqlite', 'postgres'].includes(provider), 'DATABASE_PROVIDER must be sqlite or postgres.', 500);
+  mkdirSync(dataDir, { recursive: true });
+  const postgres = provider === 'postgres' ? openPostgres(options.postgres) : null;
+  const db = postgres ?? openDatabase(dataDir);
+  const datasetModel = postgres?.datasetModel ?? createDatasetModel(db);
+  const sessionModel = postgres?.sessionModel ?? createSessionModel(db);
+  const uploadModel = postgres?.uploadModel ?? createUploadModel(db);
+  const userModel = postgres?.userModel ?? createUserModel(db);
   datasetModel.initialize();
 
   const datasetService = createDatasetService({ datasetModel, userModel });
@@ -70,7 +76,7 @@ export function createBackend(options = {}) {
   const authController = createAuthController(authService);
   const datasetController = createDatasetController(datasetService);
   const actionsController = createActionsController(actionService);
-  const uploadsController = createUploadsController(uploadService);
+  const uploadsController = createUploadsController(uploadService, postgres?.readUpload);
   const systemController = createSystemController();
   const routes = createRoutes({ authController, datasetController, actionsController, uploadsController, requireAuth, systemController });
   const allowedOrigins = new Set(options.origins ?? (production ? [process.env.PUBLIC_ORIGIN] : [process.env.PUBLIC_ORIGIN ?? 'http://localhost:5173', 'http://localhost:3001', 'http://localhost:4173', 'http://localhost:5199']));
@@ -82,16 +88,22 @@ export function createBackend(options = {}) {
       const url = new URL(req.url, 'http://localhost');
       path = url.pathname;
       security.apply(req, res);
-      for (const route of routes) {
-        const params = matchRoute(route, req.method, path);
-        if (params === null) continue;
-        const context = { req, res, path, url, params, user: undefined };
-        for (const middleware of route.middleware) await middleware(req, res, context);
-        if (await route.controller(context)) return;
-        break;
-      }
-      if (path.startsWith('/api/')) throw new ApiError(404, 'API endpoint not found.');
-      serveFrontend(req, res, path);
+      const response = bufferedResponse(res);
+      const handle = async () => {
+        for (const route of routes) {
+          const params = matchRoute(route, req.method, path);
+          if (params === null) continue;
+          const context = { req, res: response, path, url, params, user: undefined };
+          for (const middleware of route.middleware) await middleware(req, response, context);
+          if (await route.controller(context)) return;
+          break;
+        }
+        if (path.startsWith('/api/')) throw new ApiError(404, 'API endpoint not found.');
+        serveFrontend(req, response, path);
+      };
+      if (postgres && path.startsWith('/api/')) await postgres.run(handle);
+      else await handle();
+      response.flush();
     } catch (error) {
       if (!res.headersSent) {
         const status = error.status ?? 500;
@@ -104,6 +116,7 @@ export function createBackend(options = {}) {
       if (!error.status) console.error(error);
     }
   });
-  server.on('close', () => db.close());
+  server.on('close', () => { Promise.resolve(db.close()).catch(error => console.error('Database close failed:', error.message)); });
+  server.databaseReady = () => postgres ? postgres.run(() => undefined) : Promise.resolve();
   return server;
 }
