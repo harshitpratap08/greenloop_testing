@@ -4,11 +4,12 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname, basename } from 'node:path';
 import { createBackend } from '../src/app.mjs';
+import { createMockPaymentProvider } from '../src/services/payment-provider.mock.mjs';
 import { receiverCapacityTotals } from '../../shared/domain/metrics.ts';
 
 test('persistent provider/receiver workflow, ownership, reservations, uploads and recovery', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'greenloop-test-'));
-  let server = createBackend({ dataDir: directory });
+  let server = createBackend({ dataDir: directory, paymentProvider: createMockPaymentProvider({ delayMs: 5 }) });
   const listen = async () => { await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); return `http://127.0.0.1:${server.address().port}`; };
   let base = await listen();
   const client = () => {
@@ -40,7 +41,7 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     const project = (await act(provider, 'addProjectAction', { name: 'Demolition', location: 'Delhi', status: 'active', geo: projectGeo })).result;
     assert.deepEqual((await provider('/dataset')).dataset.projects.find(item => item.id === project.id).geo, projectGeo);
     const materialGeo = { lat: 28.5355, lng: 77.391 };
-    const material = (await act(provider, 'addMaterialAction', { projectId: project.id, type: 'concrete', quantityT: 20, quantityRangeT: [18, 22], condition: 'good', grade: 'A', confidence: 0.9, evidence: [], geo: materialGeo })).result;
+    const material = (await act(provider, 'addMaterialAction', { projectId: project.id, type: 'concrete', quantityT: 20, quantityRangeT: [18, 22], condition: 'good', grade: 'A', confidence: 0.9, evidence: [], geo: materialGeo, pricePerT: 1200 })).result;
     assert.deepEqual((await provider('/dataset')).dataset.materials.find(item => item.id === material.id).geo, materialGeo);
     const listings = (await receiver('/dataset')).dataset.providerListings;
     assert.equal(listings[0].materialId, material.id);
@@ -56,6 +57,9 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     await provider('/actions', 'POST', { action: 'dispatchAction', args: [{ bookingId: booking.id }] }, 409);
     await provider('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'ready'] }, 409);
     await act(receiver, 'acceptRequestAction', booking.id);
+    await act(receiver, 'createPaymentAttemptAction', { bookingId: booking.id });
+    for (let attempt = 0; attempt < 40 && (await receiver('/dataset')).dataset.payments?.find(item => item.bookingId === booking.id)?.paymentStatus !== 'paid'; attempt++) await new Promise(resolve => setTimeout(resolve, 10));
+    assert.equal((await receiver('/dataset')).dataset.payments.find(item => item.bookingId === booking.id).paymentStatus, 'paid');
     await receiver('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'ready'] }, 403);
     await outsider('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'ready'] }, 403);
     await provider('/actions', 'POST', { action: 'updateDeliveryAction', args: [booking.id, 'picked-up'] }, 409);
@@ -81,6 +85,10 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     await receiver('/actions', 'POST', { action: 'verifyLoadAction', args: [verification.id, 8, 0, ''] }, 400);
     await act(receiver, 'verifyLoadAction', verification.id, 9, 0.5, 'Contamination');
     assert.equal((await provider('/dataset')).dataset.verifications[0].acceptedT, 9);
+    const paymentAfterVerification = (await receiver('/dataset')).dataset.payments.find(item => item.bookingId === booking.id);
+    assert.ok(['pending', 'settled'].includes(paymentAfterVerification.payoutStatus));
+    await receiver('/actions', 'POST', { action: 'disputePaymentAction', args: [{ bookingId: booking.id, reason: 'Late dispute after settlement started' }] }, 409);
+    assert.notEqual((await receiver('/dataset')).dataset.payments.find(item => item.bookingId === booking.id).paymentStatus, 'disputed');
     const archived = await act(provider, 'archiveBookingAction', booking.id);
     assert.ok(archived.dataset.bookings.find(item => item.id === booking.id).archivedAt);
     await provider('/actions', 'POST', { action: 'archiveBookingAction', args: [booking.id] }, 409);
@@ -89,7 +97,10 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     assert.equal((await outsider('/dataset')).dataset.bookings.length, 0);
     // Competing providers: exactly one can reserve the remaining five tonnes.
     await second('/auth/register', 'POST', { email: 'second@example.com', password: 'password123' }, 201);
-    await second('/profile', 'PATCH', { workspaces: ['provider'] });
+    await second('/profile', 'PATCH', { workspaces: ['provider', 'receiver'], activeWorkspace: 'provider' });
+    const secondProfile = (await second('/auth/me')).user;
+    const roleSwitchDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+    await second('/actions', 'POST', { action: 'addCapacityAction', args: [{ receiverId: secondProfile.receiverId, date: roleSwitchDate, materialType: 'concrete', capacityT: 2 }] }, 403);
     const secondProject = (await act(second, 'addProjectAction', { name: 'Second project', location: 'Delhi', status: 'active' })).result;
     const secondMaterial = (await act(second, 'addMaterialAction', { projectId: secondProject.id, type: 'concrete', quantityT: 8, quantityRangeT: [8, 8], condition: 'good', grade: 'A', confidence: 1, evidence: [] })).result;
     const [firstRequest, secondRequest] = await Promise.all([
@@ -158,10 +169,17 @@ test('persistent provider/receiver workflow, ownership, reservations, uploads an
     await receiver('/actions', 'POST', { action: 'acceptOfferAction', args: [offer.id] }, 409);
     assert.equal((await receiver('/dataset')).dataset.offers.find(item => item.id === offer.id).status, 'pending');
     assert.equal((await receiver('/dataset')).dataset.bookings.some(item => item.demandId === demand.id), false);
+    await act(provider, 'sendNegotiationMessageAction', offer.id, 'Can we confirm the receiving slot and price?');
+    assert.equal((await receiver('/dataset')).dataset.negotiations.find(item => item.offerId === offer.id).messages.length, 1);
+    const constrained = (await act(provider, 'proposeFinalTermsAction', offer.id, { quantityT: 5, pricePerT: 2600, destination: 'Delhi', slotId: offerSlot.id })).result;
+    const constrainedApproval = await act(receiver, 'approveFinalTermsAction', offer.id, constrained.id);
+    assert.equal(constrainedApproval.result.status, 'approved');
+    assert.match(constrainedApproval.result.capacityIssue, /capacity/i);
+    assert.equal((await receiver('/dataset')).dataset.bookings.some(item => item.demandId === demand.id), false);
     await act(receiver, 'updateCapacityAction', offerSlot.id, 10);
-    await act(provider, 'counterOfferAction', offer.id, 2750);
-    await act(receiver, 'counterOfferAction', offer.id, 2600);
-    await act(receiver, 'acceptOfferAction', offer.id);
+    const proposal = (await act(provider, 'proposeFinalTermsAction', offer.id, { quantityT: 5, pricePerT: 2600, destination: 'Delhi', slotId: offerSlot.id })).result;
+    assert.equal(proposal.status, 'awaiting_receiver_approval');
+    await act(receiver, 'approveFinalTermsAction', offer.id, proposal.id);
     const accepted = (await receiver('/dataset')).dataset;
     assert.equal(accepted.demands.find(d => d.id === demand.id).status, 'COVERED');
     assert.equal(accepted.offers.find(item => item.id === offer.id).providerId, 'provider@example.com');
@@ -256,7 +274,8 @@ test('custom materials flow through inventory, capacity, demands, offers and mat
     assert.equal(demand.materialType, 'roof tiles');
     // The offer engine matches the custom material against the custom demand.
     const offer = (await act(provider, 'addOfferAction', { demandId: demand.id, passportId: material.id, offeredQuantityT: 4, pricePerT: 900 })).dataset.offers.find(item => item.demandId === demand.id);
-    await act(receiver, 'acceptOfferAction', offer.id);
+    const proposal = (await act(provider, 'proposeFinalTermsAction', offer.id, { quantityT: 4, pricePerT: 900, destination: 'Pune', slotId: slot.id })).result;
+    await act(receiver, 'approveFinalTermsAction', offer.id, proposal.id);
     assert.equal((await receiver('/dataset')).dataset.bookings.some(item => item.demandId === demand.id && item.status === 'confirmed'), true);
     // Invalid custom labels are rejected.
     await provider('/actions', 'POST', { action: 'addMaterialAction', args: [{ projectId: material.projectId, type: 'x', quantityT: 1, quantityRangeT: [1, 1], condition: 'good', grade: 'A', confidence: 1, evidence: [] }] }, 400);

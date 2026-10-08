@@ -6,8 +6,10 @@ import Button from "@/components/ui/button/Button";
 import { useAuth } from "@/context/AuthContext.helpers";
 import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export default function Support() {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
@@ -108,8 +110,9 @@ export default function Support() {
               {(dataset.supportRequests ?? []).filter((request) => request.email === user?.email).map((request) => (
                 <article key={request.id} className="border-t border-steel-100 pt-4 dark:border-steel-800">
                   <p className="font-semibold text-ink-900 dark:text-white">{request.subject} · {request.id}</p>
+                  <p className="mt-1 text-sm font-medium text-loop-700 dark:text-loop-300">{t("supportTicket.statusLabel")}: {t(`supportTicket.status.${request.status ?? "open"}`)}</p>
                   <p className="mt-1 whitespace-pre-wrap text-sm text-steel-600 dark:text-gray-400">{request.message}</p>
-                  <p className="mt-2 text-xs text-steel-500">{new Date(request.submittedAt).toLocaleString()}</p>
+                  <p className="mt-2 text-xs text-steel-500">{t("supportTicket.updated")}: {new Date(request.updatedAt ?? request.submittedAt).toLocaleString()}{request.resolvedAt ? ` · ${t("supportTicket.resolved")}: ${new Date(request.resolvedAt).toLocaleString()}` : ""}</p>
                 </article>
               ))}
             </div>

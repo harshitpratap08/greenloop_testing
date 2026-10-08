@@ -1,5 +1,6 @@
 import PageMeta from "@/components/common/PageMeta";
 import MatchDetailsPanel from "@/components/greenloop/MatchDetailsPanel";
+import AuctionsBoard from "@/components/auctions/AuctionsBoard";
 import SearchFilterBar from "@/components/greenloop/SearchFilterBar";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { materialMediaFor, ambientMedia } from "@/config/appMedia";
@@ -11,6 +12,7 @@ import { formatDate, formatINRPerT, materialTypeLabel } from "@/utils";
 import { motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
 
 const types: MaterialTypeKey[] = ["concrete", "brick", "steel", "timber", "plasterboard", "glass"];
 const conditions: MaterialCondition[] = ["good", "fair", "poor"];
@@ -70,14 +72,18 @@ function StatIcon({ kind }: { kind: "providers" | "records" | "tonnes" }) {
 }
 
 export default function Providers() {
+  const { t } = useTranslation();
   const { dataset } = useGreenLoopStore();
   const { user } = useAuth();
   const receiverId = user?.receiverId ?? "";
   const reduceMotion = useReducedMotion();
-  const [activeTab, setActiveTab] = useState<"providers" | "sent" | "received">("providers");
+  const [activeTab, setActiveTab] = useState<"providers" | "sent" | "received" | "auctions">("providers");
   const [type, setType] = useState("");
   const [location, setLocation] = useState("");
+  const [materialSearch, setMaterialSearch] = useState("");
   const [minimumQuantity, setMinimumQuantity] = useState("");
+  const [maximumQuantity, setMaximumQuantity] = useState("");
+  const [minimumPrice, setMinimumPrice] = useState("");
   const [maximumPrice, setMaximumPrice] = useState("");
   const [availableBy, setAvailableBy] = useState("");
   const [condition, setCondition] = useState("");
@@ -85,23 +91,37 @@ export default function Providers() {
   const [view, setView] = useState<ViewMode>("grid");
   const listings = useMemo(() => dataset.providerListings ?? [], [dataset.providerListings]);
   const providers = useMemo(() => [...new Set(listings.map((listing) => listing.organization))], [listings]);
+  const invalidQuantityValue = [minimumQuantity, maximumQuantity].some((value) => value !== "" && Number(value) < 0);
+  const invalidPriceValue = [minimumPrice, maximumPrice].some((value) => value !== "" && Number(value) < 0);
+  const invalidQuantityRange = !invalidQuantityValue && minimumQuantity !== "" && maximumQuantity !== "" && Number(minimumQuantity) > Number(maximumQuantity);
+  const invalidPriceRange = !invalidPriceValue && minimumPrice !== "" && maximumPrice !== "" && Number(minimumPrice) > Number(maximumPrice);
+  const handleMaterialSearchChange = (value: string) => {
+    setMaterialSearch(value);
+    const exactType = listings.find((listing) => listing.materialType.toLowerCase() === value.trim().toLowerCase())?.materialType;
+    setType(exactType ?? "");
+  };
   const filteredListings = useMemo(() => listings.filter((listing) => {
     const locationQuery = location.trim().toLowerCase();
+    const materialQuery = materialSearch.trim().toLowerCase();
     return (!type || listing.materialType === type)
-      && (!locationQuery || `${listing.location} ${listing.projectLocation} ${listing.organization}`.toLowerCase().includes(locationQuery))
-      && (!minimumQuantity || listing.availableT >= Number(minimumQuantity))
-      && (!maximumPrice || listing.pricePerT !== undefined && listing.pricePerT <= Number(maximumPrice))
+      && (!materialQuery || `${listing.materialType} ${listing.grade}`.toLowerCase().includes(materialQuery))
+      && (!locationQuery || `${listing.location} ${listing.projectLocation}`.toLowerCase().includes(locationQuery))
+      && (invalidQuantityValue || invalidQuantityRange || !minimumQuantity || listing.availableT >= Number(minimumQuantity))
+      && (invalidQuantityValue || invalidQuantityRange || !maximumQuantity || listing.availableT <= Number(maximumQuantity))
+      && (invalidPriceValue || invalidPriceRange || !minimumPrice || listing.pricePerT !== undefined && listing.pricePerT >= Number(minimumPrice))
+      && (invalidPriceValue || invalidPriceRange || !maximumPrice || listing.pricePerT !== undefined && listing.pricePerT <= Number(maximumPrice))
       && (!availableBy || !listing.availableFrom || listing.availableFrom <= availableBy)
       && (!condition || listing.condition === condition);
-  }), [listings, type, location, minimumQuantity, maximumPrice, availableBy, condition]);
+  }), [listings, type, materialSearch, location, minimumQuantity, maximumQuantity, minimumPrice, maximumPrice, availableBy, condition, invalidQuantityValue, invalidPriceValue, invalidQuantityRange, invalidPriceRange]);
   const sortedListings = useMemo(() => [...filteredListings].sort((a, b) => {
-    if (sortBy === "quantity") return b.availableT - a.availableT;
-    if (sortBy === "price-asc") return (a.pricePerT ?? Number.POSITIVE_INFINITY) - (b.pricePerT ?? Number.POSITIVE_INFINITY);
-    if (sortBy === "price-desc") return (b.pricePerT ?? -1) - (a.pricePerT ?? -1);
+    const placement = Number(Boolean(b.sponsored)) - Number(Boolean(a.sponsored)) || Number(Boolean(b.premium)) - Number(Boolean(a.premium));
+    if (sortBy === "quantity") return b.availableT - a.availableT || placement || a.materialId.localeCompare(b.materialId);
+    if (sortBy === "price-asc") return (a.pricePerT ?? Number.POSITIVE_INFINITY) - (b.pricePerT ?? Number.POSITIVE_INFINITY) || placement || a.materialId.localeCompare(b.materialId);
+    if (sortBy === "price-desc") return (b.pricePerT ?? -1) - (a.pricePerT ?? -1) || placement || a.materialId.localeCompare(b.materialId);
     const av = a.availableFrom ?? "";
     const bv = b.availableFrom ?? "";
     if (av !== bv) return av.localeCompare(bv);
-    return b.materialId.localeCompare(a.materialId);
+    return placement || b.materialId.localeCompare(a.materialId);
   }), [filteredListings, sortBy]);
 
   const categoryCounts = useMemo(() => {
@@ -115,9 +135,7 @@ export default function Providers() {
   ), [categoryCounts]);
   const totalAvailableT = useMemo(() => listings.reduce((sum, listing) => sum + listing.availableT, 0), [listings]);
 
-  const typeOptions = [...new Set(listings.map((listing) => listing.materialType))]
-    .filter((item) => !types.includes(item as MaterialTypeKey));
-  const activeFilterCount = [type, location, minimumQuantity, maximumPrice, availableBy, condition].filter(Boolean).length;
+  const activeFilterCount = [type, location, minimumQuantity, maximumQuantity, minimumPrice, maximumPrice, availableBy, condition].filter(Boolean).length;
 
   const myRequests = useMemo(() => dataset.demands?.filter((d) => d.receiverId === receiverId && d.targetProviderId) ?? [], [dataset.demands, receiverId]);
   const filteredMyRequests = useMemo(() => myRequests.filter((d) => {
@@ -131,6 +149,7 @@ export default function Providers() {
   }), [myRequests, type, location, minimumQuantity, maximumPrice, availableBy, dataset.providerListings]);
 
   const myOffers = useMemo(() => dataset.offers?.filter((o) => {
+    if (o.auctionId) return false;
     const demand = dataset.demands?.find((d) => d.id === o.demandId);
     return demand?.receiverId === receiverId;
   }) ?? [], [dataset.offers, dataset.demands, receiverId]);
@@ -199,25 +218,64 @@ export default function Providers() {
       {/* Search, filters, sort, view toggle                          */}
       {/* ---------------------------------------------------------- */}
       <div className="mx-auto max-w-app px-4 pt-6 sm:px-card xl:px-section">
-        <SearchFilterBar
-          searchValue={location}
-          onSearchChange={setLocation}
-          searchPlaceholder="Search location, city or organization…"
-          searchLabel="Search providers and material"
-          activeFilterCount={activeFilterCount}
-          onClearFilters={() => { setType(""); setLocation(""); setMinimumQuantity(""); setMaximumPrice(""); setAvailableBy(""); setCondition(""); }}
-          resultLabel={`Showing ${filteredListings.length} of ${listings.length} records`}
-          filters={
-            <>
-              <label className="text-xs font-medium text-steel-600 dark:text-gray-300">Material<select value={type} onChange={(event) => setType(event.target.value)} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white"><option value="">All materials</option>{types.map((item) => <option key={item} value={item}>{materialTypeLabel(item)}</option>)}{typeOptions.map((item) => <option key={item} value={item}>{materialTypeLabel(item)}</option>)}</select></label>
-              <label className="text-xs font-medium text-steel-600 dark:text-gray-300">Minimum quantity (t)<input type="number" min="0" value={minimumQuantity} onChange={(event) => setMinimumQuantity(event.target.value)} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white" /></label>
-              <label className="text-xs font-medium text-steel-600 dark:text-gray-300">Maximum price / tonne<input type="number" min="0" value={maximumPrice} onChange={(event) => setMaximumPrice(event.target.value)} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white" /></label>
-              <label className="text-xs font-medium text-steel-600 dark:text-gray-300">Date<input type="date" value={availableBy} onChange={(event) => setAvailableBy(event.target.value)} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white" /></label>
-              {activeTab === "providers" && <label className="text-xs font-medium text-steel-600 dark:text-gray-300">Condition<select value={condition} onChange={(event) => setCondition(event.target.value)} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white"><option value="">Any condition</option>{conditions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>}
-            </>
-          }
-          actions={
-            <>
+        {activeTab === "providers" && (
+          <SearchFilterBar
+            searchValue={materialSearch}
+            onSearchChange={handleMaterialSearchChange}
+            searchPlaceholder={t("providerDirectory.searchPlaceholder")}
+            searchLabel={t("providerDirectory.searchLabel")}
+            activeFilterCount={activeFilterCount}
+            onClearFilters={() => {
+              setType("");
+              setMaterialSearch("");
+              setLocation("");
+              setMinimumQuantity("");
+              setMaximumQuantity("");
+              setMinimumPrice("");
+              setMaximumPrice("");
+              setAvailableBy("");
+              setCondition("");
+            }}
+            resultLabel={t("providerDirectory.resultCount", { shown: filteredListings.length, total: listings.length })}
+            filters={
+              <>
+                <label className="text-xs font-medium text-steel-600 dark:text-gray-300">
+                  {t("providerDirectory.location")}
+                  <input type="search" value={location} onChange={(event) => setLocation(event.target.value)} placeholder={t("providerDirectory.locationPlaceholder")} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white" />
+                </label>
+                <label className="text-xs font-medium text-steel-600 dark:text-gray-300">
+                  {t("providerDirectory.minAvailableQuantity")}
+                  <input type="number" min="0" step="any" value={minimumQuantity} onChange={(event) => setMinimumQuantity(event.target.value)} aria-invalid={invalidQuantityValue || invalidQuantityRange} aria-describedby={invalidQuantityValue || invalidQuantityRange ? "quantity-range-error" : undefined} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white" />
+                </label>
+                <label className="text-xs font-medium text-steel-600 dark:text-gray-300">
+                  {t("providerDirectory.maxAvailableQuantity")}
+                  <input type="number" min="0" step="any" value={maximumQuantity} onChange={(event) => setMaximumQuantity(event.target.value)} aria-invalid={invalidQuantityValue || invalidQuantityRange} aria-describedby={invalidQuantityValue || invalidQuantityRange ? "quantity-range-error" : undefined} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white" />
+                </label>
+                <label className="text-xs font-medium text-steel-600 dark:text-gray-300">
+                  {t("providerDirectory.minPrice")}
+                  <input type="number" min="0" step="any" value={minimumPrice} onChange={(event) => setMinimumPrice(event.target.value)} aria-invalid={invalidPriceValue || invalidPriceRange} aria-describedby={invalidPriceValue || invalidPriceRange ? "price-range-error" : undefined} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white" />
+                </label>
+                <label className="text-xs font-medium text-steel-600 dark:text-gray-300">
+                  {t("providerDirectory.maxPrice")}
+                  <input type="number" min="0" step="any" value={maximumPrice} onChange={(event) => setMaximumPrice(event.target.value)} aria-invalid={invalidPriceValue || invalidPriceRange} aria-describedby={invalidPriceValue || invalidPriceRange ? "price-range-error" : undefined} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white" />
+                </label>
+                <label className="text-xs font-medium text-steel-600 dark:text-gray-300">
+                  {t("providerDirectory.availableBy")}
+                  <input type="date" value={availableBy} onChange={(event) => setAvailableBy(event.target.value)} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white" />
+                </label>
+                <label className="text-xs font-medium text-steel-600 dark:text-gray-300">
+                  {t("providerDirectory.condition")}
+                  <select value={condition} onChange={(event) => setCondition(event.target.value)} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white">
+                    <option value="">{t("providerDirectory.anyCondition")}</option>
+                    {conditions.map((item) => <option key={item} value={item}>{t(`recordCrud.${item}`)}</option>)}
+                  </select>
+                </label>
+                {(invalidQuantityValue || invalidQuantityRange) && <p id="quantity-range-error" role="alert" className="text-xs text-error-500 sm:col-span-2">{t(invalidQuantityValue ? "providerDirectory.negativeQuantity" : "providerDirectory.invalidQuantityRange")}</p>}
+                {(invalidPriceValue || invalidPriceRange) && <p id="price-range-error" role="alert" className="text-xs text-error-500 sm:col-span-2">{t(invalidPriceValue ? "providerDirectory.negativePrice" : "providerDirectory.invalidPriceRange")}</p>}
+              </>
+            }
+            actions={
+              <>
               <label className="relative hidden items-center md:flex">
                 <span className="sr-only">Sort listings</span>
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" className="pointer-events-none absolute start-3 size-4 text-steel-400"><path d="M7 4v13m0 0-3-3m3 3 3-3M17 20V7m0 0-3 3m3-3 3 3" /></svg>
@@ -247,9 +305,10 @@ export default function Providers() {
                   </button>
                 ))}
               </div>
-            </>
-          }
-        />
+              </>
+            }
+          />
+        )}
 
         {/* ------------------------------------------------------ */}
         {/* Tabs — All Providers / Requests Sent / Offers Received  */}
@@ -257,7 +316,8 @@ export default function Providers() {
         <div className="mb-4 flex gap-1 rounded-full border border-[#e5e2da] bg-[#f7f6f0] p-1 shadow-sm dark:border-steel-800 dark:bg-[#1a2b21] sm:w-max">
           <button type="button" onClick={() => setActiveTab("providers")} className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-px sm:flex-none ${activeTab === "providers" ? "bg-[#315b3c] text-white shadow-[0_4px_12px_rgba(49,91,60,0.2)] dark:bg-[#527e5c]" : "text-[#7c857d] hover:bg-white/70 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>All Providers</button>
           <button type="button" onClick={() => setActiveTab("sent")} className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-px sm:flex-none ${activeTab === "sent" ? "bg-[#315b3c] text-white shadow-[0_4px_12px_rgba(49,91,60,0.2)] dark:bg-[#527e5c]" : "text-[#7c857d] hover:bg-white/70 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Requests Sent</button>
-          <button type="button" onClick={() => setActiveTab("received")} className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-px sm:flex-none ${activeTab === "received" ? "bg-[#315b3c] text-white shadow-[0_4px_12px_rgba(49,91,60,0.2)] dark:bg-[#527e5c]" : "text-[#7c857d] hover:bg-white/70 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Offers Received</button>
+          <button type="button" onClick={() => setActiveTab("received")} className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-px sm:flex-none ${activeTab === "received" ? "bg-[#315b3c] text-white shadow-[0_4px_12px_rgba(49,91,60,0.2)] dark:bg-[#527e5c] dark:text-white" : "text-[#7c857d] hover:bg-white/70 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Offers Received</button>
+          <button type="button" onClick={() => setActiveTab("auctions")} className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-px sm:flex-none ${activeTab === "auctions" ? "bg-[#315b3c] text-white shadow-[0_4px_12px_rgba(49,91,60,0.2)] dark:bg-[#527e5c] dark:text-white" : "text-[#7c857d] hover:bg-white/70 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>{t("auctions.tab")}</button>
         </div>
 
         {/* ------------------------------------------------------ */}
@@ -267,15 +327,15 @@ export default function Providers() {
           <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-1">
             <button
               type="button"
-              aria-pressed={!type}
-              onClick={() => setType("")}
-              className={`flex shrink-0 items-center gap-2 rounded-full border py-1.5 pe-3.5 ps-1.5 text-sm font-semibold transition-all duration-200 hover:-translate-y-px ${!type ? "border-[#315b3c] bg-[#0f2d1c] text-white shadow-[0_4px_12px_rgba(15,45,28,0.28)] dark:border-[#527e5c] dark:bg-[#2c4233]" : "border-[#e3e3d9] bg-white/85 text-[#4f5b51] hover:border-[#b9c8ba] hover:bg-[#f1f5ef] hover:text-[#315c3d] dark:border-steel-700 dark:bg-[#17251d] dark:text-gray-300 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}
+              aria-pressed={!type && !materialSearch}
+              onClick={() => { setType(""); setMaterialSearch(""); }}
+              className={`flex shrink-0 items-center gap-2 rounded-full border py-1.5 pe-3.5 ps-1.5 text-sm font-semibold transition-all duration-200 hover:-translate-y-px ${!type && !materialSearch ? "border-[#315b3c] bg-[#0f2d1c] text-white shadow-[0_4px_12px_rgba(15,45,28,0.28)] dark:border-[#527e5c] dark:bg-[#2c4233]" : "border-[#e3e3d9] bg-white/85 text-[#4f5b51] hover:border-[#b9c8ba] hover:bg-[#f1f5ef] hover:text-[#315c3d] dark:border-steel-700 dark:bg-[#17251d] dark:text-gray-300 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}
             >
-              <span aria-hidden="true" className={`flex size-7 items-center justify-center rounded-full ${!type ? "bg-[#2c4a38] text-[#8fe0a4]" : "bg-[#eaf2ea] text-[#487454] dark:bg-[#284233] dark:text-[#b6d1bd]"}`}>
+              <span aria-hidden="true" className={`flex size-7 items-center justify-center rounded-full ${!type && !materialSearch ? "bg-[#2c4a38] text-[#8fe0a4]" : "bg-[#eaf2ea] text-[#487454] dark:bg-[#284233] dark:text-[#b6d1bd]"}`}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" className="size-4"><rect x="4" y="4" width="6.5" height="6.5" rx="1.2" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2" /></svg>
               </span>
               All Providers
-              <span className={`ledger-numeral rounded-full px-1.5 text-xs ${!type ? "bg-white/15 text-[#cfe6d3]" : "bg-[#eef2ec] text-[#5c6a5f] dark:bg-white/10 dark:text-gray-300"}`}>{listings.length}</span>
+              <span className={`ledger-numeral rounded-full px-1.5 text-xs ${!type && !materialSearch ? "bg-white/15 text-[#cfe6d3]" : "bg-[#eef2ec] text-[#5c6a5f] dark:bg-white/10 dark:text-gray-300"}`}>{listings.length}</span>
             </button>
             {categories.map((item) => {
               const media = materialMediaFor(item);
@@ -285,7 +345,7 @@ export default function Providers() {
                   key={item}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => setType(active ? "" : item)}
+                  onClick={() => { const next = active ? "" : item; setType(next); setMaterialSearch(next); }}
                   className={`flex shrink-0 items-center gap-2 rounded-full border py-1.5 pe-3.5 ps-1.5 text-sm font-semibold transition-all duration-200 hover:-translate-y-px ${active ? "border-[#315b3c] bg-[#0f2d1c] text-white shadow-[0_4px_12px_rgba(15,45,28,0.28)] dark:border-[#527e5c] dark:bg-[#2c4233]" : "border-[#e3e3d9] bg-white/85 text-[#4f5b51] hover:border-[#b9c8ba] hover:bg-[#f1f5ef] hover:text-[#315c3d] dark:border-steel-700 dark:bg-[#17251d] dark:text-gray-300 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}
                 >
                   <img src={media.src} alt="" loading="lazy" aria-hidden="true" className="size-7 rounded-full border border-white/60 object-cover shadow-sm dark:border-white/20" />
@@ -337,12 +397,13 @@ export default function Providers() {
                     variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
                     transition={{ duration: 0.45, ease: EASE }}
                     whileHover={reduceMotion ? undefined : { y: -4 }}
-                    className={`group/card flex min-w-0 overflow-hidden rounded-2xl border border-[#e7e4db] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.05)] transition-shadow duration-300 hover:shadow-[0_14px_30px_rgba(26,42,31,0.12)] dark:border-steel-800 dark:bg-[#17251d] ${view === "list" ? "sm:grid sm:grid-cols-[260px_1fr]" : "flex-col"}`}
+                    className={`group/card flex min-w-0 overflow-hidden rounded-2xl border ${listing.premium ? "border-loop-300 shadow-[0_3px_14px_rgba(49,95,61,0.11)] dark:border-loop-800" : "border-[#e7e4db] shadow-[0_2px_10px_rgba(26,42,31,0.05)]"} bg-white transition-shadow duration-300 hover:shadow-[0_14px_30px_rgba(26,42,31,0.12)] dark:bg-[#17251d] ${view === "list" ? "sm:grid sm:grid-cols-[260px_1fr]" : "flex-col"}`}
                   >
                     <div className={`relative overflow-hidden ${view === "list" ? "h-44 sm:h-full sm:min-h-[196px]" : "h-44"}`}>
                       <img src={media.src} alt={media.alt} loading="lazy" className="absolute inset-0 size-full object-cover motion-safe:transition-transform motion-safe:duration-[900ms] group-hover/card:scale-[1.05]" />
                       <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#0a1c10]/45 via-transparent to-transparent" />
                       <div className="absolute end-3 top-3"><StockPill label={stock.label} tone={stock.tone} /></div>
+                      {(listing.premium || listing.sponsored) && <div className="absolute start-3 top-3 flex flex-wrap gap-1.5">{listing.premium&&<span className="rounded-full border border-amber-200 bg-[#fff9e8]/95 px-2.5 py-1 text-[10px] font-bold text-amber-900 shadow-sm">★ Premium</span>}{listing.sponsored&&<span className="rounded-full bg-ink-900/90 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">Sponsored</span>}</div>}
                       <div className="absolute bottom-3 start-3"><OrgBadge name={listing.organization} /></div>
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
@@ -488,6 +549,7 @@ export default function Providers() {
             )}
           </section>
         )}
+        {activeTab === "auctions" && <AuctionsBoard />}
 
       </div>
     </div>

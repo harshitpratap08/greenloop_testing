@@ -7,7 +7,9 @@ export function createSecurityMiddleware({ allowedOrigins }) {
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('Referrer-Policy', 'same-origin');
       if (!['GET', 'HEAD'].includes(req.method)) {
-        requireThat(req.headers['x-greenloop-client'] === 'web', 'Missing request verification header.', 403);
+        const webhookPath = new URL(req.url, 'http://localhost').pathname;
+        const providerWebhook = webhookPath === '/api/payments/mock/webhook' || webhookPath === '/api/monetization/mock/webhook';
+        if (!providerWebhook) requireThat(req.headers['x-greenloop-client'] === 'web', 'Missing request verification header.', 403);
         if (req.headers.origin) requireThat(allowedOrigins.has(req.headers.origin), 'Origin is not allowed.', 403);
         requireThat((req.headers['content-type'] ?? '').startsWith('application/json'), 'Send JSON requests.', 415);
       }

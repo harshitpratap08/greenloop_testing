@@ -1,4 +1,4 @@
-import type { GreenLoopDataset, MaterialPassport, DemandRecord, Project, ReceiverDaySlot, SupportRequest, MaterialOffer, Evidence, MaterialUpdate, DemandUpdate } from "@shared/domain/types";
+import type { GreenLoopDataset, MaterialPassport, DemandRecord, Project, ReceiverDaySlot, SupportRequest, MaterialOffer, Evidence, MaterialUpdate, DemandUpdate, FinalTermsProposal, BookingPayment } from "@shared/domain/types";
 import type { DeliveryInput } from "@shared/domain/capacity";
 type RequestCapacityAction = (input: {
   materialId: string;
@@ -39,9 +39,10 @@ export interface GreenLoopStoreValue {
   addOfferAction: (offer: Omit<MaterialOffer, "id" | "status" | "createdAt">) => Promise<boolean>;
   saveOfferDraftAction: (offer: Omit<MaterialOffer, "id" | "status" | "createdAt">) => Promise<boolean>;
   deleteOfferDraftAction: (offerId: string) => Promise<boolean>;
-  acceptOfferAction: (offerId: string) => Promise<boolean>;
   declineOfferAction: (offerId: string) => Promise<boolean>;
-  counterOfferAction: (offerId: string, pricePerT: number) => Promise<boolean>;
+  sendNegotiationMessageAction: (offerId: string, body: string) => Promise<boolean>;
+  proposeFinalTermsAction: (offerId: string, terms: Pick<FinalTermsProposal, "quantityT" | "pricePerT" | "destination" | "slotId">) => Promise<boolean>;
+  approveFinalTermsAction: (offerId: string, proposalId: string) => Promise<{ status: string; bookingId?: string; capacityIssue?: string } | null>;
   cancelDemandAction: (demandId: string) => Promise<boolean>;
   withdrawOfferAction: (offerId: string) => Promise<boolean>;
   archiveBookingAction: (bookingId: string) => Promise<boolean>;
@@ -50,4 +51,6 @@ export interface GreenLoopStoreValue {
   rescheduleRequestAction: (bookingId: string, slotId: string) => Promise<boolean>;
   receiveLoadAction: (bookingId: string, actualT: number, evidence: Evidence[]) => Promise<boolean>;
   verifyLoadAction: (verificationId: string, acceptedT: number, rejectedT: number, rejectReason?: string) => Promise<boolean>;
+  createPaymentAttemptAction: (bookingId: string) => Promise<BookingPayment | null>;
+  disputePaymentAction: (bookingId: string, reason: string) => Promise<boolean>;
 }

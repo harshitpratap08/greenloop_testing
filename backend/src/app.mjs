@@ -2,23 +2,39 @@ import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { resolve, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
 import { openDatabase } from './database/openDatabase.mjs';
 import { ApiError, requireThat } from './validation.mjs';
 import { createDatasetModel } from './models/dataset.model.mjs';
 import { createSessionModel } from './models/session.model.mjs';
 import { createUploadModel } from './models/upload.model.mjs';
 import { createUserModel } from './models/user.model.mjs';
+import { createNegotiationModel } from './models/negotiation.model.mjs';
+import { createPaymentModel } from './models/payment.model.mjs';
+import { createAdminModel } from './models/admin.model.mjs';
+import { createSupportModel } from './models/support.model.mjs';
+import { createAuctionModel } from './models/auction.model.mjs';
 import { requireAuthentication } from './middleware/auth.middleware.mjs';
 import { createSecurityMiddleware } from './middleware/security.middleware.mjs';
 import { createActionService } from './services/action.service.mjs';
 import { createAuthService } from './services/auth.service.mjs';
 import { createDatasetService } from './services/dataset.service.mjs';
 import { createUploadService } from './services/upload.service.mjs';
+import { createPaymentService } from './services/payment.service.mjs';
+import { createMockPaymentProvider } from './services/payment-provider.mock.mjs';
 import { createActionsController } from './controllers/actions.controller.mjs';
 import { createAuthController } from './controllers/auth.controller.mjs';
 import { createDatasetController } from './controllers/dataset.controller.mjs';
 import { createSystemController } from './controllers/system.controller.mjs';
 import { createUploadsController } from './controllers/uploads.controller.mjs';
+import { createPaymentsController } from './controllers/payments.controller.mjs';
+import { createAdminController } from './controllers/admin.controller.mjs';
+import { createAdminService } from './services/admin.service.mjs';
+import { createAuctionService } from './services/auction.service.mjs';
+import { createAuctionsController } from './controllers/auctions.controller.mjs';
+import { createMonetizationModel } from './models/monetization.model.mjs';
+import { createMonetizationService } from './services/monetization.service.mjs';
+import { createMonetizationController } from './controllers/monetization.controller.mjs';
 import { createRoutes } from './routes/index.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -60,24 +76,41 @@ export function createBackend(options = {}) {
   const sessionModel = createSessionModel(db);
   const uploadModel = createUploadModel(db);
   const userModel = createUserModel(db);
+  const negotiationModel = createNegotiationModel(db);
+  const paymentModel = createPaymentModel(db);
+  const adminModel = createAdminModel(db);
+  const supportModel = createSupportModel(db);
+  const auctionModel = createAuctionModel(db);
+  const monetizationModel = createMonetizationModel(db);
   datasetModel.initialize();
+  supportModel.ensureRequests(datasetModel.load().supportRequests);
 
-  const datasetService = createDatasetService({ datasetModel, userModel });
-  const authService = createAuthService({ userModel, sessionModel, datasetModel, dataDir, production });
-  const actionService = createActionService({ datasetModel, datasetService, userModel, uploadModel });
+  const paymentProvider = options.paymentProvider ?? createMockPaymentProvider();
+  const paymentService = createPaymentService({ paymentModel, provider: paymentProvider, datasetModel });
+  const monetizationService = createMonetizationService({ model: monetizationModel, provider: paymentProvider, datasetModel, userModel, adminModel, auctionModel });
+  const datasetService = createDatasetService({ datasetModel, userModel, negotiationModel, paymentModel, supportModel, adminModel, auctionModel, monetizationService });
+  const auctionService = createAuctionService({ auctionModel, datasetModel, datasetService, userModel, adminModel, negotiationModel, monetizationService });
+  const authService = createAuthService({ userModel, sessionModel, datasetModel, dataDir, production, adminModel });
+  const actionService = createActionService({ datasetModel, datasetService, userModel, uploadModel, negotiationModel, paymentService, supportModel, auctionService });
   const uploadService = createUploadService({ uploadModel, datasetService });
   const requireAuth = requireAuthentication(authService);
   const authController = createAuthController(authService);
   const datasetController = createDatasetController(datasetService);
   const actionsController = createActionsController(actionService);
   const uploadsController = createUploadsController(uploadService);
+  const paymentsController = createPaymentsController(paymentService);
+  const adminService = createAdminService({ adminModel, supportModel, userModel, sessionModel, datasetModel, negotiationModel, auctionService,
+    paymentModel, monetizationService, paymentReady: Boolean(paymentProvider && typeof paymentProvider.createPaymentIntent === 'function') });
+  const adminController = createAdminController(adminService);
+  const auctionsController = createAuctionsController(auctionService);
   const systemController = createSystemController();
-  const routes = createRoutes({ authController, datasetController, actionsController, uploadsController, requireAuth, systemController });
+  const routes = createRoutes({ authController, datasetController, actionsController, uploadsController, paymentsController, adminController, auctionsController, monetizationController: createMonetizationController(monetizationService), requireAuth, systemController });
   const allowedOrigins = new Set(options.origins ?? (production ? [process.env.PUBLIC_ORIGIN] : [process.env.PUBLIC_ORIGIN ?? 'http://localhost:5173', 'http://localhost:3001', 'http://localhost:4173', 'http://localhost:5199']));
   const security = createSecurityMiddleware({ allowedOrigins });
 
   const server = createServer(async (req, res) => {
     let path;
+    const requestId = randomUUID();
     try {
       const url = new URL(req.url, 'http://localhost');
       path = url.pathname;
@@ -96,8 +129,11 @@ export function createBackend(options = {}) {
       if (!res.headersSent) {
         const status = error.status ?? 500;
         const message = error.status ? error.message : 'An unexpected server error occurred.';
-        res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ error: message }));
+        if (status >= 500) {
+          try { adminModel.addIncident({ requestId, occurredAt: new Date().toISOString(), method: req.method ?? 'UNKNOWN', route: path ?? '/', category: 'internal_error', statusCode: status }); } catch { /* Incident reporting must not mask the original failure. */ }
+        }
+        res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Request-Id': requestId });
+        res.end(JSON.stringify({ error: message, requestId }));
       } else {
         res.end();
       }

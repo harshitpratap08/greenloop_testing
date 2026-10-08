@@ -1,10 +1,11 @@
 import { createContext, useContext } from "react";
 
 export type Role = "provider" | "receiver";
+export type SystemRole = "super_admin" | "support_admin" | "operations_admin";
 
 export interface User {
   id: string; email: string; name?: string; organization?: string; location?: string;
-  vat?: string; phone?: string; receiverId?: string; workspaces: Role[]; activeWorkspace?: Role;
+  vat?: string; phone?: string; receiverId?: string; workspaces: Role[]; activeWorkspace?: Role; systemRole?: SystemRole;
 }
 
 export interface AuthContextType {

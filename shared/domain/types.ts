@@ -121,6 +121,10 @@ export interface ProviderMaterialListing {
   availableT: number;
   condition: MaterialCondition;
   grade: MaterialGrade;
+  premium?: boolean;
+  premiumExpiresAt?: string;
+  sponsored?: boolean;
+  sponsoredExpiresAt?: string;
   pricePerT?: number;
   availableFrom?: string;
   geo?: GeoPoint;
@@ -246,7 +250,41 @@ export interface Booking {
   cancelledAt?: string;
   cancelledReason?: string;
   agreedPricePerT?: number;
+  offerId?: string;
+  agreementVersionId?: string;
   archivedAt?: string;
+}
+
+export type PaymentStatus = "pending" | "paid" | "failed" | "adjustment" | "disputed";
+export type PaymentRefundStatus = "not_required" | "pending" | "refunded" | "failed";
+export type ProviderPayoutStatus = "held" | "pending" | "settled" | "failed" | "disputed" | "not_eligible";
+
+/** Safe payment projection returned to the Receiver and Provider workspaces. */
+export interface BookingPayment {
+  bookingId: string;
+  attemptId: string;
+  provider: string;
+  providerReference: string;
+  amountMinor: number;
+  currency: "INR";
+  paymentStatus: PaymentStatus;
+  createdAt: string;
+  updatedAt: string;
+  paidAt?: string;
+  acceptedT?: number;
+  acceptedValueMinor: number;
+  commissionMinor: number;
+  providerFeeMinor: number;
+  refundAmountMinor: number;
+  refundStatus: PaymentRefundStatus;
+  payoutAmountMinor: number;
+  payoutStatus: ProviderPayoutStatus;
+  payoutReference?: string;
+  settledAt?: string;
+  disputedAt?: string;
+  disputeReason?: string;
+  /** Only included for the Receiver while payment is pending. */
+  qrPayload?: string;
 }
 
 export interface MaterialOffer {
@@ -261,12 +299,53 @@ export interface MaterialOffer {
   agreedPricePerT?: number;
   counters?: OfferCounter[];
   archivedAt?: string;
+  /** Present only for the negotiation seeded by an auction award. */
+  auctionId?: string;
 }
 
 export interface OfferCounter {
   actor: "provider" | "receiver";
   pricePerT: number;
   at: string;
+}
+
+export type NegotiationStatus =
+  | "negotiating"
+  | "awaiting_provider_approval"
+  | "awaiting_receiver_approval"
+  | "approved"
+  | "confirmed"
+  | "declined"
+  | "withdrawn";
+
+export interface NegotiationMessage {
+  id: string;
+  senderRole: "provider" | "receiver";
+  senderName: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface FinalTermsProposal {
+  id: string;
+  version: number;
+  proposedBy: "provider" | "receiver";
+  status: "awaiting_provider_approval" | "awaiting_receiver_approval" | "approved" | "confirmed" | "superseded";
+  quantityT: number;
+  pricePerT: number;
+  destination: string;
+  slotId: string;
+  providerApprovedAt?: string;
+  receiverApprovedAt?: string;
+  createdAt: string;
+  bookingId?: string;
+}
+
+export interface NegotiationConversation {
+  offerId: string;
+  status: NegotiationStatus;
+  messages: NegotiationMessage[];
+  proposals: FinalTermsProposal[];
 }
 
 export interface VerificationRecord {
@@ -305,6 +384,8 @@ export interface DemandRecord {
   targetProviderName?: string;
   targetMaterialId?: string;
   archivedAt?: string;
+  /** Hidden backing request for an auction winner's ordinary negotiation. */
+  auctionId?: string;
 }
 
 export interface SupportRequest {
@@ -313,6 +394,9 @@ export interface SupportRequest {
   subject: string;
   message: string;
   submittedAt: string;
+  status?: "open" | "in_review" | "waiting" | "resolved";
+  updatedAt?: string;
+  resolvedAt?: string;
 }
 
 export interface GreenLoopDataset {
@@ -330,6 +414,8 @@ export interface GreenLoopDataset {
   events: DomainEvent[];
   demands: DemandRecord[];
   offers?: MaterialOffer[];
+  negotiations?: NegotiationConversation[];
+  payments?: BookingPayment[];
 }
 
 export interface EngineResult<T> {

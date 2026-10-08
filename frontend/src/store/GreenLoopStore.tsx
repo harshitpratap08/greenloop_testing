@@ -73,9 +73,10 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
     addOfferAction: input => run("addOfferAction", [input], false),
     saveOfferDraftAction: input => run("saveOfferDraftAction", [input], false),
     deleteOfferDraftAction: id => run("deleteOfferDraftAction", [id], false),
-    acceptOfferAction: id => run("acceptOfferAction", [id], false),
     declineOfferAction: id => run("declineOfferAction", [id], false),
-    counterOfferAction: (id, pricePerT) => run("counterOfferAction", [id, pricePerT], false),
+    sendNegotiationMessageAction: (id, body) => run("sendNegotiationMessageAction", [id, body], false),
+    proposeFinalTermsAction: (id, terms) => run("proposeFinalTermsAction", [id, terms], false),
+    approveFinalTermsAction: (id, proposalId) => run("approveFinalTermsAction", [id, proposalId], null),
     cancelDemandAction: id => run("cancelDemandAction", [id], false),
     withdrawOfferAction: id => run("withdrawOfferAction", [id], false),
     archiveBookingAction: id => run("archiveBookingAction", [id], false),
@@ -84,6 +85,8 @@ export function GreenLoopStoreProvider({ children }: { children: ReactNode }) {
     rescheduleRequestAction: (id, slot) => run("rescheduleRequestAction", [id, slot], false),
     receiveLoadAction: (id, tonnes, evidence) => run("receiveLoadAction", [id, tonnes, evidence], false),
     verifyLoadAction: (id, accepted, rejected, reason) => run("verifyLoadAction", [id, accepted, rejected, reason], false),
+    createPaymentAttemptAction: bookingId => run("createPaymentAttemptAction", [{ bookingId }], null),
+    disputePaymentAction: (bookingId, reason) => run("disputePaymentAction", [{ bookingId, reason }], false),
   };
   const loading = ready && user && loadedFor !== identity;
   return <Context.Provider value={value}>

@@ -2,7 +2,7 @@ import type { GreenLoopDataset } from "@shared/domain/types";
 import { createContext, useContext } from "react";
 import type { GreenLoopStoreValue } from "./contracts";
 
-export const empty = (): GreenLoopDataset => ({ projects: [], materials: [], receivers: [], slots: [], allocations: [], bookings: [], verifications: [], events: [], demands: [], offers: [], supportRequests: [] });
+export const empty = (): GreenLoopDataset => ({ projects: [], materials: [], receivers: [], slots: [], allocations: [], bookings: [], verifications: [], events: [], demands: [], offers: [], negotiations: [], supportRequests: [] });
 
 export const Context = createContext<GreenLoopStoreValue | null>(null);
 

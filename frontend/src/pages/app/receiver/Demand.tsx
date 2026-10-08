@@ -4,7 +4,6 @@ import { materialMedia } from "@/components/greenloop/AppExploration.helpers";
 import { LocationMap } from "@/components/greenloop/LocationMap";
 import { VideoPanel } from "@/components/greenloop/kit";
 import MatchDetailsPanel from "@/components/greenloop/MatchDetailsPanel";
-import NegotiationPanel from "@/components/greenloop/NegotiationPanel";
 import RecordActions from "@/components/greenloop/RecordActions";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import Button from "@/components/ui/button/Button";
@@ -19,6 +18,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
+import { Link } from "react-router";
 import DemandCapacity from "./DemandCapacity";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -35,7 +35,7 @@ const normalizeCustomType = (value: string) => value.trim().toLowerCase().replac
 
 export default function Demand() {
   const { t } = useTranslation();
-  const { dataset, addDemandAction, saveDemandDraftAction, acceptOfferAction, declineOfferAction, counterOfferAction, cancelDemandAction, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
+  const { dataset, addDemandAction, saveDemandDraftAction, declineOfferAction, cancelDemandAction, addCapacityAction, updateCapacityAction } = useGreenLoopStore();
   const { user } = useAuth();
   const receiverId = user?.receiverId ?? "";
   const [searchParams] = useSearchParams();
@@ -63,7 +63,7 @@ export default function Demand() {
     ...dataset.demands.filter((item) => item.receiverId === receiverId).map((item) => item.location),
   ].filter(Boolean) as string[])];
 
-  const receiverDemands = dataset.demands?.filter((d) => d.receiverId === receiverId) ?? [];
+  const receiverDemands = dataset.demands?.filter((d) => d.receiverId === receiverId && !d.auctionId) ?? [];
 
   useEffect(() => {
     if (searchParams.get("capacity") === "1") window.setTimeout(() => document.getElementById("receiving-capacity")?.scrollIntoView({ behavior: "smooth" }), 0);
@@ -556,7 +556,7 @@ export default function Demand() {
                               <div className="flex flex-wrap gap-2 sm:flex-col sm:w-32">
                                 <StatusBadge status={offer.status} />
                                 {offer.status === "pending" && <>
-                                  <Button size="sm" className="min-h-11 w-full" disabled={!requestOpen || !hasCapacity || blockedByStock || blockedByQuantity} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
+                                  <Link className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-ink-900 px-4 text-sm font-semibold text-white dark:bg-white dark:text-ink-900" to={`/app/negotiations/${offer.id}`}>{t("negotiationReview")}</Link>
                                   <Button size="sm" className="min-h-11 w-full" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
                                 </>}
                               </div>
@@ -583,7 +583,7 @@ export default function Demand() {
                                   ) : <p className="text-sm text-steel-500">Match analysis unavailable.</p>}
                                 </div>
                               </details>
-                              <div className="mt-1 basis-full"><NegotiationPanel offer={offer} canCounter={offer.status === "pending"} onCounter={(price) => counterOfferAction(offer.id, price)} /></div>
+                              <div className="mt-1 basis-full"><Link className="text-sm font-semibold text-loop-800 underline dark:text-loop-300" to={`/app/negotiations/${offer.id}`}>{t("negotiationOpen")}</Link></div>
                             </div>
                           );
                         })}

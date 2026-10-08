@@ -1,4 +1,6 @@
 {
+  "auctions": {"tab":"المزادات","error":"تعذر تحميل المزادات أو تحديثها.","currentBid":"أعلى مزايدة حالية","awardDeadline":"أكمل الشروط النهائية قبل {{time}}","ends":"ينتهي {{time}}","provider":"المورّد","detailTitle":"تفاصيل المزاد","highest":"أعلى مزايدة","nextBid":"الحد الأدنى للمزايدة التالية","endsAt":"موعد انتهاء المزاد","reserve":"سعر الاحتياط","notSet":"دون سعر احتياط","met":"تم بلوغ سعر الاحتياط","notMet":"لم يتم بلوغ سعر الاحتياط","bidAmount":"مبلغ مزايدتك (INR)","placing":"جارٍ تقديم المزايدة…","placeBid":"قدّم مزايدة","youWon":"أنت الفائز المؤقت.","winnerNext":"الفائز المؤقت يُكمل الشروط النهائية.","completeWithin":"يجب أن يُكمل الطرفان الشروط النهائية خلال 24 ساعة. لا يتأكد الحجز حتى يوافق الطرفان ويتم التحقق من السعة.","continueTerms":"متابعة الشروط النهائية","bidHistory":"سجل المزايدات","you":"أنت","noBids":"لا توجد مزايدات بعد.","noProviderAuctions":"لا توجد مزادات لديك بعد.","noAuctions":"لا توجد مزادات مفتوحة أو حديثة.","management":"إدارة المزادات","managementDescription":"أنشئ وأدر مزادات المواد المتاحة. تُقفل الشروط بعد المزايدة.","providerWorkspace":"مساحة المورّد","create":"إنشاء مزاد","materials":"المواد","edit":"تعديل المزاد","material":"سجل المادة","chooseMaterial":"اختر مادة","quantity":"كمية المزاد (طن)","startsAt":"وقت البدء","endsAt":"وقت الإغلاق","increment":"الحد الأدنى للمزايدة / الزيادة (INR)","reserveOptional":"سعر الاحتياط (اختياري، INR)","saving":"جارٍ الحفظ…","save":"حفظ المزاد","close":"إغلاق","cancel":"إلغاء المزاد","details":"تفاصيل المزايدات","viewNegotiation":"عرض التفاوض","negotiationContext":"ترسية المزاد · المزايدة الفائزة {{price}} هي سعر البداية للشروط النهائية. لا توافق على الشروط ولا تنشئ حجزاً.","pricePending":"المزايدة الفائزة","viewAuction":"عرض المزاد","adminTitle":"مراجعة المزادات","adminReadOnly":"سجلات المزادات للقراءة فقط. لا يستطيع المشرفون تغيير المزايدات أو النتائج.","adminProvider":"المورّد","adminWinner":"الفائز","adminNone":"—","adminPeriod":"مدة المزاد","adminNegotiation":"التفاوض","adminBooking":"الحجز","adminAward":"الترسية","adminEmpty":"لا توجد سجلات مزادات."},
+  "monetization": {"planBilling":"الخطة والفوترة","premiumPlan":"خطة بريميوم","freePlan":"الخطة المجانية","activeThrough":"نشطة حتى {{date}}","freeAvailable":"تظل الميزات المجانية متاحة.","premiumBadge":"شارة بريميوم وظهور أفضل للإعلان","advancedAnalytics":"تحليلات تشغيلية متقدمة","impactReports":"تقارير الأثر وESG","monthlyPlan":"اشتراك تجريبي: ₹999 لشهر واحد، دون تجديد تلقائي","latestPayment":"آخر دفعة","sandboxPending":"دفعة تجريبية معلقة · {{amount}}","verifiedServer":"تتحدث الحالة بعد التحقق التجريبي من الخادم. هذه ليست دفعة حقيقية.","startingPayment":"جارٍ بدء الدفع…","upgrade":"الترقية إلى بريميوم · ₹999","renew":"تجديد بريميوم","loading":"جارٍ تحميل حالة بريميوم…","startError":"تعذر بدء دفعة بريميوم.","sponsorActive":"مدعوم ضمن حملة نشطة.","sponsorListing":"رعاية الإعلان","days7":"7 أيام · ₹199","days14":"14 يومًا · ₹398","days30":"30 يومًا · ₹852.86","promote":"ترويج الإعلان","starting":"جارٍ البدء…","feeStatus":"حالة الرسوم","sandboxOnly":"للتجربة فقط. يتطلب التفعيل تحقق الخادم.","sponsorshipError":"تعذر بدء الرعاية.","premiumImpact":"بريميوم · الأثر وESG","verifiedRecovery":"استعادة مواد تم التحقق منها","verifiedData":"بيانات تشغيلية موثقة","surveyedMaterial":"المواد التي تم مسحها","acceptedRecovery":"مواد مستعادة ومقبولة بعد التحقق","verifiedLoads":"الشحنات التي تم التحقق منها","acceptedShare":"مقبول","downloadReport":"تنزيل تقرير الأثر (CSV)","advancedAvailable":"تقارير الأثر المتقدمة متاحة مع بريميوم. تظل التحليلات الأساسية متاحة.","viewPlan":"عرض الخطة","loadingReport":"جارٍ تحميل تقرير بريميوم…","verifiedTonnes":"الأطنان المعروضة مأخوذة من عمليات تسليم تم التحقق منها. لا تستنتج GreenLoop وفورات الانبعاثات أو ادعاءات الشهادات.","adminTitle":"تحقيق الدخل","adminDescription":"فحص الاستحقاقات التجريبية ومحاولات الدفع.","readOnly":"عرض للقراءة فقط. إدارة الاستحقاقات متاحة للمشرف الأعلى.","findAccount":"البحث عن حساب","searchAccount":"البحث بالبريد الإلكتروني أو الاسم","account":"الحساب","chooseAccount":"اختر مستخدمًا","action":"الإجراء","grant":"منح","extend":"تمديد من تاريخ الانتهاء الحالي","revoke":"إلغاء","durationDays":"المدة (بالأيام)","orSetExpiry":"أو تحديد تاريخ الانتهاء","reason":"السبب","saving":"جارٍ الحفظ…","applyEntitlement":"تطبيق استحقاق بريميوم","entitlements":"الاستحقاقات","user":"المستخدم","source":"المصدر","status":"الحالة","expires":"ينتهي","recentAttempts":"محاولات الدفع الأخيرة","payer":"الدافع","product":"المنتج","target":"الهدف","amount":"المبلغ","providerReference":"مرجع مزود الخدمة","metric":"المؤشر","value":"القيمة","reportError":"تعذر تحميل بيانات الأثر المتقدمة.","participationFee":"رسوم مشاركة لمرة واحدة · ₹49","participationExplain":"انضم إلى هذا المزاد مرة واحدة ثم قدّم أي عدد من العطاءات.","joinAuction":"الانضمام إلى المزاد · ₹49","retryJoin":"إعادة محاولة رسوم المشاركة","auctionStatus":{"scheduled":"مجدول","open":"مفتوح","closed":"مغلق","awarded":"تمت الترسية","award_expired":"انتهت مهلة الترسية","no_sale":"لا بيع","completed":"مكتمل","cancelled":"ملغى","paid":"مدفوع","pending":"معلق","failed":"فشل","refunded":"مسترد"},"productTypes":{"premium_subscription":"اشتراك بريميوم","sponsored_listing":"إعلان ممول","auction_hosting":"استضافة المزاد","auction_participation":"المشاركة في المزاد"},"sourceTypes":{"purchase":"شراء","admin_grant":"منح إداري"},"paymentStatus":{"refund_pending":"استرداد معلق","refunded":"مسترد","active":"نشط","revoked":"ملغى"},"auctionHostingFee":"رسوم استضافة المزاد · ₹199","auctionUnpublished":"لن يُنشر المزاد حتى يتحقق الخادم من الدفع.","paymentPending":"الدفع معلق…","retryHosting":"إعادة محاولة دفع الاستضافة","notPublished":"المزاد غير منشور حتى التحقق من رسوم ₹199."},
   "recordCrud": {
     "edit": "تعديل",
     "delete": "حذف",
@@ -58,7 +60,30 @@
     "needDate": "احفظ تاريخ الاستلام أعلاه قبل قبول هذا العرض.",
     "needSpace": "تحتاج إلى {quantity} طن متاح في تاريخ واحد لقبول هذا العرض."
   },
+  "orderPayment": {
+    "title": "الدفع والتحويل",
+    "waiting": "يبدأ الدفع بعد تأكيد الحجز ويجب إتمامه قبل الإرسال.",
+    "reference": "مرجع مزود الدفع",
+    "acceptedValue": "قيمة المواد المقبولة",
+    "commission": "عمولة GreenLoop",
+    "providerFee": "رسوم مزود الدفع",
+    "refund": "تسوية / استرداد",
+    "payout": "مستحقات المزود",
+    "sandbox": "بيانات QR للدفع التجريبي",
+    "sandboxNote": "بيئة تجريبية فقط. لا يتم تحويل أموال؛ تتم محاكاة الحالة والتحقق منها على الخادم.",
+    "pay": "إنشاء رمز دفع QR",
+    "retry": "إعادة محاولة الدفع",
+    "starting": "جارٍ إنشاء الدفع…",
+    "failedNote": "أفاد مزود الاختبار بفشل الدفع. يمكنك المحاولة مجددًا.",
+    "disputeLabel": "سبب النزاع بشأن التسليم",
+    "dispute": "اعتراض على التسليم وتعليق التحويل",
+    "disputedNote": "تبقى مستحقات المزود معلقة أثناء النزاع. يرجى التواصل مع الدعم.",
+    "status": { "required": "الدفع مطلوب", "pending": "الدفع قيد الانتظار", "failed": "فشل الدفع", "held": "تم الدفع — المستحقات معلقة", "dispatched": "تم الإرسال", "verified": "تم التحقق", "payoutPending": "التحويل قيد الانتظار", "settled": "تمت التسوية", "disputed": "متنازع عليه" },
+    "refundStatus": { "not_required": "غير مطلوب", "pending": "قيد الانتظار", "refunded": "تم الاسترداد", "failed": "فشل" },
+    "payoutStatus": { "held": "معلق", "pending": "قيد الانتظار", "settled": "تمت التسوية", "failed": "فشل", "disputed": "متنازع عليه", "not_eligible": "غير مستحق" }
+  },
   "orderTracking": {
+    "dispatchPaymentRequired": "أكد الدفع في تفاصيل الطلب قبل الإرسال.",
     "title": "حالة التسليم",
     "booked": "تم الحجز",
     "pendingPickup": "بانتظار الاستلام",
@@ -90,6 +115,34 @@
     "arrivalRecorded": "تم تسجيل الوصول. راجع الإيصال وأكد الكمية المقبولة أدناه.",
     "viewTicket": "عرض إيصال الوزن",
     "savedProof": "إثبات التسليم المحفوظ"
+  },
+  "admin": {
+    "internal": "لوحة الإدارة", "navigation": "تنقل الإدارة", "signOut": "تسجيل الخروج", "search": "بحث", "saving": "جارٍ الحفظ…", "loading": "جارٍ التحميل…", "error": "تعذر إكمال الطلب.", "previous": "السابق", "next": "التالي", "page": "الصفحة {{page}}",
+    "roles": { "super_admin": "مدير عام", "support_admin": "مدير الدعم", "operations_admin": "مدير العمليات" }, "nav": { "overview": "نظرة عامة", "users": "المستخدمون", "support": "الدعم", "orders": "الطلبات", "health": "حالة النظام" },
+    "overview": { "title": "نظرة عامة على العمليات", "description": "أدوات داخلية لإدارة الحسابات والدعم والطلبات وحالة الخدمة.", "summary": "ملخص العمليات", "users": "الحسابات", "openTickets": "طلبات دعم مفتوحة", "activeOrders": "طلبات نشطة", "disputes": "نزاعات الدفع", "userDescription": "مراجعة الحسابات والصلاحيات وأدوار الموظفين.", "supportDescription": "معالجة الطلبات مع إبقاء الملاحظات الداخلية خاصة.", "orderDescription": "فحص الشروط المعتمدة وحالة المعاملات للقراءة فقط.", "healthDescription": "فحص API وقاعدة البيانات والدفع والحوادث الأخيرة." },
+    "users": { "title": "إدارة المستخدمين", "description": "تعليق الوصول أو إعادة تفعيله وإدارة أدوار الموظفين. يُحتفظ بسجل المعاملات.", "search": "ابحث بالاسم أو المؤسسة أو البريد", "empty": "لا توجد حسابات مطابقة.", "account": "الحساب", "statusLabel": "الوصول", "systemRole": "دور الموظف", "noStaffRole": "لا يوجد دور موظف", "noWorkspace": "لا توجد مساحة عمل", "reason": "السبب (مطلوب)", "suspend": "تعليق الحساب", "reactivate": "إعادة تفعيل الحساب", "saveRole": "حفظ دور الموظف", "noDelete": "لا يمكن حذف الحسابات نهائياً من هذه اللوحة.", "status": { "active": "نشط", "suspended": "معلق" } },
+    "support": { "title": "قائمة الدعم", "description": "تحديث حالة التذكرة وتعيين مسؤول وإضافة ملاحظات داخلية خاصة. لا تُرسل رسائل أو بريد إلكتروني.", "empty": "لا توجد طلبات دعم.", "account": "الحساب", "relatedOrders": "الطلبات المرتبطة", "statusLabel": "حالة التذكرة", "assignee": "المسؤول", "unassigned": "غير معين", "reason": "سبب التحديث (مطلوب)", "internalNote": "ملاحظة داخلية (خاصة)", "privateNotes": "ملاحظات إدارية خاصة", "noNotes": "لا توجد ملاحظات داخلية بعد.", "save": "حفظ تحديث التذكرة", "status": { "open": "مفتوحة", "in_review": "قيد المراجعة", "waiting": "بانتظار الرد", "resolved": "تم الحل" } },
+    "orders": { "title": "فحص الطلبات", "description": "فحص الطلبات والشروط المعتمدة والإرسال والتحقق والدفع. للقراءة فقط.", "search": "الحجز أو مرجع الشحنة أو المادة أو المشارك", "empty": "لا توجد طلبات مطابقة.", "notDispatched": "لم يتم الإرسال", "noLoadReference": "لا يوجد مرجع شحنة", "noPayment": "لا توجد محاولة دفع", "noNegotiation": "لا توجد نسخة تفاوض معتمدة مرتبطة.", "priceUnavailable": "السعر غير متاح", "order": "الطلب", "provider": "المزود", "receiver": "المستلم", "quantityPrice": "الكمية والسعر المتفق عليه", "dispatchDelivery": "الإرسال والتسليم", "dispatched": "تم الإرسال", "awaitingVerification": "بانتظار التحقق", "agreement": "الاتفاق المعتمد", "version": "النسخة {{version}}", "versionHistory": "{{count}} نسخ مقترحة", "deliveryVerification": "التحقق من التسليم", "notVerified": "لم يتم التحقق", "payment": "حالة الدفع", "refundPayout": "الاسترداد / التحويل", "disputed": "متنازع عليه", "dispatchHistory": "سجل الإرسال", "readOnly": "للفحص فقط: لا يمكن للمسؤولين تغيير الشروط أو التحقق أو الدفع أو الاسترداد أو التحويل." },
+    "health": { "title": "حالة النظام", "description": "فحوصات موجزة وحوادث منقحة. لا تظهر تفاصيل حساسة أو بيانات اعتماد.", "checks": "جاهزية الخدمة", "api": "واجهة API", "database": "قاعدة البيانات", "payments": "خدمة الدفع", "incidents": "الحوادث الأخيرة", "incidentNote": "يُحفظ رقم الطلب والمسار والحالة فقط؛ وتُستبعد تفاصيل الأخطاء الحساسة.", "noIncidents": "لا توجد حوادث حديثة.", "when": "الوقت", "request": "رقم الطلب", "route": "المسار", "code": "الحالة", "audit": "سجل تدقيق الإدارة", "auditNote": "سجل غير قابل للتعديل للتغييرات الإدارية وعمليات الفحص الحساسة.", "before": "قبل", "after": "بعد" }
+  },
+  "supportTicket": { "statusLabel": "حالة الطلب", "updated": "آخر تحديث", "resolved": "تم الحل", "status": { "open": "مفتوحة", "in_review": "قيد المراجعة", "waiting": "بانتظار الرد", "resolved": "تم الحل" } },
+  "providerDirectory": {
+    "searchLabel": "ابحث عن المواد",
+    "searchPlaceholder": "ابحث عن مواد مثل الخرسانة أو الفولاذ",
+    "resultCount": "عرض {{shown}} من أصل {{total}} سجلاً",
+    "location": "الموقع",
+    "locationPlaceholder": "أدخل مدينة أو منطقة",
+    "minAvailableQuantity": "أقل كمية متاحة (طن)",
+    "maxAvailableQuantity": "أكبر كمية متاحة (طن)",
+    "minPrice": "أدنى سعر / للطن",
+    "maxPrice": "أعلى سعر / للطن",
+    "availableBy": "متاح حتى",
+    "condition": "الحالة",
+    "anyCondition": "أي حالة",
+    "invalidQuantityRange": "يجب ألا تتجاوز أقل كمية متاحة أكبر كمية متاحة.",
+    "negativeQuantity": "لا يمكن أن تكون الكمية المتاحة سالبة.",
+    "invalidPriceRange": "يجب ألا يتجاوز أقل سعر أعلى سعر.",
+    "negativePrice": "لا يمكن أن يكون السعر سالبًا."
   },
   "sidebar": {
     "groups": {
@@ -202,6 +255,9 @@
     "invalid": "اختر كمية متاحة وتاريخًا صالحًا وموقع الاستلام.",
     "recipient": "تم الإرسال إلى {{provider}} · جواز {{reference}}"
   },
+  "negotiation": {"title":"التفاوض","subtitle":"ناقش العرض واعتمد الشروط النهائية للمعاملة.","unavailable":"هذا التفاوض غير متاح.","back":"العودة إلى العروض","offerSummary":"ملخص العرض","receiver":"الوجهة","neededBy":"الموعد المطلوب","chatNotice":"رسائل الدردشة للنقاش فقط ولا تغيّر القيم المتفق عليها. لا يحدث ذلك إلا عبر نسخة من الشروط النهائية يوافق عليها الطرفان.","chat":"الدردشة","noMessages":"لا توجد رسائل بعد. ابدأ النقاش.","messagePlaceholder":"اكتب عن السعر أو الكمية أو الموعد…","send":"إرسال","finalTerms":"الشروط النهائية","version":"النسخة","noTerms":"لا يوجد اقتراح للشروط النهائية بعد.","proposedBy":"اقترحه {{role}}","quantity":"الكمية","price":"السعر للطن","total":"الإجمالي","destination":"الوجهة","receivingSlot":"تاريخ / موعد الاستلام","approved":"تمت الموافقة","awaiting":"بانتظار الموافقة","approve":"اعتماد الشروط النهائية","proposeChange":"اقتراح الشروط أو تعديلها","chooseSlot":"اختر موعد الاستلام","submitTerms":"إرسال نسخة جديدة","history":"سجل النسخ والتدقيق","proposalSent":"تم إرسال الشروط. يجب على الطرف الآخر الموافقة على هذه النسخة.","confirmed":"وافق الطرفان. تم التحقق من السعة وتأكيد الحجز.","approvalSaved":"تم تسجيل موافقتك. يجب على الطرف الآخر الموافقة على النسخة نفسها.","status":{"negotiating":"قيد التفاوض","awaiting_provider_approval":"بانتظار موافقة المزوّد","awaiting_receiver_approval":"بانتظار موافقة المستلم","approved":"تمت الموافقة · جارٍ التحقق من السعة","confirmed":"مؤكد","declined":"مرفوض","withdrawn":"مسحوب","superseded":"مستبدل"},"roles":{"provider":"المزوّد","receiver":"المستلم"}},
+  "negotiationOpen": "فتح التفاوض والشروط النهائية",
+  "negotiationReview": "التفاوض ومراجعة الشروط",
   "projectLocationForm": {
     "name": "اسم المشروع",
     "location": "موقع المشروع",

@@ -76,8 +76,9 @@ test('passport and request CRUD preserves ownership, order commitments and delet
     const offer = (await act(provider, 'addOfferAction', [{ passportId: material.id, demandId: request.id, offeredQuantityT: 8, pricePerT: 500 }])).dataset.offers.find(item => item.demandId === request.id);
     await act(receiver, 'updateDemandAction', [request.id, { ...editRequest, materialType: 'brick' }], 409);
     await act(provider, 'updateMaterialAction', [material.id, { ...editMaterial, grade: 'C' }], 409);
-    await act(receiver, 'addCapacityAction', [{ receiverId: facility, date: day(7), materialType: 'concrete', capacityT: 10 }]);
-    await act(receiver, 'acceptOfferAction', [offer.id]);
+    const slot = (await act(receiver, 'addCapacityAction', [{ receiverId: facility, date: day(7), materialType: 'concrete', capacityT: 10 }])).result;
+    const proposal = (await act(provider, 'proposeFinalTermsAction', [offer.id, { quantityT: 8, pricePerT: 500, destination: 'Delhi', slotId: slot.id }])).result;
+    await act(receiver, 'approveFinalTermsAction', [offer.id, proposal.id]);
     await act(provider, 'updateMaterialAction', [material.id, editMaterial], 409);
     await act(provider, 'deleteMaterialAction', [material.id], 409);
     await act(receiver, 'deleteDemandAction', [request.id], 409);

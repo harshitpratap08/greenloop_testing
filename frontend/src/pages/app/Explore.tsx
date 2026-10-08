@@ -1,5 +1,4 @@
 import PageMeta from "@/components/common/PageMeta";
-import { ProjectCard } from "@/components/greenloop/AppExploration";
 import { useGreeting } from "@/components/greenloop/AppExploration.helpers";
 import { PageMotion, RevealItem } from "@/components/greenloop/kit";
 import { ambientMedia, materialMediaFor } from "@/config/appMedia";
@@ -68,7 +67,6 @@ export default function Explore() {
   const materialReusedT = dataset.verifications
     .filter((verification) => verification.status === "verified")
     .reduce((total, verification) => total + verification.acceptedT, 0);
-  const leadProject = dataset.projects[0];
   const pendingActions = [
     ...dataset.materials.filter((material) => !activeAllocations.some((allocation) => allocation.materialId === material.id) && material.status !== "verified" && material.status !== "dispatched").map((material) => ({ id: material.id, label: `${material.quantityT.toFixed(1)} t ${material.type} is ready to offer`, to: "/app/market-demand" })),
     ...dataset.bookings.filter((booking) => booking.status === "hold").map((booking) => ({ id: booking.id, label: `${booking.tonnesT.toFixed(1)} t request is waiting on capacity`, to: "/app/bookings" })),
@@ -219,9 +217,6 @@ export default function Explore() {
           </RevealItem>
         </div>
 
-        {leadProject && <div className="mx-auto mt-4 max-w-[1600px]">
-          <RevealItem><section aria-labelledby="provider-project-title"><div className="mb-3"><h2 id="provider-project-title" className="font-archivo text-xl font-bold text-[#243229] dark:text-white">Project Overview</h2></div><ProjectCard project={leadProject} /></section></RevealItem>
-        </div>}
       </section>
     </PageMotion>
   );

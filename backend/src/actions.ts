@@ -519,8 +519,9 @@ export function createActions(initial: GreenLoopDataset, actor: Actor) {
       offers: [newOffer, ...(prev.offers ?? [])],
       events: [...prev.events, eventFor(prev, "offer.created", ACTOR_A,
         `${newOffer.offeredQuantityT.toFixed(1)} t provider offer submitted`,
-        [newOffer.id, newOffer.demandId, newOffer.passportId])],
+         [newOffer.id, newOffer.demandId, newOffer.passportId])],
     }));
+    return newOffer;
   };
 
   const saveOfferDraftAction = (input: Omit<MaterialOffer, "id" | "status" | "createdAt">) => {

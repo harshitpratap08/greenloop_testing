@@ -1,7 +1,6 @@
 import PageMeta from "@/components/common/PageMeta";
 import { materialMedia } from "@/components/greenloop/AppExploration.helpers";
 import MatchDetailsPanel from "@/components/greenloop/MatchDetailsPanel";
-import NegotiationPanel from "@/components/greenloop/NegotiationPanel";
 import ReceiverDiscovery from "@/components/greenloop/ReceiverDiscovery";
 import SearchFilterBar from "@/components/greenloop/SearchFilterBar";
 import StatusBadge from "@/components/greenloop/StatusBadge";
@@ -16,6 +15,8 @@ import { formatDate, formatINR, formatINRPerT, materialTypeLabel } from "@/utils
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 
 type DemandCategory = "all" | MaterialTypeKey | "other";
 
@@ -41,7 +42,8 @@ function DemandMetricIcon({ kind }: { kind: "requests" | "volume" | "receivers" 
 }
 
 export default function MarketDemand() {
-  const { dataset, addOfferAction, saveOfferDraftAction, deleteOfferDraftAction, counterOfferAction, withdrawOfferAction } = useGreenLoopStore();
+  const { t } = useTranslation();
+  const { dataset, addOfferAction, saveOfferDraftAction, deleteOfferDraftAction, withdrawOfferAction } = useGreenLoopStore();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const providerId = user?.email ?? "P-001";
@@ -60,7 +62,7 @@ export default function MarketDemand() {
   const [minimumT, setMinimumT] = useState("");
   const [maximumBudget, setMaximumBudget] = useState("");
   const [neededBy, setNeededBy] = useState("");
-  const myOffers = dataset.offers?.filter((offer) => offer.providerId === providerId) ?? [];
+  const myOffers = dataset.offers?.filter((offer) => offer.providerId === providerId && !offer.auctionId) ?? [];
 
   type TabKey = "received" | "sent" | "receivers";
   const [tabOverride, setTabOverride] = useState<{ query: string; tab: TabKey } | null>(null);
@@ -438,7 +440,7 @@ export default function MarketDemand() {
                     <summary className="cursor-pointer text-xs font-semibold text-[#526b58] dark:text-[#b6cfbd]">View details <span aria-hidden="true">→</span></summary>
                     <p className="mt-2 text-xs text-[#778078] dark:text-gray-400">Offer {offer.id} · Request {offer.demandId} · Passport {offer.passportId} · {formatDate(offer.createdAt)}</p>
                   </details>
-                  {offer.status !== "draft" && <NegotiationPanel offer={offer} canCounter={offer.status === "pending"} onCounter={(price) => counterOfferAction(offer.id, price)} />}
+                  {offer.status !== "draft" && <Link className="basis-full text-sm font-semibold text-loop-800 underline dark:text-loop-300" to={`/app/negotiations/${offer.id}`}>{t("negotiationOpen")}</Link>}
                 </article>
               );
             })}

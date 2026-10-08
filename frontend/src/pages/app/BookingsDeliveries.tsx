@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import PageMeta from "@/components/common/PageMeta";
 import OrderInvoiceAction from "@/components/greenloop/OrderInvoiceAction";
 import OrderTracking from "@/components/greenloop/OrderTracking";
+import OrderPaymentPanel from "@/components/greenloop/OrderPaymentPanel";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import { useAuth } from "@/context/AuthContext.helpers";
 import type { InvoiceParty } from "@/lib/orderInvoice";
@@ -318,7 +319,7 @@ function OrderDetailsPanel({ facts, activeWorkspace, onClose }: { facts: Booking
   const project = dataset.projects.find(p => p.id === material?.projectId);
   const media = materialMediaFor(material?.type ?? "unknown");
 
-  // Invoice data — identical resolution to the previous inline rendering.
+  // Order summary data for the existing PDF action.
   const offer = dataset.offers?.find((item) => item.demandId === booking.demandId && item.passportId === booking.materialId);
   const unitPrice = booking.agreedPricePerT ?? offer?.agreedPricePerT ?? offer?.pricePerT ?? material?.pricePerT;
   const transactionContact = dataset.transactionContacts?.find(
@@ -365,6 +366,7 @@ function OrderDetailsPanel({ facts, activeWorkspace, onClose }: { facts: Booking
     materialType: materialTypeLabel(material?.type ?? "unknown"),
     quantityT: booking.tonnesT,
     unitPricePerT: unitPrice,
+    payment: dataset.payments?.find(item => item.bookingId === booking.id),
   };
 
   return (
@@ -384,6 +386,7 @@ function OrderDetailsPanel({ facts, activeWorkspace, onClose }: { facts: Booking
       </div>
       <div className="grid gap-4 p-4 [&>*]:col-span-full">
         <OrderTracking booking={booking} workspace={activeWorkspace} />
+        <OrderPaymentPanel booking={booking} workspace={activeWorkspace} />
         <OrderInvoiceAction invoice={invoice} />
       </div>
     </div>

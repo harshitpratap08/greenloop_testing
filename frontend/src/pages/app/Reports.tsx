@@ -8,6 +8,7 @@ import { cn } from "@/utils";
 import { motion } from "motion/react";
 import { Link } from "react-router";
 import { FLOW_STAGES, TYPE_COLORS, useCountUp, type TimelineStep } from "./Reports.helpers";
+import AdvancedImpactPanel from "@/components/monetization/AdvancedImpactPanel";
 
 export default function Reports() {
   const { dataset } = useGreenLoopStore();
@@ -104,6 +105,8 @@ export default function Reports() {
           <CapacityTimelineChart dataset={dataset} />
         </motion.div>
       </div>
+
+      <AdvancedImpactPanel />
 
       {/* Material-breakdown media strip */}
       <motion.section

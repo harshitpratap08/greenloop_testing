@@ -20,6 +20,8 @@ const ProjectDetails = lazy(() => import("./pages/app/ProjectDetails"));
 const Verification = lazy(() => import("./pages/app/Verification"));
 const Explore = lazy(() => import("./pages/app/Explore"));
 const MarketDemand = lazy(() => import("./pages/app/MarketDemand"));
+const Auctions = lazy(() => import("./pages/app/Auctions"));
+const NegotiationPage = lazy(() => import("./pages/app/NegotiationPage"));
 const Profile = lazy(() => import("./pages/app/Profile"));
 const Support = lazy(() => import("./pages/app/Support"));
 const Settings = lazy(() => import("./pages/app/Settings"));
@@ -47,6 +49,15 @@ const ReceiverInventory = lazy(
 const WorkspaceSelector = lazy(
   () => import("./pages/app/WorkspaceSelector"),
 );
+const AdminProtectedRoute = lazy(() => import("./components/admin/AdminProtectedRoute"));
+const AdminRoleRoute = lazy(() => import("./components/admin/AdminRoleRoute"));
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminSupport = lazy(() => import("./pages/admin/AdminSupport"));
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminHealth = lazy(() => import("./pages/admin/AdminHealth"));
+const AdminMonetization = lazy(() => import("./pages/admin/AdminMonetization"));
 
 function PageLoadingFallback() {
   return (
@@ -76,6 +87,17 @@ export default function App() {
           <ScrollToTop />
           <Suspense fallback={<PageLoadingFallback />}>
             <Routes>
+              <Route element={<AdminProtectedRoute />}>
+                <Route element={<AdminLayout />}>
+                  <Route path="/admin" element={<Navigate to="/admin/overview" replace />} />
+                  <Route path="/admin/overview" element={<AdminOverview />} />
+                  <Route element={<AdminRoleRoute roles={["super_admin"]} />}><Route path="/admin/users" element={<AdminUsers />} /></Route>
+                  <Route element={<AdminRoleRoute roles={["super_admin", "support_admin"]} />}><Route path="/admin/support" element={<AdminSupport />} /></Route>
+                  <Route element={<AdminRoleRoute roles={["super_admin", "operations_admin"]} />}><Route path="/admin/orders" element={<AdminOrders />} /></Route>
+                  <Route element={<AdminRoleRoute roles={["super_admin", "operations_admin"]} />}><Route path="/admin/health" element={<AdminHealth />} /></Route>
+                  <Route element={<AdminRoleRoute roles={["super_admin", "operations_admin"]} />}><Route path="/admin/monetization" element={<AdminMonetization />} /></Route>
+                </Route>
+              </Route>
               {/* Experience 1 — public editorial website */}
               <Route index path="/" element={<Landing />} />
               <Route path="/platform" element={<Navigate to="/app" replace />} />
@@ -102,6 +124,8 @@ export default function App() {
                   <Route path="/app/verification" element={<Verification />} />
                   <Route path="/app/reports" element={<Navigate to="/app/dashboard" replace />} />
                   <Route path="/app/market-demand" element={<MarketDemand />} />
+                  <Route path="/app/auctions" element={<Auctions />} />
+                  <Route path="/app/negotiations/:offerId" element={<NegotiationPage />} />
                   <Route path="/app/profile" element={<Profile />} />
                   <Route path="/app/support" element={<Support />} />
                   <Route path="/app/settings" element={<Settings />} />

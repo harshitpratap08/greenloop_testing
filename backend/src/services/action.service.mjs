@@ -1,5 +1,6 @@
 import { createActions } from '../actions.ts';
 import { ApiError, choice, date, geo, number, requireThat, text } from '../validation.mjs';
+import { availableT, requestCapacity, slotMatchesDemandPeriod } from '../../../shared/domain/capacity.ts';
 
 const materialType = value => {
   requireThat(typeof value === 'string', 'Invalid material type.');
@@ -8,7 +9,7 @@ const materialType = value => {
   return normalized;
 };
 
-export function createActionService({ datasetModel, datasetService, userModel, uploadModel }) {
+export function createActionService({ datasetModel, datasetService, userModel, uploadModel, negotiationModel, paymentService, supportModel, auctionService }) {
   const own = (id, user) => {
     text(id, 'record ID', 250);
     requireThat(datasetModel.ownerId(id) === user.id, 'You do not have permission to change this record.', 403);
@@ -31,9 +32,10 @@ export function createActionService({ datasetModel, datasetService, userModel, u
 
   return {
     execute(user, action, args) {
+      if (['sendNegotiationMessageAction','proposeFinalTermsAction','approveFinalTermsAction'].includes(action)) auctionService?.ensureOfferActive(args[0]);
       return datasetModel.transaction(() => {
         requireThat(typeof action === 'string' && args.length > 0, 'Invalid operation.');
-        const objectActions = ['addProjectAction', 'addMaterialAction', 'addDemandAction', 'saveDemandDraftAction', 'addCapacityAction', 'requestCapacityAction', 'cancelBookingAction', 'dispatchAction', 'addOfferAction', 'saveOfferDraftAction', 'verifyAction', 'addSupportRequestAction'];
+        const objectActions = ['addProjectAction', 'addMaterialAction', 'addDemandAction', 'saveDemandDraftAction', 'addCapacityAction', 'requestCapacityAction', 'cancelBookingAction', 'dispatchAction', 'addOfferAction', 'saveOfferDraftAction', 'verifyAction', 'addSupportRequestAction', 'createPaymentAttemptAction', 'disputePaymentAction'];
         if (objectActions.includes(action)) requireThat(args[0] && typeof args[0] === 'object' && !Array.isArray(args[0]), 'Invalid operation input.');
         const dataset = datasetModel.load();
         if (action === 'markNotificationsReadAction') {
@@ -54,13 +56,13 @@ export function createActionService({ datasetModel, datasetService, userModel, u
           const account = userModel.publicContact(datasetModel.ownerId(id) ?? '');
           requireThat(material && account, 'This provider material is no longer available.', 409);
           const committed = dataset.bookings.filter(item => item.materialId === id && item.status !== 'cancelled' && (!existingDemandId || item.demandId !== existingDemandId)).reduce((sum, item) => sum + item.tonnesT, 0);
-          requireThat(number(input.requiredT, 'required quantity') <= material.quantityT - committed, 'Request exceeds this listing’s available material.', 409);
+          requireThat(number(input.requiredT, 'required quantity') <= material.quantityT - committed - (auctionService?.reservedT(id) ?? 0), 'Request exceeds this listing’s available material.', 409);
           requireThat(material.type === input.materialType, 'The request must use the selected material type.', 409);
           requireThat(!material.availableFrom || input.period >= material.availableFrom, 'The selected material is not available by that date.', 409);
           const provider = account.profile;
           return { targetMaterialId: id, targetProviderId: account.email, targetProviderName: provider.organization || provider.name || 'Provider' };
         };
-        const role = expected => requireThat(user.workspaces.includes(expected), `Enable your ${expected} workspace first.`, 403);
+        const role = expected => requireThat(user.workspaces.includes(expected) && user.activeWorkspace === expected, `Switch to your ${expected} workspace to continue.`, 403);
         const booking = id => { const item = dataset.bookings.find(b => b.id === id); requireThat(item, 'Booking not found.', 404); return item; };
         const receiverBooking = id => { role('receiver'); const item = booking(id); own(item.receiverId, user); return item; };
         const providerBooking = id => { role('provider'); const item = booking(id); own(item.materialId, user); return item; };
@@ -70,9 +72,31 @@ export function createActionService({ datasetModel, datasetService, userModel, u
         if (action === 'cancelDemandAction' || (action === 'archiveBookingAction' && user.activeWorkspace === 'receiver')) receiverActions.push(action);
         const engine = createActions(dataset, { kind: receiverActions.includes(action) ? 'receiver' : 'contractor', name: user.name || user.email });
         let result;
+        let nextOverride;
+        const appendEvent = (state, event) => {
+          const highest = state.events.reduce((max, item) => Math.max(max, Number(/^EV-(\d+)$/.exec(item.id)?.[1] ?? 0)), 0);
+          return { ...event, id: `EV-${String(highest + 1).padStart(3, '0')}` };
+        };
+        const negotiationContext = offerId => {
+          const item = dataset.offers.find(candidate => candidate.id === text(offerId, 'offer ID', 250));
+          requireThat(item, 'Offer not found.', 404);
+          auctionService?.assertOfferDeadline(item.id);
+          const demand = dataset.demands.find(candidate => candidate.id === item.demandId);
+          const material = dataset.materials.find(candidate => candidate.id === item.passportId);
+          requireThat(demand && material, 'The offer is no longer available.', 409);
+          const providerUserId = datasetModel.ownerId(item.passportId);
+          const receiverUserId = datasetModel.ownerId(demand.receiverId);
+          requireThat(providerUserId && receiverUserId && providerUserId !== receiverUserId, 'This offer does not have two eligible participants.', 409);
+          const participantRole = providerUserId === user.id ? 'provider' : receiverUserId === user.id ? 'receiver' : null;
+          requireThat(participantRole, 'You are not a participant in this negotiation.', 403);
+          role(participantRole);
+          negotiationModel.ensure(item.id, providerUserId, receiverUserId, item.createdAt);
+          return { offer: item, demand, material, participantRole };
+        };
         switch (action) {
           case 'updateMaterialAction': {
             role('provider'); own(args[0], user);
+            requireThat(!auctionService?.hasActive(args[0]), 'Material terms are locked while an auction is active.', 409);
             const record = dataset.materials.find(item => item.id === args[0] && !item.archivedAt);
             requireThat(record, 'Passport not found.', 404);
             requireThat(!dataset.bookings.some(item => item.materialId === record.id), 'Passports linked to orders cannot be edited. Create a new passport for additional material.', 409);
@@ -82,6 +106,7 @@ export function createActionService({ datasetModel, datasetService, userModel, u
           }
           case 'deleteMaterialAction': {
             role('provider'); own(args[0], user);
+            requireThat(!auctionService?.hasActive(args[0]), 'Material cannot be removed while an auction is active.', 409);
             requireThat(dataset.materials.some(item => item.id === args[0] && !item.archivedAt), 'Passport not found.', 404);
             result = engine.deleteMaterialAction(args[0]); requireThat(result, 'Passports linked to orders or delivery proof cannot be deleted.', 409); break;
           }
@@ -130,6 +155,8 @@ export function createActionService({ datasetModel, datasetService, userModel, u
             role('provider'); const input = args[0]; own(input.materialId, user); number(input.tonnesT, 'requested quantity');
             const slot = dataset.slots.find(s => s.id === input.slotId); const material = dataset.materials.find(m => m.id === input.materialId);
             requireThat(slot && material && !material.archivedAt && slot.receiverId === input.receiverId && slot.materialType === material.type, 'Choose a compatible receiver slot.');
+            const committed=dataset.bookings.filter(item=>item.materialId===material.id&&item.status!=='cancelled').reduce((sum,item)=>sum+item.tonnesT,0);
+            requireThat(input.tonnesT<=material.quantityT-committed-(auctionService?.reservedT(material.id)??0),'Requested quantity includes material reserved for an auction.',409);
             requireThat(slot.date >= new Date().toISOString().slice(0, 10), 'This receiving slot is in the past.');
             result = engine.requestCapacityAction({ materialId: input.materialId, receiverId: input.receiverId, slotId: input.slotId, tonnesT: input.tonnesT }); break;
           }
@@ -142,9 +169,24 @@ export function createActionService({ datasetModel, datasetService, userModel, u
           }
           case 'dispatchAction': {
             const b = providerBooking(args[0].bookingId); requireThat(b.status === 'confirmed' && b.receiverAcceptedAt && !b.loadRef, 'The receiver must accept this booking before dispatch.', 409);
+            requireThat(paymentService.canDispatch(b.id), 'Payment must be confirmed before dispatch.', 409);
             const stages = dataset.events.filter(event => event.subjectIds.includes(b.id));
             requireThat(!stages.some(event => event.kind === 'delivery.ready') || stages.some(event => event.kind === 'delivery.picked-up'), 'Record pickup before dispatching this load.', 409);
             result = engine.dispatchAction({ bookingId: b.id }); break;
+          }
+          case 'createPaymentAttemptAction': {
+            const b = receiverBooking(text(args[0].bookingId, 'booking ID', 250));
+            result = paymentService.createAttempt({ booking: b, dataset, user });
+            const event = appendEvent(dataset, { at: new Date().toISOString(), kind: 'payment.attempt-created', actor: { kind: 'receiver', name: user.name || user.email }, summary: 'Order payment started', detail: `Payment attempt ${result.attemptId} for ${result.amountMinor} minor units.`, subjectIds: [b.id] });
+            nextOverride = { ...dataset, events: [...dataset.events, event] };
+            break;
+          }
+          case 'disputePaymentAction': {
+            const b = receiverBooking(text(args[0].bookingId, 'booking ID', 250));
+            result = paymentService.dispute({ bookingId: b.id, userId: user.id, reason: text(args[0].reason ?? '', 'reason', 1000, true), booking: b });
+            const event = appendEvent(dataset, { at: new Date().toISOString(), kind: 'payment.disputed', actor: { kind: 'receiver', name: user.name || user.email }, summary: 'Delivery payment disputed', detail: result.disputeReason, subjectIds: [b.id] });
+            nextOverride = { ...dataset, events: [...dataset.events, event] };
+            break;
           }
           case 'addOfferAction':
           case 'saveOfferDraftAction': {
@@ -154,22 +196,108 @@ export function createActionService({ datasetModel, datasetService, userModel, u
             number(o.offeredQuantityT, 'offer quantity'); const committed = dataset.bookings.filter(b => b.materialId === m.id && b.status !== 'cancelled').reduce((sum, b) => sum + b.tonnesT, 0);
             requireThat(o.offeredQuantityT <= m.quantityT - committed, 'Offer exceeds available material.', 409);
             const offerInput = { demandId: d.id, passportId: m.id, offeredQuantityT: o.offeredQuantityT, providerId: user.email, ...(o.pricePerT === undefined ? {} : { pricePerT: number(o.pricePerT, 'price per tonne', true) }) };
-            result = action === 'addOfferAction' ? engine.addOfferAction(offerInput) : engine.saveOfferDraftAction(offerInput); break;
+            result = action === 'addOfferAction' ? engine.addOfferAction(offerInput) : engine.saveOfferDraftAction(offerInput);
+            if (action === 'addOfferAction') {
+              const providerUserId = datasetModel.ownerId(m.id);
+              const receiverUserId = datasetModel.ownerId(d.receiverId);
+              requireThat(providerUserId && receiverUserId && providerUserId !== receiverUserId, 'You cannot negotiate an offer with your own workspace.', 409);
+              negotiationModel.ensure(result.id, providerUserId, receiverUserId, result.createdAt);
+            }
+            break;
           }
           case 'deleteOfferDraftAction': {
             role('provider'); const offerId = text(args[0], 'offer ID', 250); const item = dataset.offers.find(candidate => candidate.id === offerId);
             requireThat(item && item.status === 'draft', 'Only a saved draft offer can be deleted.', 409); own(item.passportId, user);
             result = engine.deleteOfferDraftAction(offerId); requireThat(result, 'This draft offer no longer exists.', 409); break;
           }
-          case 'acceptOfferAction': offer(args[0]); result = engine.acceptOfferAction(args[0]); break;
-          case 'declineOfferAction': offer(args[0]); result = engine.declineOfferAction(args[0]); break;
+          case 'acceptOfferAction': throw new ApiError(409, 'Offers can only become bookings after both parties approve Final Terms.');
+          case 'declineOfferAction': { const item=offer(args[0]); requireThat(!item.auctionId,'Auction awards cannot be declined through the offer action.',409); result = engine.declineOfferAction(args[0]); break; }
           case 'counterOfferAction': {
-            const offerId = text(args[0], 'offer ID', 250); const item = dataset.offers.find(candidate => candidate.id === offerId);
-            requireThat(item && item.status === 'pending', 'This offer is no longer open for negotiation.', 409);
-            const actor = user.activeWorkspace === 'receiver' ? 'receiver' : 'provider'; role(actor);
-            if (actor === 'receiver') own(dataset.demands.find(demand => demand.id === item.demandId)?.receiverId, user); else own(item.passportId, user);
-            result = engine.counterOfferAction(offerId, actor, number(args[1], 'counter price per tonne', true));
-            requireThat(result, 'This offer is no longer open for negotiation.', 409); break;
+            throw new ApiError(409, 'Use Final Terms to propose a price, quantity, and receiving slot together.');
+          }
+          case 'sendNegotiationMessageAction': {
+            const { offer, demand, material, participantRole } = negotiationContext(args[0]);
+            requireThat(offer.status === 'pending', 'This negotiation is closed.', 409);
+            const body = text(args[1], 'message', 4000);
+            const at = new Date().toISOString();
+            const senderName = user.name || user.organization || user.email;
+            result = negotiationModel.addMessage({ offerId: offer.id, senderUserId: user.id, senderRole: participantRole, senderName, body, createdAt: at });
+            const event = appendEvent(dataset, { at, kind: 'negotiation.message_sent', actor: { kind: participantRole === 'receiver' ? 'receiver' : 'contractor', name: senderName }, summary: `${participantRole === 'receiver' ? 'Receiver' : 'Provider'} sent a negotiation message`, subjectIds: [offer.id, demand.id, material.id] });
+            nextOverride = { ...dataset, events: [...dataset.events, event] };
+            break;
+          }
+          case 'proposeFinalTermsAction': {
+            const { offer, demand, material, participantRole } = negotiationContext(args[0]);
+            requireThat(offer.status === 'pending', 'This negotiation is closed.', 409);
+            const terms = args[1];
+            const quantityT = number(terms.quantityT, 'quantity');
+            const pricePerT = number(terms.pricePerT, 'price per tonne', true);
+            requireThat(pricePerT > 0, 'Final Terms require a price greater than zero.');
+            const destination = text(terms.destination, 'destination', 250);
+            const slotId = text(terms.slotId, 'receiving slot ID', 250);
+            const slot = dataset.slots.find(candidate => candidate.id === slotId);
+            if (!offer.auctionId) requireThat(destination === demand.location, 'The final destination must match the receiver request.', 409);
+            requireThat(slot && slot.receiverId === demand.receiverId && slot.materialType === material.type, 'Choose a compatible receiver slot.', 409);
+            requireThat(slot.date >= new Date().toISOString().slice(0, 10) && slotMatchesDemandPeriod(slot, demand.period), 'Choose a receiving date within the receiver request period.', 409);
+            requireThat(!material.availableFrom || slot.date >= material.availableFrom, 'The material is not available by this receiving date.', 409);
+            const committedMaterialT = dataset.bookings.filter(booking => booking.materialId === material.id && booking.status !== 'cancelled').reduce((sum, booking) => sum + booking.tonnesT, 0) + (auctionService?.reservedT(material.id,offer.auctionId) ?? 0);
+            const committedDemandT = dataset.bookings.filter(booking => booking.demandId === demand.id && booking.status !== 'cancelled').reduce((sum, booking) => sum + booking.tonnesT, 0);
+            requireThat(quantityT <= material.quantityT - committedMaterialT && quantityT <= demand.requiredT - committedDemandT, 'The proposed quantity exceeds available material or remaining demand.', 409);
+            const at = new Date().toISOString();
+            result = negotiationModel.createProposal({ offerId: offer.id, proposedBy: participantRole, quantityT, pricePerT, destination, slotId, createdAt: at });
+            const event = appendEvent(dataset, { at, kind: 'final_terms.proposed', actor: { kind: participantRole === 'receiver' ? 'receiver' : 'contractor', name: user.name || user.email }, summary: `${participantRole === 'receiver' ? 'Receiver' : 'Provider'} proposed Final Terms version ${result.version}`, subjectIds: [offer.id, demand.id, material.id] });
+            nextOverride = { ...dataset, events: [...dataset.events, event] };
+            break;
+          }
+          case 'approveFinalTermsAction': {
+            const { offer, demand, material, participantRole } = negotiationContext(args[0]);
+            requireThat(offer.status === 'pending', 'This negotiation is closed.', 409);
+            const proposalId = text(args[1], 'proposal ID', 250);
+            const proposal = negotiationModel.currentProposal(offer.id);
+            requireThat(proposal && proposal.id === proposalId, 'Only the latest Final Terms version can be approved.', 409);
+            const at = new Date().toISOString();
+            requireThat(negotiationModel.approveProposal(offer.id, proposal.id, participantRole, at), 'This version is not awaiting your approval.', 409);
+            const providerApprovedAt = participantRole === 'provider' ? at : proposal.providerApprovedAt;
+            const receiverApprovedAt = participantRole === 'receiver' ? at : proposal.receiverApprovedAt;
+            const bothApproved = Boolean(providerApprovedAt && receiverApprovedAt);
+            if (bothApproved) negotiationModel.setProposalStatus(proposal.id, 'approved');
+            let currentDataset = dataset;
+            let booking;
+            let capacityIssue;
+            if (bothApproved) {
+              const slot = dataset.slots.find(candidate => candidate.id === proposal.slotId);
+              const materialAvailableT = material.quantityT - dataset.bookings.filter(item => item.materialId === material.id && item.status !== 'cancelled').reduce((sum, item) => sum + item.tonnesT, 0) - (auctionService?.reservedT(material.id,offer.auctionId) ?? 0);
+              const demandRemainingT = demand.requiredT - dataset.bookings.filter(item => item.demandId === demand.id && item.status !== 'cancelled').reduce((sum, item) => sum + item.tonnesT, 0);
+              const capacityAvailableT = slot ? availableT(slot, dataset.bookings) : 0;
+              if (!slot || slot.receiverId !== demand.receiverId || slot.materialType !== material.type || slot.date < new Date().toISOString().slice(0, 10) || !slotMatchesDemandPeriod(slot, demand.period)) capacityIssue = 'The approved receiving slot is no longer valid. Propose a new Final Terms version.';
+               else if (!offer.auctionId && proposal.destination !== demand.location) capacityIssue = 'The receiver destination changed. Propose a new Final Terms version.';
+              else if (proposal.quantityT > materialAvailableT || proposal.quantityT > demandRemainingT) capacityIssue = 'Material or demand quantity changed. Propose a new Final Terms version.';
+              else if (proposal.quantityT > capacityAvailableT) capacityIssue = 'The approved receiving slot no longer has enough capacity. Propose a new Final Terms version.';
+              else {
+                const reservation = requestCapacity(dataset, { materialId: material.id, receiverId: demand.receiverId, slotId: slot.id, tonnesT: proposal.quantityT, actor: { kind: 'system', name: 'GreenLoop' }, at });
+                if (reservation.output.outcome !== 'confirmed') capacityIssue = 'Capacity changed while confirming. Propose a new Final Terms version.';
+                else {
+                  const newBooking = reservation.output.booking;
+                  booking = { ...newBooking, demandId: demand.id, receiverAcceptedAt: at, agreedPricePerT: proposal.pricePerT, offerId: offer.id, agreementVersionId: proposal.id };
+                  const offerAccepted = { ...offer, status: 'accepted', agreedPricePerT: proposal.pricePerT };
+                  currentDataset = {
+                    ...reservation.dataset,
+                    bookings: reservation.dataset.bookings.map(item => item.id === newBooking.id ? booking : item),
+                    offers: (reservation.dataset.offers ?? []).map(item => item.id === offer.id ? offerAccepted : item),
+                    events: reservation.dataset.events.map(event => event.subjectIds.includes(newBooking.allocationId) ? { ...event, subjectIds: [...new Set([...event.subjectIds, offer.id, demand.id, proposal.id, newBooking.id])] } : event),
+                  };
+                  negotiationModel.setProposalStatus(proposal.id, 'confirmed', booking.id);
+                  const acceptedEvent = appendEvent(currentDataset, { at, kind: 'final_terms.confirmed', actor: { kind: 'system', name: 'GreenLoop' }, summary: `Final Terms version ${proposal.version} confirmed as booking ${booking.id}`, subjectIds: [offer.id, demand.id, material.id, proposal.id, slot.id, booking.id] });
+                  currentDataset = { ...currentDataset, events: [...currentDataset.events, acceptedEvent] };
+                  const coveredT = currentDataset.bookings.filter(item => item.demandId === demand.id && item.status === 'confirmed').reduce((sum, item) => sum + item.tonnesT, 0);
+                  currentDataset.demands = currentDataset.demands.map(item => item.id !== demand.id || ['PAUSED', 'CANCELLED', 'DRAFT'].includes(item.status) ? item : { ...item, coveredT, status: coveredT >= item.requiredT ? 'COVERED' : coveredT > 0 ? 'PARTIALLY_COVERED' : 'OPEN' });
+                }
+              }
+            }
+            const approvalEvent = appendEvent(currentDataset, { at, kind: 'final_terms.approved', actor: { kind: participantRole === 'receiver' ? 'receiver' : 'contractor', name: user.name || user.email }, summary: `${participantRole === 'receiver' ? 'Receiver' : 'Provider'} approved Final Terms version ${proposal.version}`, subjectIds: [offer.id, demand.id, material.id, proposal.id, ...(booking ? [booking.id] : [])] });
+            nextOverride = { ...currentDataset, events: [...currentDataset.events, approvalEvent] };
+            result = { status: booking ? 'confirmed' : bothApproved ? 'approved' : proposal.status, ...(booking ? { bookingId: booking.id } : {}), ...(capacityIssue ? { capacityIssue } : {}) };
+            break;
           }
           case 'cancelDemandAction': {
             role('receiver'); const demand = dataset.demands.find(item => item.id === text(args[0], 'request ID', 250));
@@ -181,6 +309,7 @@ export function createActionService({ datasetModel, datasetService, userModel, u
           case 'withdrawOfferAction': {
             role('provider'); const offerId = text(args[0], 'offer ID', 250); const item = dataset.offers.find(candidate => candidate.id === offerId);
             requireThat(item && item.status === 'pending', 'Only a pending offer can be withdrawn.', 409); own(item.passportId, user);
+            requireThat(!item.auctionId,'Auction awards cannot be withdrawn through the offer action.',409);
             result = engine.withdrawOfferAction(offerId); break;
           }
           case 'archiveBookingAction': {
@@ -206,11 +335,16 @@ export function createActionService({ datasetModel, datasetService, userModel, u
             const rejectReason = text(p.rejectReason ?? '', 'rejection reason', 1000, p.acceptedT === p.actualT);
             result = engine.verifyAction({ bookingId: b.id, actualT: p.actualT, acceptedT: p.acceptedT, rejectReason, evidence: evidence(p.evidence ?? [], user) }); break;
           }
-          case 'addSupportRequestAction': { const s = args[0]; result = engine.addSupportRequestAction({ email: user.email, subject: text(s.subject, 'subject', 250), message: text(s.message, 'message', 5000) }); assign(result.id, user); break; }
+          case 'addSupportRequestAction': { const s = args[0]; result = engine.addSupportRequestAction({ email: user.email, subject: text(s.subject, 'subject', 250), message: text(s.message, 'message', 5000) }); assign(result.id, user); supportModel.ensureRequest(result); break; }
           default: throw new ApiError(404, 'Unknown operation.');
         }
-        const next = engine.getDataset();
+        const next = nextOverride ?? engine.getDataset();
         requireThat(next !== dataset, 'This operation is no longer available. Refresh and check material, demand, and capacity limits.', 409);
+        if (action === 'verifyAction') paymentService.afterVerification(next, args[0].bookingId);
+        if (action === 'verifyLoadAction') {
+          const verified = next.verifications.find(item => item.id === args[0]);
+          if (verified) paymentService.afterVerification(next, verified.bookingId);
+        }
         next.projects = next.projects.map(project => {
           const materialIds = new Set(next.materials.filter(material => material.projectId === project.id).map(material => material.id));
           const event = next.events.findLast(event => event.subjectIds.some(id => id === project.id || materialIds.has(id)));
@@ -221,6 +355,7 @@ export function createActionService({ datasetModel, datasetService, userModel, u
           currentStockT: next.verifications.filter(v => v.receiverId === r.id && v.status === 'verified').reduce((sum, v) => sum + v.acceptedT, 0),
         }));
         datasetModel.save(next);
+        if (action === 'approveFinalTermsAction' && result?.status === 'confirmed' && result.bookingId) auctionService?.completeForOffer(args[0], result.bookingId, new Date().toISOString());
         return { dataset: datasetService.visible(next, user), result: result ?? true };
       });
     },

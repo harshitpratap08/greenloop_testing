@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "node --env-file-if-exists=../.env --watch src/server.mjs",
     "start": "node --env-file-if-exists=../.env src/server.mjs",
-    "test": "node --test tests/backend.test.mjs tests/audit.test.mjs tests/crud.test.mjs",
-    "check": "tsc -p tsconfig.json"
+    "test": "node --test tests/backend.test.mjs tests/audit.test.mjs tests/crud.test.mjs tests/qa-regressions.test.mjs",
+    "check": "tsc -p tsconfig.json",
+    "admin:bootstrap": "node scripts/bootstrap-admin.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",

@@ -20,6 +20,7 @@ export interface OrderInvoiceData {
   materialType: string;
   quantityT: number;
   unitPricePerT?: number;
+  payment?: import("@shared/domain/types").BookingPayment;
 }
 
 function printable(value: string): string {
@@ -83,7 +84,7 @@ export async function generateOrderInvoice(
   pdf.text("MATERIALS RECOVERY NETWORK", margin + 12, 25);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(20);
-  pdf.text("INVOICE", right, 20, { align: "right" });
+  pdf.text("ORDER SUMMARY", right, 20, { align: "right" });
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(9);
   pdf.text(invoiceNumber, right, 28, { align: "right" });
@@ -92,7 +93,7 @@ export async function generateOrderInvoice(
   pdf.setTextColor(...green);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(9);
-  pdf.text("INVOICE DATE", margin, y);
+  pdf.text("SUMMARY DATE", margin, y);
   pdf.text("ORDER DATE", margin + 58, y);
   pdf.text("TRANSACTION ID", margin + 116, y);
   pdf.setTextColor(35, 43, 37);
@@ -132,7 +133,6 @@ export async function generateOrderInvoice(
       party.address,
       party.email,
       party.phone,
-      party.taxId ? `Tax ID: ${party.taxId}` : undefined,
     ].filter((item): item is string => Boolean(item))) {
       const lines = pdf.splitTextToSize(printable(value), width - 6) as string[];
       pdf.text(lines, x + 3, textY);
@@ -144,13 +144,13 @@ export async function generateOrderInvoice(
   const gap = 8;
   const partyWidth = (pageWidth - margin * 2 - gap) / 2;
   const providerBottom = drawParty(
-    "PROVIDER / SELLER",
+    "PROVIDER",
     invoice.provider,
     margin,
     partyWidth,
   );
   const receiverBottom = drawParty(
-    "RECEIVER / BUYER",
+    "RECEIVER",
     invoice.receiver,
     margin + partyWidth + gap,
     partyWidth,
@@ -241,19 +241,41 @@ export async function generateOrderInvoice(
   });
   y += 6;
   pdf.setTextColor(...muted);
-  pdf.text("Taxes / additional charges", totalLabelX, y);
-  pdf.text("Not recorded", totalValueX, y, { align: "right" });
-  y += 3;
-  pdf.setDrawColor(218, 226, 219);
-  pdf.line(totalLabelX, y, totalValueX, y);
-  y += 8;
+  y += 2;
   pdf.setTextColor(...green);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(10);
-  pdf.text("TOTAL (TAXES NOT RECORDED)", totalLabelX, y);
+  pdf.text("ORDER VALUE", totalLabelX, y);
   pdf.text(total === undefined ? "Not available" : formatCurrency(total), totalValueX, y, {
     align: "right",
   });
+
+  y += 12;
+  if (invoice.payment) {
+    pdf.setTextColor(...green);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text("PAYMENT SUMMARY", margin, y);
+    y += 7;
+    pdf.setTextColor(...muted);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    const payment = invoice.payment;
+    const paymentRows: [string, string][] = [
+      ["Payment status", payment.paymentStatus],
+      ["Amount collected", formatCurrency(payment.amountMinor / 100)],
+      ...(payment.acceptedT !== undefined ? [["Accepted material value", formatCurrency(payment.acceptedValueMinor / 100)] as [string, string]] : []),
+      ...(payment.acceptedT !== undefined ? [["GreenLoop commission (5%)", formatCurrency(payment.commissionMinor / 100)] as [string, string]] : []),
+      ...(payment.providerFeeMinor > 0 ? [["Provider fee", formatCurrency(payment.providerFeeMinor / 100)] as [string, string]] : []),
+      ...(payment.refundAmountMinor > 0 ? [["Adjustment / refund", `${formatCurrency(payment.refundAmountMinor / 100)} (${payment.refundStatus})`] as [string, string]] : []),
+      ...(payment.payoutAmountMinor > 0 ? [["Provider payout", `${formatCurrency(payment.payoutAmountMinor / 100)} (${payment.payoutStatus})`] as [string, string]] : []),
+    ];
+    for (const [label, value] of paymentRows) {
+      pdf.text(label, margin, y);
+      pdf.text(printable(value), right, y, { align: "right" });
+      y += 4.5;
+    }
+  }
 
   pdf.setFillColor(246, 248, 246);
   pdf.roundedRect(margin, 250, right - margin, 20, 1.5, 1.5, "F");
@@ -261,7 +283,7 @@ export async function generateOrderInvoice(
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(8);
   const note =
-    "Generated on demand from GreenLoop order records. Taxes and additional charges are not included because no amounts are recorded for this transaction.";
+    "Order / Payment Summary generated from GreenLoop order records. This document is not a tax invoice; tax calculations are not included.";
   pdf.text(pdf.splitTextToSize(note, right - margin - 8), margin + 4, 258);
   pdf.setDrawColor(218, 226, 219);
   pdf.line(margin, 281, right, 281);
@@ -271,7 +293,7 @@ export async function generateOrderInvoice(
     align: "right",
   });
 
-  const fileName = `GreenLoop-invoice-${printable(invoice.bookingId).replace(
+  const fileName = `GreenLoop-order-summary-${printable(invoice.bookingId).replace(
     /[^A-Za-z0-9-]/g,
     "-",
   )}.pdf`;

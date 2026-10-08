@@ -26,6 +26,10 @@ Copy-Item .env.example .env
 
 The application runs locally without external credentials. Configure Google OAuth or email webhook values in `.env` only if you need those integrations. Never commit `.env` or add credentials to `.env.example`.
 
+### Admin console setup
+
+Create and onboard the initial administrator as a normal GreenLoop account, stop the API, then run `npm.cmd run admin:bootstrap -- user@example.com` from the repository root. This local operator command assigns the first Super Admin role and writes its bootstrap audit entry; public signup and profile updates cannot assign a system role. Restart the API and sign in again. Super Admins can assign Support Admin and Operations Admin roles from `/admin/users`.
+
 ## Run locally
 
 ```powershell

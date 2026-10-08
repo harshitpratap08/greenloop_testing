@@ -155,6 +155,7 @@ export function ProjectCard({ project }: { project: Project }) {
   function done(): boolean {
     return current >= STEP_LABELS.length;
   }
+
 }
 
 export function ProjectStatusChip({ status }: { status: Project["status"] }) {

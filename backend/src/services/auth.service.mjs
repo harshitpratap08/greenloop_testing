@@ -5,7 +5,8 @@ import { emailAddress, passwordHash, passwordMatches, requireThat, text } from '
 
 const digest = value => createHash('sha256').update(value).digest('hex');
 
-export function createAuthService({ userModel, sessionModel, datasetModel, dataDir, production }) {
+export function createAuthService({ userModel, sessionModel, datasetModel, dataDir, production, adminModel }) {
+  const withSystemRole = user => ({ ...user, ...(adminModel.roleFor(user.id) ? { systemRole: adminModel.roleFor(user.id) } : {}) });
   const createSession = (user, remember = false) => {
     sessionModel.removeExpired(Date.now());
     const token = randomBytes(32).toString('hex');
@@ -22,7 +23,9 @@ export function createAuthService({ userModel, sessionModel, datasetModel, dataD
       const token = /(?:^|;\s*)gl_session=([a-f0-9]{64})(?:;|$)/.exec(req.headers.cookie ?? '')?.[1];
       const row = token && sessionModel.findUser(digest(token), Date.now());
       requireThat(row, 'Please sign in to continue.', 401);
-      return userModel.toProfile(row);
+      const user = userModel.toProfile(row);
+      requireThat(adminModel.statusFor(user.id) === 'active', 'This account is suspended. Contact GreenLoop support.', 403);
+      return withSystemRole(user);
     },
     async handle(path, req, body, url) {
       if (path === '/api/config' && req.method === 'GET') {
@@ -64,7 +67,9 @@ export function createAuthService({ userModel, sessionModel, datasetModel, dataD
             userModel.createGoogleIdentity(account.sub, { id, email, profile: fields });
             return { id, email, ...fields };
           });
-          const authenticated = createSession(user, true);
+          const activeUser = withSystemRole(user);
+          requireThat(adminModel.statusFor(activeUser.id) === 'active', 'This account is suspended. Contact GreenLoop support.', 403);
+          const authenticated = createSession(activeUser, true);
           return { status: 302, redirect: user.workspaces.length ? '/app' : '/onboarding', headers: { 'Set-Cookie': authenticated.cookie } };
         } catch (error) {
           return failCallback(error);
@@ -82,14 +87,17 @@ export function createAuthService({ userModel, sessionModel, datasetModel, dataD
         const user = { id: randomUUID(), email, name: text(body.name ?? '', 'name', 250, true), organization: text(body.organization ?? '', 'organization', 250, true), workspaces: [] };
         const { id, email: ignored, ...fields } = user;
         userModel.create({ id, email, password, profile: fields });
-        const authenticated = createSession(user);
+        const activeUser = withSystemRole(user);
+        const authenticated = createSession(activeUser);
         return { status: 201, body: { user: authenticated.user }, headers: { 'Set-Cookie': authenticated.cookie } };
       }
       if (path === '/api/auth/login' && req.method === 'POST') {
         const email = emailAddress(body.email);
         const row = userModel.findByEmail(email);
         requireThat(passwordMatches(body.password, row?.password ?? `00000000000000000000000000000000:${'0'.repeat(128)}`) && row, 'Email or password is incorrect.', 401);
-        const authenticated = createSession(userModel.toProfile(row), body.remember === true);
+        requireThat(adminModel.statusFor(row.id) === 'active', 'This account is suspended. Contact GreenLoop support.', 403);
+        const user = withSystemRole(userModel.toProfile(row));
+        const authenticated = createSession(user, body.remember === true);
         return { status: 200, body: { user: authenticated.user }, headers: { 'Set-Cookie': authenticated.cookie } };
       }
       if (path === '/api/auth/logout' && req.method === 'POST') {

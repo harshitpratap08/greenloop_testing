@@ -1,4 +1,5 @@
 import PageMeta from "@/components/common/PageMeta";
+import ListingSponsorshipControl from "@/components/monetization/ListingSponsorshipControl";
 import { EmptyState, PageMotion, RevealItem, StatusChip, VideoPanel } from "@/components/greenloop/kit";
 import RecordActions from "@/components/greenloop/RecordActions";
 import { ambientVideo, materialMediaFor } from "@/config/appMedia";
@@ -289,7 +290,9 @@ export default function Materials() {
                                   <Link to="/app/market-demand?view=receivers" state={{ materialId: material.id }} className="inline-flex min-h-8 items-center justify-center rounded-full border border-[#cbd4ca] bg-white px-2 text-[10px] font-semibold text-[#3f5946] transition hover:bg-[#f0f4ef] dark:border-steel-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-white/[0.05]">
                                     Find receiver
                                   </Link>
-                            )}
+                                )}
+                                <Link to={`/app/auctions?material=${encodeURIComponent(material.id)}`} className="inline-flex min-h-8 items-center justify-center rounded-full border border-[#9fc5a7] bg-[#eef6ee] px-2 text-[10px] font-semibold text-[#315b3c] transition hover:bg-[#e1efe2] dark:border-steel-700 dark:bg-[#21372a] dark:text-loop-200 dark:hover:bg-[#2b4634]">Create Auction</Link>
+                                <ListingSponsorshipControl materialId={material.id} />
                           </div>
                         </div>
                       </article>

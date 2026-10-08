@@ -1,4 +1,5 @@
 import PageMeta from "@/components/common/PageMeta";
+import AdvancedImpactPanel from "@/components/monetization/AdvancedImpactPanel";
 import { ProjectStatusChip } from "@/components/greenloop/AppExploration";
 import { materialMedia } from "@/components/greenloop/AppExploration.helpers";
 import CapacityBar from "@/components/greenloop/CapacityBar";
@@ -177,6 +178,8 @@ function ProviderDashboard() {
         <PlannedActualChart dataset={dataset} />
         <CapacityTimelineChart dataset={dataset} />
       </div>
+
+      <AdvancedImpactPanel />
 
       {activeProject && (
         <section className="mt-4 grid gap-detail lg:grid-cols-[1.45fr_1fr]">

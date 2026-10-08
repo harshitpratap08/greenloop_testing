@@ -29,8 +29,8 @@ export default function OrderInvoiceAction({
     } catch (cause) {
       setError(
         cause instanceof Error
-          ? `Invoice could not be generated: ${cause.message}`
-          : "Invoice could not be generated. Please try again.",
+          ? `Order summary could not be generated: ${cause.message}`
+          : "Order summary could not be generated. Please try again.",
       );
     } finally {
       setIsGenerating(false);
@@ -45,12 +45,12 @@ export default function OrderInvoiceAction({
         onClick={generate}
         disabled={isGenerating}
       >
-        {isGenerating ? "Generating PDF…" : pdfUrl ? "Generate Again" : "Generate Invoice"}
+        {isGenerating ? "Generating PDF…" : pdfUrl ? "Generate Again" : "Order / Payment Summary"}
       </Button>
       {pdfUrl && (
         <div className="flex flex-wrap items-center gap-3" aria-live="polite">
           <span className="text-sm font-medium text-loop-700 dark:text-loop-300">
-            Invoice PDF is ready.
+            Order / Payment Summary PDF is ready.
           </span>
           <a
             href={pdfUrl}

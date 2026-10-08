@@ -10,6 +10,7 @@ import { Link } from "react-router";
 export default function OrderTracking({ booking, workspace }: { booking: Booking; workspace?: string }) {
   const { t } = useTranslation();
   const { dataset, updateDeliveryAction, dispatchAction } = useGreenLoopStore();
+  const payment = dataset.payments?.find(item => item.bookingId === booking.id);
   const [saving, setSaving] = useState(false);
   const events = dataset.events.filter(event => event.subjectIds.includes(booking.id)).sort((a, b) => a.at.localeCompare(b.at));
   const eventFor = (kind: string) => events.find(event => event.kind === kind);
@@ -69,7 +70,7 @@ export default function OrderTracking({ booking, workspace }: { booking: Booking
         <p className="text-sm text-steel-600 dark:text-steel-400">{t("orderTracking.explanation")}</p>
         {canUpdate && <div className="space-y-3">
           {nextStage && <Button size="sm" disabled={saving} onClick={() => run(() => updateDeliveryAction(booking.id, nextStage))}>{t(`orderTracking.action.${nextStage}`)}</Button>}
-          {!inTransit && picked && <Button size="sm" disabled={saving} onClick={() => run(() => dispatchAction({ bookingId: booking.id }))}>{t("orderTracking.action.dispatch")}</Button>}
+          {!inTransit && picked && <div className="space-y-2"><Button size="sm" disabled={saving || !payment || payment.paymentStatus !== "paid" || payment.payoutStatus !== "held"} onClick={() => run(() => dispatchAction({ bookingId: booking.id }))}>{t("orderTracking.action.dispatch")}</Button>{(!payment || payment.paymentStatus !== "paid") && <p className="text-xs text-warning-700 dark:text-warning-300">{t("orderTracking.dispatchPaymentRequired")}</p>}</div>}
         </div>}
         {workspace === "receiver" && inTransit && !delivered && !cancelled && <Link to={`/app/receiver/verification?booking=${encodeURIComponent(booking.id)}`} className="inline-flex rounded-lg bg-loop-600 px-4 py-3 text-sm font-semibold text-white hover:bg-loop-700 dark:bg-loop-700">{t("orderTracking.recordArrival")}</Link>}
         {delivered && <p className="rounded-lg bg-loop-50 p-3 text-sm text-loop-800 dark:bg-loop-900 dark:text-loop-200">{t(verification?.status === "pending" ? "orderTracking.verificationPending" : verification?.status === "rejected" ? "orderTracking.verificationRejected" : verification?.status === "verified" ? "orderTracking.verificationComplete" : "orderTracking.verificationPending")}</p>}

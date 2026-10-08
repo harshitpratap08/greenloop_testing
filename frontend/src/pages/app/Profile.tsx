@@ -2,6 +2,7 @@ import PageMeta from "@/components/common/PageMeta";
 import { PageMotion, RevealItem } from "@/components/greenloop/kit";
 import Button from "@/components/ui/button/Button";
 import { ambientMedia } from "@/config/appMedia";
+import PlanBillingCard from "@/components/monetization/PlanBillingCard";
 import { useAuth } from "@/context/AuthContext.helpers";
 import { useState } from "react";
 import { Link } from "react-router";
@@ -67,6 +68,7 @@ export default function Profile() {
       </div>
 
       <PageMotion className="max-w-none space-y-3">
+        <RevealItem><PlanBillingCard /></RevealItem>
         <RevealItem>
           <section className="relative min-h-36 overflow-hidden border border-[#e5e1d8] bg-[#17291e] sm:min-h-40 dark:border-steel-800 rounded-surface" aria-label="Profile overview">
             <img src={ambientMedia.sortingFacility.src} alt={ambientMedia.sortingFacility.alt} className="absolute inset-0 size-full object-cover" />
