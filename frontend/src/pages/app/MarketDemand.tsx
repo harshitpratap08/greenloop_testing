@@ -6,7 +6,8 @@ import ReceiverDiscovery from "@/components/greenloop/ReceiverDiscovery";
 import SearchFilterBar from "@/components/greenloop/SearchFilterBar";
 import StatusBadge from "@/components/greenloop/StatusBadge";
 import Button from "@/components/ui/button/Button";
-import { ambientMedia, materialMediaFor } from "@/config/appMedia";
+import { materialMediaFor, ambientVideo } from "@/config/appMedia";
+import { VideoPanel } from "@/components/greenloop/kit";
 import { useAuth } from "@/context/AuthContext.helpers";
 import { contextualMatch } from "@shared/domain/capacity";
 import type { MaterialTypeKey } from "@shared/domain/types";
@@ -176,50 +177,64 @@ export default function MarketDemand() {
       : categoryCounts[id];
 
   return (
-    <div className="mx-auto max-w-app pb-16">
+    <div className="pb-16">
       <PageMeta title="Active Demand | GreenLoop" description="See material requests from receivers and offer your material." />
 
-      <section className="relative mb-5 grid min-h-[210px] overflow-hidden border border-[#e5e1d8] bg-[#192c20] dark:border-steel-800 sm:min-h-[225px] lg:grid-cols-[1fr_230px] rounded-surface">
-        <img src={ambientMedia.surveyHero.src} alt={ambientMedia.surveyHero.alt} className="absolute inset-0 size-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/95 via-[#17291e]/75 to-[#17291e]/15" />
-        <div className="relative z-10 flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-9 lg:max-w-[740px]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#c7d5c8]">GreenLoop Operations</p>
-          <h1 className="mt-2 font-archivo font-bold tracking-tight text-white gl-page-title">Active Demand</h1>
-          <p className="mt-2 max-w-xl text-sm leading-5 text-white/85 sm:text-base sm:leading-6">Receivers are asking for material. Offer yours directly using a Material Passport, your material’s digital record.</p>
-        </div>
-        <div className="relative z-10 hidden flex-col justify-center gap-2 border-s border-white/15 bg-[#12241a]/50 px-5 py-5 backdrop-blur-sm lg:flex">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-white/10 text-[#d5e2d6]">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-5"><path d="M4 18V6l8-3 8 3v12l-8 3-8-3Z" /><path d="m4 6 8 3 8-3M12 9v12m-4-9 2 1m4 0 2-1" /></svg>
-          </span>
-          <p className="max-w-[170px] text-sm font-semibold leading-5 text-white">Help projects access recovered materials and reduce construction waste.</p>
-        </div>
-      </section>
-
-      <section aria-label="Demand summary" className="mb-6 grid grid-cols-2 gap-detail xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <div key={metric.label} className="flex min-h-[88px] items-center gap-3 border border-[#e7e3da] bg-white px-3.5 py-3 shadow-[0_2px_10px_rgba(26,42,31,0.035)] dark:border-steel-800 dark:bg-[#17251d] sm:px-4 rounded-surface">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#edf3ed] text-[#487454] dark:bg-[#284233] dark:text-[#b6d1bd]"><DemandMetricIcon kind={metric.kind} /></span>
-            <div className="min-w-0">
-              <p className="font-archivo text-lg font-bold leading-5 text-[#1d2c23] dark:text-white sm:text-xl">{metric.value}</p>
-              <p className="mt-1 truncate text-xs font-semibold text-[#38483e] dark:text-gray-200 sm:text-xs">{metric.label}</p>
-              <p className="mt-0.5 hidden truncate text-xs text-[#828b83] dark:text-gray-400 sm:block">{metric.note}</p>
+      <section className="relative">
+        <VideoPanel
+          video={ambientVideo.activeDemand}
+          aspect="h-[340px] sm:h-[365px] lg:h-[385px]"
+          className="rounded-none border-0 shadow-none"
+          scrim="bg-gradient-to-r from-[#14271b]/95 via-[#14271b]/75 to-[#14271b]/20"
+        >
+          <div className="relative z-10 flex h-full flex-col justify-center px-5 pt-24 pb-10 sm:px-9 sm:pt-24 lg:px-12 xl:px-16">
+            <p className="w-fit rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d8e5d9] backdrop-blur-sm sm:text-xs">GreenLoop Operations</p>
+            <h1 className="mt-4 font-archivo text-4xl font-bold tracking-tight text-white drop-shadow-sm sm:text-5xl lg:text-[3.5rem]">Active Demand</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-white/85 sm:text-base sm:leading-7">Receivers are asking for material. Offer yours directly using a Material Passport, your material’s digital record.</p>
+            <div className="mt-5 flex max-w-lg items-center gap-2.5 text-xs font-medium leading-5 text-white/75">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-[#d5e2d6]">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="M4 18V6l8-3 8 3v12l-8 3-8-3Z" /><path d="m4 6 8 3 8-3M12 9v12m-4-9 2 1m4 0 2-1" /></svg>
+              </span>
+              Help projects access recovered materials and reduce construction waste.
             </div>
           </div>
+        </VideoPanel>
+
+      <section aria-label="Demand summary" className="relative z-10 mx-3 -mt-5 grid grid-cols-2 gap-2 sm:mx-6 xl:mx-10 xl:grid-cols-4">
+        {metrics.map((metric, index) => (
+          <motion.div key={metric.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: index * 0.07 }} className="flex min-h-[64px] items-center gap-2.5 rounded-[15px] border border-[#e8e5dc] bg-[#fffefa]/95 px-3 py-2 shadow-[0_6px_18px_rgba(26,42,31,0.09)] backdrop-blur-md dark:border-steel-700 dark:bg-[#17251d]/95 sm:px-3.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#eaf2ea] text-[#487454] dark:bg-[#284233] dark:text-[#b6d1bd]"><DemandMetricIcon kind={metric.kind} /></span>
+            <div className="min-w-0">
+              <p className="font-archivo text-base font-bold leading-4 text-[#1d2c23] dark:text-white">{metric.value}</p>
+              <p className="mt-0.5 truncate text-[10px] font-semibold leading-3 text-[#38483e] dark:text-gray-200 sm:text-[11px]">{metric.label}</p>
+              <p className="mt-0.5 hidden truncate text-[9px] leading-3 text-[#828b83] dark:text-gray-400 sm:block">{metric.note}</p>
+            </div>
+          </motion.div>
         ))}
       </section>
+      </section>
 
-      <div className="mb-6 flex gap-1 border border-[#e5e2da] bg-[#fdfcfa] p-1 shadow-sm dark:border-steel-800 dark:bg-[#1a2b21] sm:w-max rounded-surface">
-        <button type="button" onClick={() => setActiveTab("receivers")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "receivers" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>All Receivers</button>
-        <button type="button" onClick={() => setActiveTab("sent")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "sent" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Requests Sent</button>
-        <button type="button" onClick={() => setActiveTab("received")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${activeTab === "received" ? "bg-white text-[#26362c] shadow dark:bg-[#2c4233] dark:text-white" : "text-[#7c857d] hover:bg-white/50 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Requests Received</button>
+      <div className="mx-auto max-w-app px-4 sm:px-card xl:px-section">
+      <div className="mt-4 mb-6 flex flex-wrap gap-1.5 rounded-full border border-[#e5e2da] bg-[#f7f6f0] p-1.5 shadow-sm dark:border-steel-800 dark:bg-[#1a2b21] sm:w-max">
+        <button type="button" onClick={() => setActiveTab("receivers")} className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-px sm:flex-none ${activeTab === "receivers" ? "bg-[#315b3c] text-white shadow-[0_4px_12px_rgba(49,91,60,0.2)] dark:bg-[#527e5c]" : "text-[#7c857d] hover:bg-white/70 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>All Receivers</button>
+        <button type="button" onClick={() => setActiveTab("sent")} className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-px sm:flex-none ${activeTab === "sent" ? "bg-[#315b3c] text-white shadow-[0_4px_12px_rgba(49,91,60,0.2)] dark:bg-[#527e5c]" : "text-[#7c857d] hover:bg-white/70 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Requests Sent</button>
+        <button type="button" onClick={() => setActiveTab("received")} className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-px sm:flex-none ${activeTab === "received" ? "bg-[#315b3c] text-white shadow-[0_4px_12px_rgba(49,91,60,0.2)] dark:bg-[#527e5c]" : "text-[#7c857d] hover:bg-white/70 hover:text-[#26362c] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>Requests Received</button>
       </div>
 
       {activeTab === "received" && (
-        <section id="active-demand-list" aria-label="Active material requests">
-        <div className="mb-3 border-b border-[#e4e1d8] dark:border-steel-800">
-          <div className="flex gap-5 overflow-x-auto">
+        <section id="active-demand-list" aria-label="Active material requests" className="relative isolate">
+        <div className="relative z-10">
+        <div className="relative isolate mb-4 overflow-hidden">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+          <img src="/images/site/inventory-nature-concrete.png" alt="" className="absolute -top-10 right-0 h-[190px] w-[68%] object-contain object-right sm:-top-12 sm:h-[210px] sm:w-[62%] xl:w-[54%]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#f6f5f0_0%,rgba(246,245,240,0.3)_22%,rgba(246,245,240,0.08)_42%,transparent_68%)] dark:bg-[linear-gradient(to_right,#101913_0%,rgba(16,25,19,0.3)_22%,rgba(16,25,19,0.08)_42%,transparent_68%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#f6f5f0_0%,rgba(246,245,240,0.1)_12%,transparent_30%)] dark:bg-[linear-gradient(to_bottom,#101913_0%,rgba(16,25,19,0.1)_12%,transparent_30%)]" />
+        </div>
+        <div className="relative z-10">
+        <div className="mb-4">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {DEMAND_CATEGORIES.map((item) => (
-              <button key={item.id} type="button" aria-pressed={category === item.id} onClick={() => setCategory(item.id)} className={`flex shrink-0 items-center gap-1.5 border-b-2 px-0.5 pb-3 pt-1 text-xs font-semibold transition-colors ${category === item.id ? "border-[#4b7956] text-[#315c3d] dark:text-[#c5ddcb]" : "border-transparent text-[#7c857d] hover:text-[#315c3d] dark:text-gray-400 dark:hover:text-white"}`}>
+              <button key={item.id} type="button" aria-pressed={category === item.id} onClick={() => setCategory(item.id)} className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold transition-all duration-200 hover:-translate-y-px ${category === item.id ? "border-[#315b3c] bg-[#315b3c] text-white shadow-[0_4px_12px_rgba(49,91,60,0.16)] dark:border-[#527e5c] dark:bg-[#527e5c]" : "border-[#e3e3d9] bg-white/80 text-[#6f7b70] hover:border-[#b9c8ba] hover:bg-[#f1f5ef] hover:text-[#315c3d] dark:border-steel-700 dark:bg-[#17251d] dark:text-gray-400 dark:hover:bg-[#2c4233]/50 dark:hover:text-white"}`}>
                 {item.label} <span className={`text-xs ${category === item.id ? "text-[#66806b] dark:text-[#a9c7b0]" : "text-[#a1a79f]"}`}>({categoryCount(item.id)})</span>
               </button>
             ))}
@@ -233,7 +248,7 @@ export default function MarketDemand() {
           searchLabel="Search active demand"
           activeFilterCount={[minimumT, maximumBudget, neededBy].filter(Boolean).length}
           onClearFilters={() => { setMinimumT(""); setMaximumBudget(""); setNeededBy(""); }}
-          resultLabel={`Showing ${filteredDemands.length} of ${openDemands.length} requests`}
+          resultLabel={<span className="rounded-full border border-[#e3e3d9]/80 bg-[#f6f5f0]/90 px-2.5 py-1 text-[#55645a] shadow-sm backdrop-blur-sm dark:border-steel-700 dark:bg-[#17251d]/90 dark:text-gray-300">{`Showing ${filteredDemands.length} of ${openDemands.length} requests`}</span>}
           filters={
             <>
               <label className="text-xs font-medium text-steel-600 dark:text-gray-300">Minimum required tonnes<input type="number" min="0" value={minimumT} onChange={(event) => setMinimumT(event.target.value)} className="mt-1 block h-10 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-[#17251d] dark:text-white" /></label>
@@ -242,6 +257,8 @@ export default function MarketDemand() {
             </>
           }
         />
+        </div>
+        </div>
 
         {filteredDemands.length === 0 ? (
           <div className="border border-dashed border-[#d8ddd5] bg-white/60 px-6 py-12 text-center dark:border-steel-700 dark:bg-white/[0.02] rounded-surface">
@@ -257,26 +274,26 @@ export default function MarketDemand() {
               const availablePassports = dataset.materials.filter((item) => item.type === demand.materialType && (!demand.targetMaterialId || item.id === demand.targetMaterialId) && item.status !== "cancelled" && item.quantityT > dataset.bookings.filter((booking) => booking.materialId === item.id && booking.status !== "cancelled").reduce((sum, booking) => sum + booking.tonnesT, 0));
               const image = materialMediaFor(demand.materialType);
               return (
-                <motion.article id={`demand-${demand.id}`} key={demand.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.04, 0.2) }} className="overflow-hidden border border-[#e5e2da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] transition hover:border-[#bfccbf] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957] rounded-surface">
-                  <div className="grid lg:grid-cols-[180px_minmax(0,1fr)_250px]">
-                    <div className="relative min-h-40 overflow-hidden lg:min-h-[188px]">
-                      <img src={image.src} alt={image.alt} loading="lazy" className="absolute inset-0 size-full object-cover" />
+                <motion.article id={`demand-${demand.id}`} key={demand.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -3, transition: { duration: 0.18 } }} transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.35 }} className="group overflow-hidden border border-[#e5e2da] bg-white shadow-[0_5px_18px_rgba(26,42,31,0.055)] transition-[border-color,box-shadow] hover:border-[#bfccbf] hover:shadow-[0_14px_32px_rgba(26,42,31,0.11)] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957] rounded-[17px]">
+                  <div className="grid lg:grid-cols-[112px_minmax(0,1fr)_220px]">
+                    <div className="relative min-h-28 overflow-hidden lg:min-h-[118px]">
+                      <img src={image.src} alt={image.alt} loading="lazy" className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]" />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#142319]/50 via-transparent to-transparent" />
-                      <span className="absolute bottom-3 left-3 border border-white/30 bg-[#17281e]/75 px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-sm rounded-surface">{materialTypeLabel(demand.materialType)}</span>
+                      <span className="absolute bottom-3 left-3 border border-white/30 bg-[#17281e]/75 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white backdrop-blur-sm rounded-full">{materialTypeLabel(demand.materialType)}</span>
                     </div>
 
-                    <div className="min-w-0 gl-card-pad">
-                      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#8a938b]">Receiver Request</p>
+                    <div className="min-w-0 p-3 sm:p-3.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a938b]">Receiver Request</p>
                       <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <h2 className="font-archivo text-xl font-bold tracking-tight text-[#26362c] dark:text-white">{materialTypeLabel(demand.materialType)}</h2>
+                        <h2 className="font-archivo text-lg font-bold tracking-tight text-[#26362c] dark:text-white">{materialTypeLabel(demand.materialType)}</h2>
                         <StatusBadge status={demand.status} />
                         {demand.targetProviderId === providerId && (
                           <span className="rounded-full bg-loop-100 px-2 py-0.5 text-xs font-semibold text-loop-800 dark:bg-loop-900 dark:text-loop-200">Direct Request</span>
                         )}
                       </div>
                       <p className="mt-1.5 text-xs text-[#778078] dark:text-gray-400"><span className="font-semibold text-[#3a4b3e] dark:text-gray-200">{demand.requiredT.toFixed(1)} t {materialTypeLabel(demand.materialType)}</span> · {demand.period}</p>
-                      {demand.notes && <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#727d74] dark:text-gray-400">{demand.notes}</p>}
-                      <details className="mt-3 text-xs text-[#526b58] dark:text-[#b6cfbd]">
+                      {demand.notes && <p className="mt-1 line-clamp-1 text-[11px] leading-4 text-[#727d74] dark:text-gray-400">{demand.notes}</p>}
+                      <details className="mt-1.5 text-[11px] text-[#526b58] dark:text-[#b6cfbd]">
                         <summary className="w-fit cursor-pointer font-semibold">View Match Details <span aria-hidden="true">→</span></summary>
                         <div className="mt-2 text-left">
                           {(() => {
@@ -299,21 +316,21 @@ export default function MarketDemand() {
                       </details>
                     </div>
 
-                    <div className="flex flex-col justify-between gap-4 border-t border-[#eeeae2] bg-[#f8f7f2] p-4 dark:border-steel-800 dark:bg-[#1c2b22] sm:flex-row sm:items-center lg:flex-col lg:items-stretch lg:border-l lg:border-t-0 lg:p-4">
-                      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-1">
+                    <div className="flex flex-col justify-between gap-3 border-t border-[#eeeae2] bg-[#f7f6f0] p-3 dark:border-steel-800 dark:bg-[#1c2b22] sm:flex-row sm:items-center lg:flex-col lg:items-stretch lg:border-l lg:border-t-0 lg:p-3.5">
+                      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-2 lg:grid-cols-2">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[#929990]">Needs</p>
-                          <p className="mt-0.5 font-archivo text-lg font-bold text-[#26362c] dark:text-white">{demand.requiredT.toFixed(1)} <span className="text-xs font-medium text-[#7e887f]">t</span></p>
+                          <p className="mt-0.5 font-archivo text-base font-bold text-[#26362c] dark:text-white">{demand.requiredT.toFixed(1)} <span className="text-xs font-medium text-[#7e887f]">t</span></p>
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[#929990]">Receiver</p>
                           <p className="mt-0.5 truncate text-xs font-semibold text-[#38483e] dark:text-gray-200">{receiver?.name ?? demand.receiverId}</p>
                         </div>
-                        <div className="col-span-2 min-w-0 lg:col-span-1">
+                        <div className="col-span-2 min-w-0 lg:col-span-2">
                           <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[#929990]">Location</p>
                           <p className="mt-0.5 truncate text-xs text-[#647168] dark:text-gray-400">{demand.location || receiver?.location || "Location not provided"}</p>
                         </div>
-                        {demand.budgetPerT !== undefined && <div className="col-span-2 min-w-0 lg:col-span-1">
+                        {demand.budgetPerT !== undefined && <div className="col-span-2 min-w-0 lg:col-span-2">
                           <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[#929990]">Budget / tonne</p>
                           <p className="mt-0.5 truncate text-xs text-[#647168] dark:text-gray-400">{formatINRPerT(demand.budgetPerT)}</p>
                         </div>}
@@ -384,6 +401,7 @@ export default function MarketDemand() {
             })}
           </div>
         )}
+        </div>
       </section>
       )}
 
@@ -430,6 +448,7 @@ export default function MarketDemand() {
       )}
 
       {activeTab === "receivers" && user?.activeWorkspace !== "receiver" && <ReceiverDiscovery dataset={dataset} />}
+      </div>
     </div>
   );
 }

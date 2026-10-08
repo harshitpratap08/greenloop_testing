@@ -2,21 +2,21 @@ import PageMeta from "@/components/common/PageMeta";
 import AddressLocation from "@/components/greenloop/AddressLocation";
 import { materialMedia } from "@/components/greenloop/AppExploration.helpers";
 import { LocationMap } from "@/components/greenloop/LocationMap";
+import { VideoPanel } from "@/components/greenloop/kit";
 import MatchDetailsPanel from "@/components/greenloop/MatchDetailsPanel";
 import NegotiationPanel from "@/components/greenloop/NegotiationPanel";
 import RecordActions from "@/components/greenloop/RecordActions";
 import StatusBadge from "@/components/greenloop/StatusBadge";
-import WorkflowPageHeader from "@/components/greenloop/WorkflowPageHeader";
 import Button from "@/components/ui/button/Button";
-import { materialMediaFor } from "@/config/appMedia";
+import { ambientVideo, materialMediaFor } from "@/config/appMedia";
 import { useAuth } from "@/context/AuthContext.helpers";
 import { contextualMatch, slotLedger, slotMatchesDemandPeriod } from "@shared/domain/capacity";
 import { type GeoPoint, type MaterialTypeKey } from "@shared/domain/types";
-import { CalenderIcon, ChevronDownIcon, FileIcon, MapIcon } from "@/icons";
+import { CalenderIcon, FileIcon, MapIcon } from "@/icons";
 import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
 import { cn, formatDate, formatINR, formatINRPerT, materialTypeLabel } from "@/utils";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import DemandCapacity from "./DemandCapacity";
@@ -75,12 +75,28 @@ export default function Demand() {
     const offerId = searchParams.get("offer");
     const timer = window.setTimeout(() => {
       const offer = offerId ? document.getElementById(`offer-${offerId}`) : null;
-      const target = offer ?? document.getElementById(`demand-${demandId}`);
-      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      offer?.scrollIntoView({ behavior: "smooth", block: "center" });
       offer?.focus({ preventScroll: true });
     }, 0);
     return () => window.clearTimeout(timer);
   }, [expandedId, searchParams]);
+
+  useEffect(() => {
+    const isDrawerOpen = isAdding || Boolean(expandedId);
+    if (!isDrawerOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (isAdding) setIsAdding(false);
+      else setExpandedOverride({ query, id: null });
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [expandedId, isAdding, query]);
 
   const handleAddDemand = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,28 +161,68 @@ export default function Demand() {
       .filter((booking) => booking.demandId === demandId && booking.status === "confirmed")
       .reduce((sum, booking) => sum + booking.tonnesT, 0);
   };
+  const totalRequestedT = receiverDemands.reduce((sum, demand) => sum + demand.requiredT, 0);
+  const totalReceivedT = receiverDemands.reduce((sum, demand) => sum + calculateCoveredT(demand.id), 0);
+  const overallCoverage = totalRequestedT > 0 ? Math.min(100, Math.round(totalReceivedT / totalRequestedT * 100)) : 0;
 
   return (
-    <div className="relative min-h-screen pb-24">
+    <div className="relative min-h-screen bg-[#f6f5f0] pb-16 text-[#26342b] dark:bg-[#101913] dark:text-[#f2f3ef]">
       <PageMeta title="Request Material | GreenLoop" description="Publish material requirements and receiving capacity for your facility." />
-      <WorkflowPageHeader
-        title="Request Material"
-        description="Publish the material, quantity, needed-by date, budget, and receiving capacity your facility can accept."
-        status={`${receiverDemands.length} request${receiverDemands.length === 1 ? "" : "s"} from this facility`}
-        action={!isAdding ? { label: "Request material", onClick: () => { setIsAdding(true); setSentMessage(""); } } : undefined}
-      />
+      <section className="relative">
+        <VideoPanel
+          video={ambientVideo.receiverDemand}
+          aspect="h-[330px] sm:h-[360px] lg:h-[385px]"
+          className="rounded-none border-0 shadow-none"
+          scrim="bg-gradient-to-r from-[#10251a]/95 via-[#10251a]/75 to-[#10251a]/30"
+        >
+          <div className="relative z-10 flex h-full flex-col justify-center px-5 pb-8 pt-20 sm:px-9 sm:pt-24 lg:px-12 xl:px-16">
+            <p className="w-fit rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d8e5d9] backdrop-blur-sm sm:text-xs">Receiver operations</p>
+            <div className="mt-3 flex flex-wrap items-end justify-between gap-6">
+              <div className="max-w-2xl">
+                <h1 className="font-archivo text-4xl font-bold tracking-tight text-white drop-shadow-sm sm:text-5xl lg:text-[3.5rem]">Request <span className="text-[#71c493]">Material</span></h1>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-white/85 sm:text-base">Find and receive quality construction materials from nearby recovery projects.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setIsAdding(true); setSentMessage(""); }}
+                className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-white/70 bg-[#062b20]/90 px-3.5 text-[11px] font-medium text-white shadow-md backdrop-blur-sm transition hover:border-white hover:bg-[#0b3b2d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                <span aria-hidden="true" className="text-base leading-none">+</span>
+                Request material
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-x-8 gap-y-2 text-white">
+              <div><p className="font-archivo text-xl font-bold">{receiverDemands.length}</p><p className="text-[11px] text-white/75">Requests published</p></div>
+              <div><p className="font-archivo text-xl font-bold">{totalRequestedT.toLocaleString("en-IN", { maximumFractionDigits: 1 })} t</p><p className="text-[11px] text-white/75">Material requested</p></div>
+              <div><p className="font-archivo text-xl font-bold">{overallCoverage}%</p><p className="text-[11px] text-white/75">Average coverage</p></div>
+            </div>
+          </div>
+        </VideoPanel>
+      </section>
 
-      {sentMessage && <p role="status" className="mb-5 border-l-4 border-loop-500 bg-loop-50 px-4 py-3 text-sm font-medium text-loop-800 dark:bg-loop-500/10 dark:text-loop-200">{sentMessage}</p>}
+      {sentMessage && <p role="status" className="mx-auto mb-4 mt-4 max-w-[1120px] border-l-4 border-loop-500 bg-loop-50 px-4 py-3 text-sm font-medium text-loop-800 dark:bg-loop-500/10 dark:text-loop-200 sm:mx-6 lg:mx-auto">{sentMessage}</p>}
 
       {/* Add Demand Form */}
+      <AnimatePresence>
       {isAdding && (
+        <>
+        <motion.button type="button" aria-label="Close request form" onClick={() => setIsAdding(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] cursor-default bg-[#101a13]/45 backdrop-blur-[2px]" />
         <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="mb-10 overflow-hidden"
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={{ type: "spring", damping: 32, stiffness: 300 }}
+          className="fixed inset-y-0 right-0 z-[81] w-full overflow-y-auto border-l border-[#e8e7df] bg-[#fffefa] shadow-2xl dark:border-steel-800 dark:bg-[#111b14] sm:max-w-[620px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="request-form-title"
         >
-          <div id="request-form" className="border border-steel-200 bg-white dark:border-steel-800 dark:bg-white/[0.02] gl-card-pad rounded-surface">
-            <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">Tell providers what you need</h2>
+          <div id="request-form" className="min-h-full p-5 sm:p-7">
+            <div className="mb-5 flex items-center justify-between gap-3 border-b border-[#e7e8e1] pb-4 dark:border-steel-800">
+              <div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6c9274]">New request</p><h2 id="request-form-title" className="mt-1 font-archivo text-xl font-bold text-[#24352a] dark:text-white">Tell providers what you need</h2></div>
+              <button type="button" aria-label="Close request form" onClick={() => setIsAdding(false)} className="flex size-9 shrink-0 items-center justify-center rounded-full text-xl text-[#667268] transition hover:bg-[#edf2ec] dark:hover:bg-white/10">×</button>
+            </div>
             <form onSubmit={handleAddDemand} className="mt-6 grid gap-card sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-steel-700 dark:text-gray-300">Material Type</label>
@@ -257,11 +313,13 @@ export default function Demand() {
             </form>
           </div>
         </motion.div>
+        </>
       )}
+      </AnimatePresence>
 
       {/* Demand List */}
-      {!isAdding && receiverDemands.length === 0 ? (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01] rounded-surface">
+      {receiverDemands.length === 0 ? (
+        <div className="mx-auto flex min-h-[32vh] max-w-5xl flex-col items-center justify-center border border-dashed border-steel-300 bg-steel-50/50 p-8 text-center dark:border-steel-800 dark:bg-white/[0.01] rounded-surface">
           <h2 className="font-archivo text-xl font-bold text-ink-900 dark:text-white">No active material demand</h2>
           <p className="mt-2 max-w-md text-steel-600 dark:text-gray-400">
             Publish a material request to tell GreenLoop what you need and start matching with recovery projects.
@@ -271,7 +329,7 @@ export default function Demand() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-card">
+        <div className="mx-auto grid max-w-[1120px] gap-3 px-4 pt-5 sm:px-6 lg:pt-7">
           {receiverDemands.map((demand, i) => {
             const coveredT = calculateCoveredT(demand.id);
             const heldT = dataset.bookings.filter((booking) => booking.demandId === demand.id && booking.status === "hold")
@@ -281,20 +339,71 @@ export default function Demand() {
             const media = materialMediaFor(demand.materialType);
             const typeLabel = materialTypeLabel(demand.materialType);
             const isExpanded = expandedId === demand.id;
+            const requestOffers = dataset.offers?.filter(offer => offer.demandId === demand.id && ["pending", "accepted"].includes(offer.status)) ?? [];
 
             return (
+              <Fragment key={demand.id}>
               <motion.article
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={demand.id}
                 id={`demand-${demand.id}`}
-                className="overflow-hidden border border-steel-200 bg-white shadow-xs transition-colors hover:border-steel-400 dark:border-steel-800 dark:bg-white/[0.02] dark:hover:border-steel-600 rounded-surface"
+                className="group overflow-hidden rounded-2xl border border-[#e8e7df] bg-white shadow-[0_5px_18px_rgba(31,48,37,0.06)] transition duration-300 hover:-translate-y-0.5 hover:border-[#9fbea5] hover:shadow-[0_12px_28px_rgba(31,48,37,0.1)] dark:border-steel-800 dark:bg-white/[0.03]"
+              >
+                <div className="grid gap-3 p-3 sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-4 sm:p-4">
+                  <img src={media.src} alt={media.alt} loading="lazy" className="h-24 w-full rounded-xl object-cover transition-transform duration-500 group-hover:scale-[1.02] sm:h-28 sm:w-28" />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h2 className="font-archivo text-lg font-bold leading-tight text-[#24352a] dark:text-white">{typeLabel}</h2>
+                        <p className="mt-1 text-xs text-[#768078] dark:text-gray-400">
+                          <span>{/^\d{4}-\d{2}-\d{2}$/.test(demand.period) ? formatDate(demand.period) : demand.period}</span>
+                          <span className="mx-1.5" aria-hidden="true">·</span>
+                          <span>{demand.location}</span>
+                        </p>
+                      </div>
+                      <StatusBadge status={demand.status} />
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 sm:max-w-lg sm:gap-5">
+                      <div><p className="text-[10px] font-medium uppercase tracking-wide text-[#858d86]">Requested</p><p className="mt-0.5 text-sm font-bold text-[#29392f] dark:text-white">{demand.requiredT.toFixed(1)} t</p></div>
+                      <div><p className="text-[10px] font-medium uppercase tracking-wide text-[#858d86]">Received</p><p className="mt-0.5 text-sm font-bold text-[#218253]">{coveredT.toFixed(1)} t</p></div>
+                      <div><p className="text-[10px] font-medium uppercase tracking-wide text-[#858d86]">Remaining</p><p className="mt-0.5 text-sm font-bold text-[#29392f] dark:text-white">{remainingT.toFixed(1)} t</p></div>
+                    </div>
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[#e8e9e5]" role="img" aria-label={`${percentCovered.toFixed(0)}% of the request covered`}>
+                        <div className="h-full rounded-full bg-[#269766] transition-all duration-500" style={{ width: `${percentCovered}%` }} />
+                      </div>
+                      <span className="w-9 text-right text-[11px] font-semibold text-[#5c675f] dark:text-gray-300">{percentCovered.toFixed(0)}%</span>
+                      <button type="button" onClick={() => setExpandedOverride({ query, id: demand.id })} className="ml-2 inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg border border-[#b9cbbd] px-3 text-xs font-semibold text-[#294934] transition hover:bg-[#eff5ef] dark:border-steel-600 dark:text-loop-300 dark:hover:bg-white/5">
+                        View details <span aria-hidden="true">→</span>
+                      </button>
+                    </div>
+                    {heldT > 0 && <p className="mt-1 text-[11px] text-[#7d857e]">{heldT.toFixed(1)} t waiting on capacity</p>}
+                  </div>
+                </div>
+              </motion.article>
+              <AnimatePresence>
+              {isExpanded && (
+              <>
+              <motion.button type="button" aria-label="Close request details" onClick={() => setExpandedOverride({ query, id: null })} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] cursor-default bg-[#101a13]/45 backdrop-blur-[2px]" />
+              <motion.article
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 32, stiffness: 300 }}
+                key={`details-${demand.id}`}
+                id={`demand-${demand.id}-details`}
+                role="dialog"
+                aria-modal="true"
+                aria-label={`${typeLabel} request details`}
+                className="fixed inset-y-0 right-0 z-[81] w-full overflow-y-auto border-l border-[#e8e7df] bg-[#fffefa] shadow-2xl dark:border-steel-800 dark:bg-[#111b14] sm:max-w-[620px]"
               >
                 {/* Hero material image — what this facility needs */}
                 <figure className="relative h-40 w-full overflow-hidden sm:h-52">
                   <img src={media.src} alt={media.alt} loading="lazy" className="size-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-ink-950/70 via-ink-950/25 to-ink-950/10" aria-hidden="true" />
+                  <button type="button" aria-label="Close request details" onClick={() => setExpandedOverride({ query, id: null })} className="absolute right-4 top-4 z-10 flex size-9 items-center justify-center rounded-full border border-white/40 bg-ink-950/35 text-2xl leading-none text-white backdrop-blur-sm transition hover:bg-ink-950/65">×</button>
                   <figcaption className="absolute inset-x-0 bottom-0 flex items-end justify-between px-5 pb-4 sm:px-7 sm:pb-5">
                     <span className="font-archivo text-lg font-bold uppercase tracking-wide text-white sm:text-xl">{typeLabel}</span>
                     <span className="ledger-numeral text-base font-bold text-white/95 sm:text-lg">{demand.requiredT.toFixed(1)} t</span>
@@ -305,10 +414,10 @@ export default function Demand() {
                   {/* Request identity + headline quantities */}
                   <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
-                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material request</p>
+                      <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material request · {demand.id}</p>
                       <h3 className="mt-1.5 font-archivo text-2xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-3xl">{typeLabel}</h3>
                       <p className="mt-1.5 text-sm text-steel-600 dark:text-gray-400">
-                        <span className="font-semibold text-ink-900 dark:text-gray-200">{demand.period}</span> · {demand.location}
+                        <span className="font-semibold text-ink-900 dark:text-gray-200">{/^\d{4}-\d{2}-\d{2}$/.test(demand.period) ? formatDate(demand.period) : demand.period}</span> · {demand.location}
                       </p>
                       {demand.targetMaterialId && <p className="mt-2 text-sm font-semibold text-loop-700 dark:text-loop-300">{t("directRequest.recipient", { provider: demand.targetProviderName ?? dataset.providerListings?.find(item => item.materialId === demand.targetMaterialId)?.organization ?? "Provider", reference: demand.targetMaterialId })}</p>}
                     </div>
@@ -331,18 +440,16 @@ export default function Demand() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 lg:flex-col lg:items-end">
+                    <div className="flex flex-wrap items-center justify-between gap-3 lg:flex-col lg:items-end">
                       <StatusBadge status={demand.status} />
                       <RecordActions kind="request" id={demand.id} />
                       {(["OPEN", "PARTIALLY_COVERED"].includes(demand.status) && !dataset.bookings.some((booking) => booking.demandId === demand.id && booking.status !== "cancelled")) && <Button size="sm" variant="outline" onClick={() => cancelDemandAction(demand.id)}>Cancel Request</Button>}
                       <button
                         type="button"
-                        aria-expanded={isExpanded}
-                        onClick={() => setExpandedOverride({ query, id: isExpanded ? null : demand.id })}
-                        className="inline-flex items-center gap-1.5 text-sm font-medium text-steel-600 transition-colors hover:text-ink-900 dark:text-gray-400 dark:hover:text-white"
+                        onClick={() => setExpandedOverride({ query, id: null })}
+                        className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-steel-600 transition-colors hover:bg-steel-100 hover:text-ink-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
                       >
-                        View details
-                        <ChevronDownIcon className={cn("size-4 transition-transform duration-200", isExpanded && "rotate-180")} />
+                        Close details <span aria-hidden="true">×</span>
                       </button>
                     </div>
                   </div>
@@ -391,17 +498,16 @@ export default function Demand() {
                           <div className="flex items-start gap-3 sm:border-l sm:border-steel-100 sm:pl-6 dark:sm:border-steel-800/60">
                             <FileIcon className="mt-0.5 size-5 shrink-0 text-steel-500 dark:text-steel-400" />
                             <div>
-                              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Material specification</p>
-                              <p className="mt-1.5 text-sm font-semibold text-ink-900 dark:text-white">{typeLabel}</p>
-                              {demand.budgetPerT !== undefined && <p className="mt-1 text-xs text-steel-500">Budget ₹{demand.budgetPerT.toLocaleString("en-IN")}/tonne</p>}
+                              <p className="eyebrow-label text-steel-500 dark:text-steel-400">Budget per tonne</p>
+                              <p className="mt-1.5 text-sm font-semibold text-ink-900 dark:text-white">{demand.budgetPerT !== undefined ? `₹${demand.budgetPerT.toLocaleString("en-IN")}/tonne` : "Not specified"}</p>
                             </div>
                           </div>
                         </div>
 
-                        {demand.notes && (
+                        {(
                           <div className="mt-5 border border-steel-200 bg-steel-50/70 p-4 dark:border-steel-800 dark:bg-white/[0.03] rounded-surface">
-                            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Additional information</p>
-                            <p className="mt-1.5 text-sm leading-relaxed text-ink-800 dark:text-gray-200">{demand.notes}</p>
+                            <p className="eyebrow-label text-steel-500 dark:text-steel-400">Description</p>
+                            <p className="mt-1.5 text-sm leading-relaxed text-ink-800 dark:text-gray-200">{demand.notes || "No additional description provided."}</p>
                           </div>
                         )}
 
@@ -411,11 +517,13 @@ export default function Demand() {
                   </AnimatePresence>
                   <DemandCapacity demand={demand} dataset={dataset} receiverId={receiverId} addCapacityAction={addCapacityAction} updateCapacityAction={updateCapacityAction} />
                   {/* Offers — real provider proposals on this request */}
-                  {dataset.offers && dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").length > 0 && (
+                  {requestOffers.length > 0 && (
                     <div className="mt-6 border border-loop-200 bg-loop-50/50 p-4 dark:border-loop-900/30 dark:bg-loop-900/10 rounded-surface">
-                      <h4 className="mb-3 font-archivo text-sm font-bold text-ink-900 dark:text-white">Provider offers waiting for a decision</h4>
+                      <h4 className="mb-3 font-archivo text-sm font-bold text-ink-900 dark:text-white">
+                        Confirmed Offers ({requestOffers.filter(offer => offer.status === "accepted").length}) · Pending proposals ({requestOffers.filter(offer => offer.status === "pending").length})
+                      </h4>
                       <div className="space-y-3">
-                        {dataset.offers.filter(o => o.demandId === demand.id && o.status === "pending").map(offer => {
+                  {requestOffers.map(offer => {
                           const passport = dataset.materials.find((material) => material.id === offer.passportId);
                           const committedT = dataset.bookings.filter((booking) => booking.materialId === offer.passportId && booking.status !== "cancelled")
                             .reduce((total, booking) => total + booking.tonnesT, 0);
@@ -446,10 +554,13 @@ export default function Demand() {
                                 </div>
                               </div>
                               <div className="flex flex-wrap gap-2 sm:flex-col sm:w-32">
-                                <Button size="sm" className="min-h-11 w-full" disabled={!requestOpen || !hasCapacity || blockedByStock || blockedByQuantity} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
-                                <Button size="sm" className="min-h-11 w-full" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
+                                <StatusBadge status={offer.status} />
+                                {offer.status === "pending" && <>
+                                  <Button size="sm" className="min-h-11 w-full" disabled={!requestOpen || !hasCapacity || blockedByStock || blockedByQuantity} onClick={() => acceptOfferAction(offer.id)}>Accept</Button>
+                                  <Button size="sm" className="min-h-11 w-full" variant="outline" onClick={() => declineOfferAction(offer.id)}>Decline</Button>
+                                </>}
                               </div>
-                              <div className="basis-full space-y-2 border border-steel-200 bg-steel-50 p-3 text-sm dark:border-steel-700 dark:bg-white/5 rounded-surface">
+                              {offer.status === "pending" && <div className="basis-full space-y-2 border border-steel-200 bg-steel-50 p-3 text-sm dark:border-steel-700 dark:bg-white/5 rounded-surface">
                                 <p className="text-steel-700 dark:text-steel-300">{t("offerChecks.requirement", { total: demand.requiredT.toFixed(1), booked: committedDemandT.toFixed(1), remaining: offerRemainingT.toFixed(1) })}</p>
                                 {receivingSlot && <p className="font-medium text-loop-700 dark:text-loop-300">{t("offerChecks.dateReady", { date: formatDate(receivingSlot.date), quantity: offer.offeredQuantityT.toFixed(1) })}</p>}
                                 {(!requestOpen || blockedByQuantity || blockedByStock || !hasCapacity) && <div role="status" className="space-y-1 text-warning-700 dark:text-warning-400">
@@ -460,7 +571,7 @@ export default function Demand() {
                                   {blockedByStock && <p>{t("offerChecks.stock", { quantity: passportAvailableT.toFixed(1) })}</p>}
                                   {!hasCapacity && <p>{eligibleSlots.length === 0 ? t("receivingPlan.needDate") : t("receivingPlan.needSpace", { quantity: offer.offeredQuantityT.toFixed(1) })}</p>}
                                 </div>}
-                              </div>
+                              </div>}
                               
                               <details className="mt-1 basis-full"><summary className="cursor-pointer text-xs font-semibold text-loop-700 dark:text-loop-300">View Match Analysis</summary>
                                 <div className="mt-3 text-left">
@@ -472,7 +583,7 @@ export default function Demand() {
                                   ) : <p className="text-sm text-steel-500">Match analysis unavailable.</p>}
                                 </div>
                               </details>
-                              <div className="mt-1 basis-full"><NegotiationPanel offer={offer} canCounter onCounter={(price) => counterOfferAction(offer.id, price)} /></div>
+                              <div className="mt-1 basis-full"><NegotiationPanel offer={offer} canCounter={offer.status === "pending"} onCounter={(price) => counterOfferAction(offer.id, price)} /></div>
                             </div>
                           );
                         })}
@@ -481,6 +592,10 @@ export default function Demand() {
                   )}
                 </div>
               </motion.article>
+              </>
+              )}
+              </AnimatePresence>
+              </Fragment>
             );
           })}
         </div>

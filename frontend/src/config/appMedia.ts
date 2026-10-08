@@ -170,6 +170,21 @@ export interface AppVideo {
 }
 
 export const ambientVideo = {
+  receiverDemand: {
+    src: "/videos/verification-yard.mp4",
+    poster: "/images/site/auth-yard.jpg",
+    alt: "Truck arriving at a receiving yard for material acceptance",
+  },
+  activeDemand: {
+    src: "/videos/material-loading.mp4",
+    poster: "/images/site/brick-pallets.jpg",
+    alt: "Machinery loading recovered material for transport",
+  },
+  inventory: {
+    src: "/videos/concrete-excavation.mp4",
+    poster: "/images/site/concrete-pile.jpg",
+    alt: "Excavator working with recovered concrete on site",
+  },
   /** Provider auth / matching contexts — urban demolition in progress. */
   demolition: {
     src: "/videos/demolition-urban.mp4",

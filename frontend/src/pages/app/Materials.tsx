@@ -1,11 +1,10 @@
 import PageMeta from "@/components/common/PageMeta";
-import { EmptyState, PageMotion, RevealItem, StatusChip } from "@/components/greenloop/kit";
+import { EmptyState, PageMotion, RevealItem, StatusChip, VideoPanel } from "@/components/greenloop/kit";
 import RecordActions from "@/components/greenloop/RecordActions";
-import { ambientMedia, materialMediaFor } from "@/config/appMedia";
-import { computeMatch } from "@shared/domain/capacity";
+import { ambientVideo, materialMediaFor } from "@/config/appMedia";
 import type { MaterialTypeKey } from "@shared/domain/types";
 import { useGreenLoopStore } from "@/store/GreenLoopStore.helpers";
-import { formatINR, formatINRPerT, materialTypeLabel } from "@/utils";
+import { materialTypeLabel } from "@/utils";
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
@@ -17,10 +16,45 @@ const CATEGORY_FILTERS: { id: MaterialCategory; label: string }[] = [
   { id: "brick", label: "Brick" },
   { id: "steel", label: "Steel" },
   { id: "timber", label: "Wood" },
+  { id: "plasterboard", label: "Plasterboard" },
+  { id: "glass", label: "Glass" },
   { id: "other", label: "Other" },
 ];
 
-const knownTypes = new Set<string>(["concrete", "brick", "steel", "timber"]);
+const knownTypes = new Set<string>(["concrete", "brick", "steel", "timber", "plasterboard", "glass"]);
+
+function MaterialFilterIcon({ category }: { category: MaterialCategory }) {
+  const common = "size-3.5 shrink-0";
+  switch (category) {
+    case "all":
+      return <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" className={common}><path d="M2 2h6v6H2zm10 0h6v6h-6zM2 12h6v6H2zm10 0h6v6h-6z" /></svg>;
+    case "concrete":
+      return <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" className={common}><path d="m10 2.5 7 4v7l-7 4-7-4v-7l7-4Z" /><path d="m3.5 6.5 6.5 4 6.5-4M10 10.5v7" /></svg>;
+    case "brick":
+      return <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className={common}><path d="M2.5 4h6v5h-6zm9 0h6v5h-6zM2.5 11h6v5h-6zm9 0h6v5h-6z" /><path d="M8.5 6.5h3m-9 7h3m6 0h3" /></svg>;
+    case "steel":
+      return <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={common}><path d="M3 5h14l-2 3H5L3 5Zm2 5h12l-2 3H7l-2-3Zm2 5h10" /></svg>;
+    case "timber":
+      return <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={common}><path d="M5 3.5h10v3H5zm-2 5h14v3H3zm2 5h10v3H5z" /><path d="M7 5h.01M13 10h.01M8 15h.01" /></svg>;
+    case "plasterboard":
+      return <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className={common}><path d="M4 2.5h9l3 3V17H4z" /><path d="M13 2.5v3h3M7 9h6m-6 3h6" /></svg>;
+    case "glass":
+      return <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className={common}><path d="m6 2.5h8l3 6-7 9-7-9 3-6Z" /><path d="M6 2.5 10 17.5m4-15L10 17.5M3 8.5h14" /></svg>;
+    case "other":
+      return <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" className={common}><circle cx="4" cy="10" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="16" cy="10" r="1.5" /></svg>;
+  }
+}
+
+const categoryIconColors: Record<MaterialCategory, string> = {
+  all: "text-[#91bd9a]",
+  concrete: "text-[#6e8a78]",
+  brick: "text-[#d77933]",
+  steel: "text-[#788994]",
+  timber: "text-[#a87838]",
+  plasterboard: "text-[#c28b4d]",
+  glass: "text-[#67978f]",
+  other: "text-[#78847c]",
+};
 
 function MaterialCategoryIcon({ kind }: { kind: "passports" | "volume" }) {
   return kind === "passports" ? (
@@ -37,6 +71,7 @@ export default function Materials() {
   const selectedProject = dataset.projects.find((project) => project.id === selectedProjectId);
   const [category, setCategory] = useState<MaterialCategory>("all");
   const [query, setQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const projectName = (id: string) => dataset.projects.find((project) => project.id === id)?.name ?? id;
   const totalT = dataset.materials.reduce((total, material) => total + material.quantityT, 0);
 
@@ -78,35 +113,60 @@ export default function Materials() {
   }, [category, dataset.materials, dataset.projects, query, selectedProjectId]);
 
   return (
-    <PageMotion className="mx-auto max-w-app pb-16">
+    <PageMotion>
       <PageMeta title="Inventory | GreenLoop" description="Manage recovered construction material and its digital passports." />
 
       <RevealItem>
-        <section className="relative mb-section grid min-h-[230px] overflow-hidden border border-[#e5e1d8] bg-[#192c20] dark:border-steel-800 sm:min-h-[250px] lg:grid-cols-[1fr_auto] rounded-surface">
-          <img src={ambientMedia.brickPallets.src} alt={ambientMedia.brickPallets.alt} className="absolute inset-0 size-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#17291e]/95 via-[#17291e]/72 to-[#17291e]/15" />
-          <div className="relative z-10 flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-9 lg:max-w-[720px]">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#c7d5c8]">GreenLoop Operations</p>
-            <h1 className="mt-2 font-archivo font-bold tracking-tight text-white gl-page-title">{selectedProject?.name ?? <>Inventory</>}</h1>
-            <p className="mt-2 max-w-lg text-sm leading-5 text-white/85 sm:text-base sm:leading-6">Digital records connecting physical material to projects and recovery status.</p>
-            <span className="mt-5 inline-flex w-fit items-center rounded-md border border-white/25 bg-[#102118]/45 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.13em] text-white/90 backdrop-blur-sm">Recovered material, recorded and ready to place</span>
-          </div>
-          <div className="relative z-10 flex flex-wrap items-center gap-3 border-t border-white/20 bg-[#12241a]/80 backdrop-blur-sm lg:my-auto lg:mr-5 lg:rounded-xl lg:border lg:bg-[#f8f7f1] lg:p-4 lg:backdrop-blur-none dark:lg:bg-[#17251d] gl-card-pad">
-            <div className="flex min-w-[130px] flex-1 items-center gap-3 border border-white/15 bg-white/10 px-3 py-2.5 text-white lg:min-w-[142px] lg:border-[#e4e1d8] lg:bg-transparent lg:text-[#26372c] dark:lg:border-steel-700 dark:lg:text-white rounded-surface">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-[#c9dccd] lg:bg-[#edf3ed] lg:text-[#4d7658] dark:lg:bg-[#294334] dark:lg:text-[#b8d2bf]"><MaterialCategoryIcon kind="passports" /></span>
-              <div><p className="font-archivo text-xl font-bold leading-5">{dataset.materials.length}</p><p className="mt-1 text-xs text-white/70 lg:text-[#7d887f] dark:lg:text-gray-400">Active Passports</p></div>
+        <section className="relative">
+          <VideoPanel
+            video={ambientVideo.inventory}
+            aspect="min-h-[540px] sm:min-h-[520px] lg:min-h-[500px]"
+            scrim="bg-gradient-to-r from-[#102018]/90 via-[#102018]/65 to-[#102018]/20"
+            className="w-full rounded-none border-0 shadow-none"
+          >
+            <div className="absolute inset-0 z-10 flex flex-col justify-between px-5 pb-7 pt-24 sm:px-8 sm:pb-8 sm:pt-24 lg:px-10 lg:pb-9 lg:pt-28">
+              <div className="max-w-2xl">
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#12251b]/45 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d2dfd2] backdrop-blur-sm">
+                  <span className="size-1.5 rounded-full bg-[#a6d29d]" />
+                  GreenLoop Operations
+                </span>
+                <h1 className="mt-4 font-archivo text-4xl font-bold leading-[1.02] tracking-tight text-white drop-shadow sm:text-5xl lg:text-[58px]">
+                  {selectedProject?.name ?? <>Materials today.<br />A cleaner tomorrow.</>}
+                </h1>
+                <p className="mt-3 max-w-lg text-sm leading-6 text-white/85 drop-shadow-sm sm:text-base">
+                  Digital records connecting physical material to projects and recovery status.
+                </p>
+                <span className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-white/80">
+                  <span aria-hidden="true" className="text-[#b3d9a8]">↻</span>
+                  Recovered material, recorded and ready to place
+                </span>
+              </div>
+
+              <div className="grid shrink-0 overflow-hidden rounded-[20px] border border-white/20 bg-[#14251c]/60 shadow-lg backdrop-blur-md sm:grid-cols-[1fr_1fr_auto] sm:rounded-full">
+                <div className="flex min-h-[68px] items-center gap-3 border-b border-white/15 px-4 py-3 text-white sm:border-b-0 sm:border-r sm:px-6">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-[#d1e1d2]"><MaterialCategoryIcon kind="passports" /></span>
+                  <div><p className="font-archivo text-xl font-bold leading-5">{dataset.materials.length}</p><p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/65">Active Passports</p></div>
+                </div>
+                <div className="flex min-h-[68px] items-center gap-3 border-b border-white/15 px-4 py-3 text-white sm:border-b-0 sm:border-r sm:px-6">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-[#d1e1d2]"><MaterialCategoryIcon kind="volume" /></span>
+                  <div><p className="font-archivo text-xl font-bold leading-5">{totalT.toFixed(1)} t</p><p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/65">Total Volume</p></div>
+                </div>
+                <Link to={selectedProjectId ? `/app/materials/new?project=${encodeURIComponent(selectedProjectId)}` : "/app/materials/new"} className="inline-flex min-h-[68px] items-center justify-center gap-2 bg-[#d7e6d5] px-5 text-sm font-bold text-[#203a28] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:rounded-r-full sm:px-7">
+                  <span aria-hidden="true" className="text-lg leading-none">+</span> Add New Material
+                </Link>
+              </div>
             </div>
-            <div className="flex min-w-[130px] flex-1 items-center gap-3 border border-white/15 bg-white/10 px-3 py-2.5 text-white lg:min-w-[142px] lg:border-[#e4e1d8] lg:bg-transparent lg:text-[#26372c] dark:lg:border-steel-700 dark:lg:text-white rounded-surface">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-[#c9dccd] lg:bg-[#edf3ed] lg:text-[#4d7658] dark:lg:bg-[#294334] dark:lg:text-[#b8d2bf]"><MaterialCategoryIcon kind="volume" /></span>
-              <div><p className="font-archivo text-xl font-bold leading-5">{totalT.toFixed(1)} t</p><p className="mt-1 text-xs text-white/70 lg:text-[#7d887f] dark:lg:text-gray-400">Total Volume</p></div>
-            </div>
-            <Link to={selectedProjectId ? `/app/materials/new?project=${encodeURIComponent(selectedProjectId)}` : "/app/materials/new"} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#39714b] px-4 text-sm font-semibold text-white transition hover:bg-[#2f613e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:w-auto lg:min-w-[140px]">
-              <span aria-hidden="true" className="text-lg leading-none">+</span> Add New Material
-            </Link>
-          </div>
+          </VideoPanel>
         </section>
       </RevealItem>
 
+      <div className="relative isolate mx-auto max-w-app px-4 pt-8 sm:px-6 xl:px-8">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[220px] overflow-hidden sm:h-[300px] xl:h-[430px]">
+        <img src="/images/site/inventory-nature-concrete.png" alt="" className="absolute inset-y-0 right-0 h-full w-[78%] object-contain object-right-bottom sm:w-[74%] xl:w-[68%]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#f6f5f0_0%,rgba(246,245,240,0.88)_24%,rgba(246,245,240,0.42)_48%,transparent_76%)] dark:bg-[linear-gradient(to_right,#101913_0%,rgba(16,25,19,0.88)_24%,rgba(16,25,19,0.42)_48%,transparent_76%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#f6f5f0_0%,rgba(246,245,240,0.62)_18%,transparent_48%)] dark:bg-[linear-gradient(to_bottom,#101913_0%,rgba(16,25,19,0.62)_18%,transparent_48%)]" />
+      </div>
+      <div className="relative z-10">
       {dataset.materials.length === 0 ? (
         <RevealItem>
           <EmptyState
@@ -117,44 +177,66 @@ export default function Materials() {
         </RevealItem>
       ) : (
         <>
-          <section aria-label="Material categories" className="mb-5 border-b border-[#e4e1d8] dark:border-steel-800">
-            <div className="flex gap-5 overflow-x-auto">
+          <section aria-label="Material categories" className="mb-5">
+            <div className="flex gap-2 overflow-x-auto pb-1">
               {CATEGORY_FILTERS.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   aria-pressed={category === item.id}
                   onClick={() => setCategory(item.id)}
-                  className={`flex shrink-0 items-center gap-1.5 border-b-2 px-0.5 pb-3 pt-1 text-xs font-semibold transition-colors ${category === item.id ? "border-[#4b7956] text-[#315c3d] dark:text-[#c5ddcb]" : "border-transparent text-[#7c857d] hover:text-[#315c3d] dark:text-gray-400 dark:hover:text-white"}`}
+                  className={`flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 text-xs font-semibold transition-all ${category === item.id ? "border-[#123e29] bg-[#123e29] text-white shadow-[0_4px_12px_rgba(18,62,41,0.2)] dark:border-[#9cbea3] dark:bg-[#9cbea3] dark:text-[#14251a]" : "border-[#e3e4dc] bg-white/90 text-[#647068] shadow-[0_2px_6px_rgba(38,52,43,0.04)] hover:border-[#a5b7a7] hover:bg-[#f2f5f0] dark:border-steel-700 dark:bg-[#17251d] dark:text-gray-300 dark:hover:bg-white/[0.05]"}`}
                 >
-                  {item.label} <span className={`text-xs ${category === item.id ? "text-[#66806b] dark:text-[#a9c7b0]" : "text-[#a1a79f]"}`}>({categoryCounts[item.id]})</span>
+                  <span className={category === item.id ? "text-white dark:text-[#315f3d]" : categoryIconColors[item.id]}>
+                    <MaterialFilterIcon category={item.id} />
+                  </span>
+                  {item.label} <span className={`text-[10px] ${category === item.id ? "text-white/70 dark:text-[#294332]" : "text-[#929b92]"}`}>({categoryCounts[item.id]})</span>
                 </button>
               ))}
             </div>
           </section>
 
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs font-medium text-[#7c857d] dark:text-gray-400">Showing {visibleMaterials.length} of {dataset.materials.length} materials</p>
-            <label className="relative block sm:w-[330px]">
-              <span className="sr-only">Search materials</span>
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#7e887f]"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.2 4.2" /></svg>
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search materials, e.g. concrete, brick..."
-                className="h-10 w-full rounded-lg border border-[#e1ded6] bg-white pl-9 pr-3 text-xs text-[#26362c] outline-none transition focus:border-[#64866d] focus:ring-2 focus:ring-[#64866d]/15 dark:border-steel-700 dark:bg-[#17251d] dark:text-white"
-              />
-            </label>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-medium text-[#7c857d] dark:text-gray-400">Showing <span className="font-bold text-[#35483a] dark:text-gray-200">{visibleMaterials.length}</span> of {dataset.materials.length} materials</p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <label className="relative block sm:w-[300px]">
+                <span className="sr-only">Search materials</span>
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#7e887f]"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.2 4.2" /></svg>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search materials..."
+                  className="h-10 w-full rounded-full border border-[#e1ded6] bg-white pl-9 pr-3 text-xs text-[#26362c] outline-none transition focus:border-[#64866d] focus:ring-2 focus:ring-[#64866d]/15 dark:border-steel-700 dark:bg-[#17251d] dark:text-white"
+                />
+              </label>
+              <div aria-label="Material display" className="inline-flex self-start rounded-full border border-[#e1ded6] bg-white p-1 dark:border-steel-700 dark:bg-[#17251d]">
+                {(["grid", "list"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-label={`${mode === "grid" ? "Grid" : "List"} view`}
+                    aria-pressed={viewMode === mode}
+                    onClick={() => setViewMode(mode)}
+                    className={`flex size-8 items-center justify-center rounded-full transition ${viewMode === mode ? "bg-[#315f3d] text-white" : "text-[#78837a] hover:bg-[#f0f3ee] dark:hover:bg-white/[0.06]"}`}
+                  >
+                    {mode === "grid" ? (
+                      <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" className="size-4"><path d="M2.5 2.5h6v6h-6zm9 0h6v6h-6zm-9 9h6v6h-6zm9 0h6v6h-6z" /></svg>
+                    ) : (
+                      <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" className="size-4"><path d="M3 4h14v2H3zm0 5h14v2H3zm0 5h14v2H3z" /></svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {visibleMaterials.length > 0 ? (
-            <ul className="grid gap-card sm:grid-cols-2 xl:grid-cols-3" aria-label="Material passports">
+            <ul className={viewMode === "grid" ? "grid gap-card sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-4"} aria-label="Material passports">
               {visibleMaterials.map((material) => {
                 const allocation = dataset.allocations.find((item) => item.materialId === material.id && item.status !== "cancelled");
-                const candidate = computeMatch(dataset, material.id)[0];
-                const receiverId = allocation?.receiverId ?? candidate?.receiverId;
-                const matchedReceiver = receiverId ? dataset.receivers.find((item) => item.id === receiverId) : undefined;
                 const photoCount = material.evidence.filter((item) => item.kind === "site-photo").length;
                 const chip = material.status === "verified" ? "verified" as const
                   : material.status === "dispatched" ? "active" as const
@@ -163,59 +245,50 @@ export default function Materials() {
 
                 return (
                   <li key={material.id}>
-                    <RevealItem className="h-full">
-                      <article className="group flex h-full flex-col overflow-hidden border border-[#e5e2da] bg-white shadow-[0_2px_10px_rgba(26,42,31,0.035)] transition hover:border-[#bfccbf] hover:shadow-[0_6px_18px_rgba(26,42,31,0.075)] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957] rounded-surface">
-                        <div className="relative aspect-[16/8.5] overflow-hidden bg-[#ecebe5] dark:bg-[#24372b]">
-                          <img src={materialMediaFor(material.type).src} alt={materialMediaFor(material.type).alt} loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#142319]/45 via-transparent to-transparent" />
-                          <span className="absolute bottom-3 left-3 border border-white/30 bg-[#17281e]/75 px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-sm rounded-surface">{materialTypeLabel(material.type)}</span>
-                          <span className="absolute right-3 top-3"><StatusChip status={chip} label={material.status} className="rounded-md px-2 py-1 text-xs font-semibold tracking-normal shadow-sm" /></span>
-                        </div>
-
-                        <div className="flex flex-1 flex-col gl-card-pad">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <h2 className="truncate font-archivo text-lg font-bold tracking-tight text-[#26362c] dark:text-white">{materialTypeLabel(material.type)}</h2>
-                              <p className="mt-0.5 truncate text-xs text-[#7d867e] dark:text-gray-400">
-                                <Link to={`/app/materials?project=${encodeURIComponent(material.projectId)}`} className="font-medium text-[#435d49] hover:text-[#2f6b3e] dark:text-gray-200 dark:hover:text-loop-300">{projectName(material.projectId)}</Link>
-                                <span> · ID {material.id}</span>
-                              </p>
+                        <RevealItem className="h-full">
+                          <article className={`group flex h-full overflow-hidden border border-[#e5e2da] bg-white shadow-[0_3px_14px_rgba(26,42,31,0.045)] transition duration-300 hover:-translate-y-0.5 hover:border-[#bfccbf] hover:shadow-[0_12px_28px_rgba(26,42,31,0.1)] dark:border-steel-800 dark:bg-[#17251d] dark:hover:border-[#506957] rounded-[18px] ${viewMode === "list" ? "flex-col lg:flex-row" : "flex-col"}`}>
+                            <div className={`relative overflow-hidden bg-[#ecebe5] dark:bg-[#24372b] ${viewMode === "list" ? "aspect-[16/8.5] lg:aspect-auto lg:w-[320px] lg:shrink-0" : "aspect-[16/5.5]"}`}>
+                              <img src={materialMediaFor(material.type).src} alt={materialMediaFor(material.type).alt} loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.035]" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-[#142319]/45 via-transparent to-transparent" />
+                              <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full border border-white/25 bg-[#17281e]/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-white backdrop-blur-sm"><span className="text-[#b8d6bc]">◉</span>{materialTypeLabel(material.type)}</span>
+                              <span className="absolute left-2 top-2 rounded-full bg-white/95 p-0.5 shadow-sm"><StatusChip status={chip} label={material.status} className="rounded-full px-2 py-1 text-[10px] font-semibold tracking-normal" /></span>
+                              <div className="absolute right-2 top-2"><RecordActions kind="passport" id={material.id} compact /></div>
                             </div>
-                          </div>
 
-                          <div className="mt-4 grid grid-cols-3 gap-2 border-y border-[#efede7] py-3 dark:border-white/[0.07]">
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-[#929990]">Volume</p>
-                              <p className="mt-1 font-archivo text-base font-bold text-[#26362c] dark:text-white">{material.quantityT.toFixed(1)} <span className="text-xs font-medium text-[#7e887f]">t</span></p>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-[#929990]">Condition</p>
-                              <p className="mt-1 truncate text-xs font-medium capitalize text-[#38483e] dark:text-gray-200">{material.condition} · Grade {material.grade}</p>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-[#929990]">Evidence</p>
-                              <p className="mt-1 truncate text-xs font-medium text-[#38483e] dark:text-gray-200">{photoCount} photos · {material.evidence.length} records</p>
-                            </div>
-                          </div>
+                            <div className="flex flex-1 flex-col p-2.5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <h2 className="truncate font-archivo text-sm font-bold tracking-tight text-[#26362c] dark:text-white">{materialTypeLabel(material.type)}</h2>
+                                  <p className="truncate text-[10px] text-[#7d867e] dark:text-gray-400">
+                                    <Link to={`/app/materials?project=${encodeURIComponent(material.projectId)}`} className="font-medium text-[#435d49] hover:text-[#2f6b3e] dark:text-gray-200 dark:hover:text-loop-300">{projectName(material.projectId)}</Link>
+                                    <span> · ID {material.id}</span>
+                                  </p>
+                                </div>
+                              </div>
 
-                          <div className="mt-3 flex flex-wrap justify-between gap-2 rounded-md bg-[#f6f5f0] px-3 py-2 dark:bg-white/[0.04]"><span className="text-xs font-medium text-[#778078]">{material.pricePerT !== undefined ? formatINRPerT(material.pricePerT) : "Price on request"}</span>{material.pricePerT !== undefined && <span className="text-xs font-bold text-[#26362c] dark:text-white">{formatINR(material.pricePerT * material.quantityT)} total</span>}</div>
+                              <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-xl bg-[#f6f6f1] px-2 py-1.5 dark:bg-white/[0.04]">
+                                <div className="min-w-0">
+                                  <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[#929990]">Volume</p>
+                                  <p className="truncate text-[10px] font-bold text-[#26362c] dark:text-white">{material.quantityT.toFixed(1)} t</p>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[#929990]">Condition</p>
+                                  <p className="truncate text-[10px] font-medium capitalize text-[#38483e] dark:text-gray-200">{material.condition} · Grade {material.grade}</p>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[#929990]">Evidence</p>
+                                  <p className="truncate text-[10px] font-medium text-[#38483e] dark:text-gray-200">{photoCount} photos · {material.evidence.length} records</p>
+                                </div>
+                              </div>
 
-                          {matchedReceiver ? (
-                            <p className="mt-3 flex items-start gap-1.5 text-xs leading-4 text-[#778078] dark:text-gray-400">
-                              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="mt-0.5 size-3.5 shrink-0 text-[#54805e]"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>
-                              <span>{allocation ? "Matched with" : "Suggested"}: <span className="font-semibold text-[#415749] dark:text-gray-200">{matchedReceiver.name}</span></span>
-                            </p>
-                          ) : <div className="mt-3 min-h-4" />}
-
-                          <div className="mt-auto flex flex-wrap gap-2 pt-4">
-                            <div className="basis-full"><RecordActions kind="passport" id={material.id} /></div>
-                            <Link to={`/app/materials/${material.id}`} className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#315f3d] px-3 text-xs font-semibold text-white transition hover:bg-[#274d32] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315f3d] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#17251d]">
-                              View passport <span aria-hidden="true">→</span>
-                            </Link>
-                            {!allocation && (
-                              <Link to="/app/market-demand?view=receivers" state={{ materialId: material.id }} className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border border-[#cbd4ca] bg-white px-3 text-xs font-semibold text-[#3f5946] transition hover:bg-[#f0f4ef] dark:border-steel-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-white/[0.05]">
-                                Find receiver
-                              </Link>
+                              <div className="mt-auto grid grid-cols-2 gap-1.5 pt-1.5">
+                                <Link to={`/app/materials/${material.id}`} className={`inline-flex min-h-7 items-center justify-center gap-1 rounded-full bg-[#315f3d] px-2 text-[10px] font-semibold text-white transition hover:bg-[#274d32] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315f3d] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#17251d] ${allocation ? "col-span-2" : ""}`}>
+                                  View passport <span aria-hidden="true">→</span>
+                                </Link>
+                                {!allocation && (
+                                  <Link to="/app/market-demand?view=receivers" state={{ materialId: material.id }} className="inline-flex min-h-8 items-center justify-center rounded-full border border-[#cbd4ca] bg-white px-2 text-[10px] font-semibold text-[#3f5946] transition hover:bg-[#f0f4ef] dark:border-steel-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-white/[0.05]">
+                                    Find receiver
+                                  </Link>
                             )}
                           </div>
                         </div>
@@ -234,6 +307,8 @@ export default function Materials() {
           )}
         </>
       )}
+      </div>
+      </div>
     </PageMotion>
   );
 }
