@@ -53,7 +53,6 @@ const referenceItems: NavItem[] = [
 
 const receiverNavItems: NavItem[] = [
   { icon: <GridIcon fontSize={24} />, name: "Home", key: "explore", path: "/app/receiver/overview" },
-  { icon: <BoxMoving fontSize={24} />, name: "Inventory", key: "receiverInventory", path: "/app/receiver/inventory" },
   { icon: <BoxTapped fontSize={24} />, name: "Requests", key: "receiverDemand", path: "/app/receiver/demand" },
   { icon: <BoxIconLine fontSize={24} />, name: "Providers", key: "providers", path: "/app/receiver/providers" },
   { icon: <BoxMoving fontSize={24} />, name: "My Orders", key: "bookings-deliveries", path: "/app/bookings-deliveries" },

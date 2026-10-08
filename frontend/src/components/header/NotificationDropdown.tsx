@@ -14,14 +14,8 @@ interface ActivityItem {
   time: string;
   href: string;
   tone: "confirmed" | "hold" | "rejected" | "neutral";
+  icon: "offer" | "material" | "project" | "delivery" | "activity";
 }
-
-const toneDot: Record<ActivityItem["tone"], string> = {
-  confirmed: "bg-loop-500",
-  hold: "bg-signal-500",
-  rejected: "bg-error-500",
-  neutral: "bg-steel-400",
-};
 
 const toneText: Record<ActivityItem["tone"], string> = {
   confirmed: "text-loop-700 dark:text-loop-300",
@@ -65,6 +59,15 @@ export default function NotificationDropdown() {
       time: formatStamp(event.at),
       href,
       tone: event.kind.includes("hold") ? "hold" : event.kind.includes("reject") || event.kind.includes("cancel") ? "rejected" : event.kind.includes("confirm") || event.kind.includes("verified") ? "confirmed" : "neutral",
+      icon: event.kind.startsWith("offer.")
+        ? "offer"
+        : event.kind.startsWith("material.")
+          ? "material"
+          : event.kind.startsWith("project.")
+            ? "project"
+            : event.kind.startsWith("delivery.") || event.kind.startsWith("load.")
+              ? "delivery"
+              : "activity",
     };
   });
   const [isOpen, setIsOpen] = useState(false);
@@ -116,15 +119,21 @@ export default function NotificationDropdown() {
       <Dropdown
         isOpen={isOpen}
         onClose={closeDropdown}
-        className="absolute -inset-s-13.5 mt-4.25 flex h-120 w-87.5 flex-col rounded-lg border border-steel-200 bg-white p-3 shadow-theme-lg sm:w-90.25 xl:inset-s-auto xl:inset-e-0 dark:border-steel-800 dark:bg-gray-dark"
+        className="absolute inset-e-0 top-full z-[100000] mt-2 flex h-[min(62vh,30rem)] max-h-[calc(100dvh-1.5rem)] w-[min(390px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[18px] border border-[#e2e5db] bg-[#fbfaf5] p-3 shadow-[0_16px_44px_rgba(11,36,22,0.2)] dark:border-steel-700 dark:bg-[#15251b]"
       >
-        <div className="mb-3 flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-700">
-          <h5 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-            Activity
-          </h5>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-24 overflow-hidden opacity-70">
+          <img src="/images/site/inventory-nature-concrete.png" alt="" className="absolute bottom-0 right-0 h-full w-2/3 object-contain object-right-bottom" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#fbfaf5_0%,rgba(251,250,245,0.84)_35%,rgba(251,250,245,0.12)_78%,transparent)] dark:bg-[linear-gradient(to_right,#15251b_0%,rgba(21,37,27,0.84)_35%,rgba(21,37,27,0.12)_78%,transparent)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,#fbfaf5_0%,transparent_48%)] dark:bg-[linear-gradient(to_bottom,#15251b_0%,transparent_48%)]" />
+        </div>
+        <div className="relative z-10 mb-2.5 flex shrink-0 items-center justify-between border-b border-[#e5e4dc] px-1 pb-2.5 dark:border-white/10">
+          <div>
+            <h2 className="font-archivo text-xl font-bold tracking-tight text-[#102e21] dark:text-white">Activity</h2>
+            <p className="mt-0.5 text-[11px] text-[#87918a] dark:text-gray-300">Your latest updates and actions</p>
+          </div>
           <button
             onClick={toggleDropdown}
-            className="text-gray-500 transition hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#f3f1e9] text-[#3c5145] transition hover:bg-[#e9eee7] dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
             aria-label="Close activity"
           >
             <svg
@@ -144,39 +153,46 @@ export default function NotificationDropdown() {
           </button>
         </div>
 
-        <ul className="flex custom-scrollbar h-auto flex-col overflow-y-auto">
-          {items.length === 0 && <li className="p-4 text-sm text-gray-500 dark:text-gray-400">No activity has been recorded.</li>}
-          {items.map((item) => (
-            <li key={item.id}>
+        <ul className="relative z-10 flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-0.5 py-0.5 custom-scrollbar">
+          {items.length === 0 && <li className="rounded-2xl bg-[#edf4e9] p-3 text-xs text-[#536259] dark:bg-white/[0.06] dark:text-gray-300">No activity has been recorded.</li>}
+          {items.map((item, index) => (
+            <li key={item.id} className="shrink-0">
               <DropdownItem
                 tag="a"
                 to={item.href}
                 onItemClick={() => { closeDropdown(); void markNotificationsReadAction([item.id]); }}
-                className="flex gap-3 border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
+                baseClassName="group flex min-h-[58px] w-full items-center gap-2 rounded-full px-2 py-1.5 text-start transition-colors"
+                className={index % 2 === 0
+                  ? "bg-[#eaf2e6]/90 hover:bg-[#e1eddb] dark:bg-[#294334]/80 dark:hover:bg-[#31513b]"
+                  : "bg-[#f4f1e9]/95 hover:bg-[#eeece3] dark:bg-white/[0.06] dark:hover:bg-white/[0.1]"}
               >
-                <span
-                  className={cn(
-                    "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                    readIds.has(item.id) ? "bg-steel-300" : toneDot[item.tone],
-                  )}
-                  aria-hidden="true"
-                />
+                <span className={cn(
+                  "relative flex size-9 shrink-0 items-center justify-center rounded-full",
+                  index % 2 === 0 ? "bg-[#175238] text-white" : "bg-[#dfecd9] text-[#164b32] dark:bg-[#36543e] dark:text-white",
+                )} aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" className="size-5">
+                    {item.icon === "offer" && <><path d="M7 3h7l5 5v7" /><path d="M14 3v5h5" /><path d="M7 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" /><path d="M8 12h6m-6 4h4" /><path d="m16 18 2 2 4-4" /></>}
+                    {item.icon === "material" && <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4 7.5 8 4.5 8-4.5M12 12v9" /></>}
+                    {item.icon === "project" && <><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" /><path d="M3 10h18" /></>}
+                    {item.icon === "delivery" && <><path d="M3 6h11v11H3z" /><path d="M14 10h4l3 3v4h-7z" /><circle cx="7.5" cy="18" r="1.5" /><circle cx="17.5" cy="18" r="1.5" /></>}
+                    {item.icon === "activity" && <><path d="M4 12h4l2.5-7 4 14 2.5-7h3" /><circle cx="12" cy="12" r="9" /></>}
+                  </svg>
+                  {!readIds.has(item.id) && <span className="absolute end-1 top-1 size-2.5 rounded-full border-2 border-[#eaf2e6] bg-[#d99b44]" />}
+                </span>
 
-                <span className="block">
-                  <span className="mb-1.5 block space-x-1 text-theme-sm text-gray-500 dark:text-gray-400">
-                    <span className="font-medium text-gray-800 dark:text-white/90">
-                      {item.actor}
-                    </span>
-                    <span>{item.message}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block line-clamp-2 text-[11px] font-medium leading-4 text-[#22382c] dark:text-white">
+                    <span className="font-bold text-[#102e21] dark:text-white">{item.actor}</span>{" "}
+                    <span className={cn("font-semibold", toneText[item.tone])}>{item.message}</span>
                   </span>
-
-                  <span className="flex items-center gap-2 text-theme-xs text-gray-500 dark:text-gray-400">
-                    <span className={cn("font-medium", toneText[item.tone])}>
-                      {item.label}
-                    </span>
-                    <span className="h-1 w-1 rounded-full bg-gray-400"></span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] text-[#7b837d] dark:text-gray-300">
+                    <span>{item.label}</span>
+                    <span aria-hidden="true" className="size-1 rounded-full bg-[#9ba39b]" />
                     <span className="ledger-numeral">{item.time}</span>
                   </span>
+                </span>
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/65 text-[#1c5439] transition group-hover:translate-x-0.5 group-hover:bg-white dark:bg-black/10 dark:text-[#d6ebd8]" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-3.5"><path d="m9 18 6-6-6-6" /></svg>
                 </span>
               </DropdownItem>
             </li>
@@ -185,9 +201,13 @@ export default function NotificationDropdown() {
         <Link
           to="/app/audit-trail"
           onClick={closeDropdown}
-          className="mt-3 block rounded-lg border border-steel-300 bg-white px-4 py-2 text-center text-sm font-medium text-ink-800 hover:bg-steel-50 dark:border-steel-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+          className="relative z-10 mt-2.5 flex min-h-[44px] shrink-0 items-center gap-2.5 rounded-xl bg-[#0d3a27] px-3 text-xs font-semibold text-white shadow-[0_6px_16px_rgba(11,53,32,0.18)] transition hover:bg-[#155037]"
         >
-          View full audit trail
+          <span className="flex size-8 items-center justify-center rounded-lg bg-white/15 text-white">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="M4 20V10m5 10V4m5 16v-7m5 7V7" /><path d="M2 20h20" /></svg>
+          </span>
+          <span className="flex-1">View full audit trail</span>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-3.5"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>
         </Link>
       </Dropdown>
     </div>

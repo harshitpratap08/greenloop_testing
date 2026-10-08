@@ -31,8 +31,10 @@ export default function DemandCapacity({ demand, dataset, receiverId, addCapacit
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const dateFits = slotMatchesDemandPeriod({ date }, demand.period);
   const expired = !slotMatchesDemandPeriod({ date: today }, demand.period);
+  const savedPlan = usable[0];
   const chooseDate = (value: string) => {
     setDate(value);
     const existing = slots.find(slot => slot.date === value);
@@ -59,11 +61,31 @@ export default function DemandCapacity({ demand, dataset, receiverId, addCapacit
     } finally { setSaving(false); }
   };
 
-  return <section className="mt-5 border border-steel-200 bg-steel-50/50 p-4 dark:border-steel-700 dark:bg-white/[0.02] rounded-surface" aria-label={t("receivingPlan.title")}>
-    <h4 className="font-archivo text-base font-bold text-ink-900 dark:text-white">{t("receivingPlan.title")}</h4>
-    <p className="mt-1 text-sm text-steel-600 dark:text-steel-400">{t("receivingPlan.intro", { material: materialTypeLabel(demand.materialType), deadline: deadline ? formatDate(deadline) : demand.period })}</p>
+  return <section className="mt-4 rounded-xl border border-steel-200 bg-steel-50/50 p-3 dark:border-steel-700 dark:bg-white/[0.02]" aria-label={t("receivingPlan.title")}>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="min-w-0">
+        <h4 className="text-sm font-semibold text-ink-900 dark:text-white">{t("receivingPlan.title")}</h4>
+        {savedPlan ? (
+          <p className="mt-1 text-xs text-steel-600 dark:text-steel-400">
+            {formatDate(savedPlan.date)} <span aria-hidden="true">·</span> Receiving capacity {savedPlan.capacityT.toFixed(1)} t
+          </p>
+        ) : (
+          <p className="mt-1 text-xs text-steel-600 dark:text-steel-400">Receiving plan not set</p>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => setIsEditing(value => !value)}
+        aria-expanded={isEditing}
+        className="shrink-0 text-xs font-semibold text-loop-700 transition hover:text-loop-900 dark:text-loop-300 dark:hover:text-loop-200"
+      >
+        {isEditing ? "Close" : savedPlan ? "Change →" : "Set receiving plan →"}
+      </button>
+    </div>
+    {isEditing && <>
+    <p className="mt-3 text-sm text-steel-600 dark:text-steel-400">{t("receivingPlan.intro", { material: materialTypeLabel(demand.materialType), deadline: deadline ? formatDate(deadline) : demand.period })}</p>
     <p className="mt-2 text-xs text-steel-500 dark:text-steel-400">{t("offerChecks.automaticDate")}</p>
-    {expired ? <p role="alert" className="mt-3 text-sm text-warning-700 dark:text-warning-400">{t("receivingPlan.expired")}</p> : <form onSubmit={save} className="mt-4 grid items-end gap-detail sm:grid-cols-3">
+    {expired ? <p role="alert" className="mt-3 text-sm text-warning-700 dark:text-warning-400">{t("receivingPlan.expired")}</p> : <form onSubmit={save} className="mt-3 grid items-end gap-detail sm:grid-cols-3">
       <label className="text-sm font-medium text-steel-700 dark:text-steel-300">{t("receivingPlan.date")}
         <input type="date" required min={today} max={deadline} value={date} disabled={saving} onChange={event => chooseDate(event.target.value)} className="mt-1 block min-h-11 w-full border border-steel-300 bg-white px-3 text-sm dark:border-steel-700 dark:bg-ink-900 dark:text-white rounded-surface" />
       </label>
@@ -90,5 +112,6 @@ export default function DemandCapacity({ demand, dataset, receiverId, addCapacit
         <ul className="mt-2 space-y-1">{other.map(slot => <li key={slot.id}>{formatDate(slot.date)} · {t(slot.date < today ? "receivingPlan.past" : "receivingPlan.tooLate")}</li>)}</ul>
       </details>}
     </div>
+    </>}
   </section>;
 }

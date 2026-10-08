@@ -8,7 +8,7 @@ import { useNavigate } from "react-router";
 
 type Fields = { material: string; quantity: string; date: string; price: string; location: string; notes: string; condition: string; grade: string };
 
-export default function RecordActions({ kind, id, redirectAfterDelete }: { kind: "passport" | "request"; id: string; redirectAfterDelete?: string }) {
+export default function RecordActions({ kind, id, redirectAfterDelete, compact = false }: { kind: "passport" | "request"; id: string; redirectAfterDelete?: string; compact?: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { dataset, updateMaterialAction, deleteMaterialAction, updateDemandAction, deleteDemandAction } = useGreenLoopStore();
@@ -51,7 +51,19 @@ export default function RecordActions({ kind, id, redirectAfterDelete }: { kind:
   };
   const inputClass = "mt-1 block min-h-11 w-full rounded-lg border border-steel-300 bg-white px-3 text-sm disabled:bg-steel-100 dark:border-steel-700 dark:bg-ink-900 dark:text-white dark:disabled:bg-steel-800";
   return <div className="space-y-2">
-    <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={editBlocked} onClick={() => open("edit")}>{t("recordCrud.edit")}</Button><Button size="sm" variant="outline" disabled={hasOrders} onClick={() => open("delete")}>{t("recordCrud.delete")}</Button></div>
+    {compact ? (
+      <details className="relative">
+        <summary aria-label="Passport actions" className="flex size-8 cursor-pointer list-none items-center justify-center rounded-full bg-white/95 text-[#34493a] shadow-sm transition hover:bg-white [&::-webkit-details-marker]:hidden">
+          <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" className="size-4"><circle cx="4" cy="10" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="16" cy="10" r="1.5" /></svg>
+        </summary>
+        <div className="absolute right-0 top-9 z-20 min-w-32 rounded-xl border border-[#e2e5de] bg-white p-1.5 shadow-lg dark:border-steel-700 dark:bg-[#17251d]">
+          <button type="button" disabled={editBlocked} onClick={() => open("edit")} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#34493a] transition hover:bg-[#f1f4ef] disabled:cursor-not-allowed disabled:opacity-50 dark:text-white dark:hover:bg-white/[0.06]">{t("recordCrud.edit")}</button>
+          <button type="button" disabled={hasOrders} onClick={() => open("delete")} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#9b3e35] transition hover:bg-[#fbf0ee] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-white/[0.06]">{t("recordCrud.delete")}</button>
+        </div>
+      </details>
+    ) : (
+      <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={editBlocked} onClick={() => open("edit")}>{t("recordCrud.edit")}</Button><Button size="sm" variant="outline" disabled={hasOrders} onClick={() => open("delete")}>{t("recordCrud.delete")}</Button></div>
+    )}
     {hasOrders && <p className="text-xs text-steel-500 dark:text-steel-400">{t(isPassport ? "recordCrud.passportLinked" : "recordCrud.requestLinked")}</p>}
     {success && <p role="status" className="text-xs text-loop-700 dark:text-loop-300">{t("recordCrud.saved")}</p>}
     <Modal isOpen={isOpen} onClose={() => { if (!saving) closeModal(); }} showCloseButton={!saving} className="mx-4 max-w-xl p-5 sm:p-7">

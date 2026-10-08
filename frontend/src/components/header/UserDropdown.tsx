@@ -9,7 +9,7 @@ import { useNavigate } from "react-router";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 
-export default function UserDropdown() {
+export default function UserDropdown({ overlay = false }: { overlay?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubDropdownOpen, setIsSubDropdownOpen] = useState(false);
   const subDropdownRef = useRef<HTMLLIElement>(null);
@@ -50,18 +50,22 @@ export default function UserDropdown() {
     <div className="relative">
       <button
         onClick={toggleDropdown}
-        className="dropdown-toggle flex items-center rounded-full text-[#344339] transition-colors hover:bg-[#e9eee8] xl:rounded-lg xl:px-2 xl:py-1"
+        className={`dropdown-toggle flex items-center rounded-full transition-colors xl:rounded-lg xl:px-2 xl:py-1 ${
+          overlay
+            ? "text-white hover:bg-white/15"
+            : "text-[#344339] hover:bg-[#e9eee8]"
+        }`}
       >
         <span className="me-2 size-8 shrink-0 overflow-hidden rounded-full border border-[#dfe3dc] sm:size-9 xl:size-10">
           <img src="/images/user/owner.png" alt="" className="size-full object-cover" />
         </span>
 
         <span className="me-1 hidden text-start md:block">
-          <span className="block text-xs font-semibold leading-4 text-[#28342b]">{user?.name || user?.email || "Site Manager"}</span>
-          <span className="block text-[10px] leading-4 text-[#748078]">{user?.activeWorkspace === "receiver" ? "Receiver" : "Provider"}</span>
+          <span className={`block text-xs font-semibold leading-4 ${overlay ? "text-white" : "text-[#28342b]"}`}>{user?.name || user?.email || "Site Manager"}</span>
+          <span className={`block text-[10px] leading-4 ${overlay ? "text-white/75" : "text-[#748078]"}`}>{user?.activeWorkspace === "receiver" ? "Receiver" : "Provider"}</span>
         </span>
         <svg
-          className={`hidden stroke-[#718075] transition-transform duration-200 xl:block ${
+          className={`hidden transition-transform duration-200 xl:block ${overlay ? "stroke-white/80" : "stroke-[#718075]"} ${
             isOpen ? "rotate-180" : ""
           }`}
           width="18"

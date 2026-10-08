@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { cn } from "@/utils";
 
 /**
- * Compact discovery-page control: [ Search ] [ Filters ].
+ * Compact discovery-page control: [ Search ] [ Filters ] … [actions].
  *
  * The filter panel is CLOSED by default so the page leads with its content.
  * Existing filter fields are passed unchanged as `filters`; opening the panel
@@ -17,6 +17,7 @@ export default function SearchFilterBar({
   activeFilterCount = 0,
   onClearFilters,
   resultLabel,
+  actions,
   className,
 }: {
   searchValue: string;
@@ -28,6 +29,8 @@ export default function SearchFilterBar({
   activeFilterCount?: number;
   onClearFilters?: () => void;
   resultLabel?: ReactNode;
+  /** Right-aligned controls after Filters (e.g. sort select, view toggle). */
+  actions?: ReactNode;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -67,6 +70,7 @@ export default function SearchFilterBar({
           )}
         </button>
         {resultLabel && <p className="ms-auto text-xs font-medium text-steel-500 dark:text-gray-400">{resultLabel}</p>}
+        {actions && <div className="ms-auto flex shrink-0 items-center gap-2 empty:hidden">{actions}</div>}
       </div>
       {open && (
         <div className="mt-3 border border-steel-200 bg-white p-4 dark:border-steel-800 dark:bg-white/[0.02] rounded-surface">

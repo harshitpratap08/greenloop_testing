@@ -1,13 +1,21 @@
 import { SidebarProvider } from "@/context/SidebarContext";
 import { useSidebar } from "@/context/SidebarContext.helpers";
 import { cn } from "@/utils";
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import AppHeader from "./AppHeader";
 import AppSidebar from "./AppSidebar";
 import Backdrop from "./Backdrop";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+  const { pathname } = useLocation();
+  const isWorkspaceHome = pathname === "/app/explore" || pathname === "/app/receiver/overview";
+  const isInventory = pathname === "/app/materials";
+  const isActiveDemand = pathname === "/app/market-demand";
+  const isReceiverDemand = pathname === "/app/receiver/demand";
+  const isProviderDirectory = pathname === "/app/receiver/providers";
+  const isMyOrders = pathname === "/app/bookings-deliveries";
+  const isReceiverVerification = pathname === "/app/receiver/verification";
 
   return (
     <div className="relative min-h-screen bg-[#f6f5f0] text-[#26342b] transition-colors duration-300 dark:bg-[#101913] dark:text-[#f2f3ef] xl:flex">
@@ -17,13 +25,28 @@ const LayoutContent: React.FC = () => {
 
       <div
         className={cn(
-          "min-w-0 flex-1 transition-[margin] duration-300 ease-in-out",
+          "relative min-w-0 flex-1 transition-[margin] duration-300 ease-in-out",
           isExpanded || isHovered ? "xl:ms-72.5" : "xl:ms-22.5",
           isMobileOpen ? "ms-0" : "",
         )}
       >
-        <AppHeader />
-        <main className="greenloop-workspace mx-auto w-full max-w-app p-4 sm:p-card xl:p-section">
+        <AppHeader overlay={isWorkspaceHome || isInventory || isActiveDemand || isReceiverDemand || isProviderDirectory || isMyOrders || isReceiverVerification} lightOverlay={isMyOrders} />
+        <main
+          className={cn(
+            "greenloop-workspace mx-auto w-full",
+            isWorkspaceHome
+              ? "max-w-none p-0"
+              : isInventory
+                ? "max-w-none p-0"
+              : isActiveDemand
+                ? "max-w-none p-0"
+              : isReceiverDemand
+                ? "max-w-none p-0"
+              : isProviderDirectory || isMyOrders || isReceiverVerification
+                ? "max-w-none p-0"
+              : "max-w-app p-4 sm:p-card xl:p-section",
+          )}
+        >
           <Outlet />
         </main>
       </div>

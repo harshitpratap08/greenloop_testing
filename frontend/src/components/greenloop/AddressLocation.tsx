@@ -21,6 +21,7 @@ export default function AddressLocation({
   placeholder = "Search address…",
   label = "Location",
   required = false,
+  showMapPreview = true,
   className = "",
 }: {
   address: string;
@@ -32,6 +33,7 @@ export default function AddressLocation({
   placeholder?: string;
   label?: string;
   required?: boolean;
+  showMapPreview?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -134,7 +136,7 @@ export default function AddressLocation({
         </p>
       )}
       <p className="mt-1.5 text-xs leading-4 text-steel-500 dark:text-gray-400">Type an address or pick a suggestion. The written address is the source of truth{geo ? "; the pin is stored as optional coordinates." : "; coordinates are optional."}</p>
-      {geo && (
+      {showMapPreview && geo && (
         <div className="mt-2">
           <LocationMap geo={geo} size="sm" />
           <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-steel-500 dark:text-gray-400">
