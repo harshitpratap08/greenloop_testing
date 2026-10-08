@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname, basename } from 'node:path';
-import { createBackend } from '../src/app.mjs';
+import { createBackend } from './databaseHarness.mjs';
 
 test('passport and request CRUD preserves ownership, order commitments and deleted record identities', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'greenloop-crud-'));

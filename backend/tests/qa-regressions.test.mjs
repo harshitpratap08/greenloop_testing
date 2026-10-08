@@ -64,7 +64,7 @@ test('auction award lets the winning receiver propose destination and slot befor
     const sponsorable = (await action(provider, 'addMaterialAction', { projectId: project.id, type: 'brick', quantityT: 2, quantityRangeT: [2, 2], condition: 'good', grade: 'B', confidence: 1, evidence: [] })).result;
     await provider('/monetization/sponsorship', 'POST', { materialId: sponsorable.id, days: 7 }, 201);
     await action(provider, 'deleteMaterialAction', sponsorable.id);
-    const refundRequired = await waitFor(() => provider('/monetization/me'), value => value.attempts.some(item => item.productType === 'sponsored_listing' && item.targetId?.startsWith(`${sponsorable.id}:`) && ['refund_pending', 'refunded'].includes(item.status)));
+    const refundRequired = await waitFor(() => provider('/monetization/me'), value => value.attempts.some(item => item.productType === 'sponsored_listing' && item.targetId?.startsWith(`${sponsorable.id}:`) && item.status === 'refunded'));
     assert.ok(refundRequired.attempts.some(item => item.productType === 'sponsored_listing' && item.targetId?.startsWith(`${sponsorable.id}:`) && ['refund_pending', 'refunded'].includes(item.status)));
   } finally {
     await new Promise(resolve => server.close(resolve));

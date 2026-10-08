@@ -5,12 +5,12 @@ GreenLoop connects construction and demolition material providers with receivers
 ## Architecture
 
 - `frontend/` — React 19, TypeScript, Vite 8, Tailwind CSS 4, client routing, UI state, and static assets.
-- `backend/` — Node 24 HTTP API, authentication, validation, SQLite access, workflow actions, and integration tests.
+- `backend/` — Node 24 HTTP API, authentication, validation, SQLite/Supabase PostgreSQL persistence, workflow actions, and integration tests.
 - `shared/domain/` — pure GreenLoop domain types, matching and capacity rules, and metrics used by the frontend and backend.
 - `scripts/` — development process runner and HTTP/runtime audit utilities.
 - `docs/audits/` — retained baseline audit reports.
 
-Frontend and backend are npm workspaces with one root lockfile. The API uses Node's built-in HTTP and SQLite modules; it has no third-party runtime dependencies. Backend responsibilities currently live in `backend/src/app.mjs` and `backend/src/actions.ts`; `backend/src/server.mjs` handles process startup. The API implementation stays cohesive to preserve its existing endpoint and transaction behavior.
+Frontend and backend are npm workspaces with one root lockfile. The API uses Node's HTTP module, `pg` for Supabase PostgreSQL, the official Supabase client for private evidence storage, and Node's SQLite module for explicit fallback. Backend responsibilities live in `backend/src/app.mjs` and `backend/src/actions.ts`; `backend/src/server.mjs` handles process startup. See the [Supabase migration guide](./docs/SUPABASE_MIGRATION.md) for schema, setup, import, verification and rollback. The frontend and business workflow remain unchanged.
 
 ## Requirements and setup
 
@@ -36,7 +36,7 @@ Create and onboard the initial administrator as a normal GreenLoop account, stop
 npm.cmd run dev
 ```
 
-The combined development command starts Vite at `http://localhost:5173` and the API at `http://localhost:3001`. The API creates its SQLite database at `server/data/greenloop.sqlite`; this existing location is retained to preserve application data. Back up the database using SQLite-aware tools or while the API is stopped, and keep its directory on persistent storage.
+The combined development command starts Vite at `http://localhost:5173` and the API at `http://localhost:3001`. The default `.env.example` selects SQLite at `server/data/greenloop.sqlite` until Supabase is configured. Set `DATABASE_PROVIDER=postgres` and follow the migration guide to use a shared database and Storage bucket. Back up SQLite using SQLite-aware tools or while the API is stopped; retain it as a fallback.
 
 To run either application separately:
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname, basename } from 'node:path';
-import { createBackend } from '../src/app.mjs';
+import { createBackend } from './databaseHarness.mjs';
 import { createMockPaymentProvider } from '../src/services/payment-provider.mock.mjs';
 import { receiverCapacityTotals } from '../../shared/domain/metrics.ts';
 
